@@ -18,6 +18,11 @@ export async function updateOrderStatus(actorUserId:string,orderId:string,nextSt
       const items=await tx.orderItem.findMany({where:{orderId:order.id},select:{productId:true,variantId:true,quantity:true}});
       for(const item of items){const result=await tx.inventory.updateMany({where:item.variantId?{variantId:item.variantId,reserved:{gte:item.quantity}}:{productId:item.productId,reserved:{gte:item.quantity}},data:{available:{increment:item.quantity},reserved:{decrement:item.quantity}}});if(result.count!==1)throw new Error("Reserved stock is inconsistent for cancelled order.");}
     }
+    if(nextStatus===OrderStatus.REFUNDED){
+      const payment=await tx.payment.findUnique({where:{orderId:order.id}});
+      if(!payment || (payment.status!=="PAID" && payment.status!=="PARTIALLY_REFUNDED")) throw new Error("Only a paid order can be refunded.");
+      await tx.payment.update({where:{id:payment.id},data:{status:"REFUNDED"}});
+    }
     if(nextStatus===OrderStatus.RETURNED){
       const items=await tx.orderItem.findMany({where:{orderId:order.id},select:{productId:true,variantId:true,quantity:true}});
       for(const item of items){const result=await tx.inventory.updateMany({where:item.variantId?{variantId:item.variantId}:{productId:item.productId},data:{available:{increment:item.quantity}}});if(result.count!==1)throw new Error("Inventory record not found for returned item.");}
