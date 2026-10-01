@@ -81,14 +81,13 @@ export async function updateProductCatalog(
   return db.$transaction(async (tx) => {
     await tx.product.update({ where: { id }, data: input });
     if (!images && !variants) return tx.product.findUniqueOrThrow({ where: { id }, include: { inventory: true, images: { orderBy: { sortOrder: "asc" } }, variants: { include: { inventory: true }, orderBy: { sku: "asc" } }, categories: { include: { category: true } } } });
-    const existingImages = await tx.productImage.findMany({ where: { productId: id } });
-    const imageIds = new Set((images ?? []).filter((x) => x.id).map((x) => x.id!));
-    for (const old of existingImages) if (!imageIds.has(old.id)) await tx.productImage.delete({ where: { id: old.id } });
-    for (const [index, image] of (images ?? []).entries()) {
-      if (image.id) {
-        await tx.productImage.update({ where: { id: image.id }, data: { url: image.url, altText: image.altText ?? null, sortOrder: image.sortOrder ?? index } });
-      } else {
-        await tx.productImage.create({ data: { productId: id, url: image.url, altText: image.altText ?? null, sortOrder: image.sortOrder ?? index } });
+    if (images) {
+      const existingImages = await tx.productImage.findMany({ where: { productId: id } });
+      const imageIds = new Set(images.filter((x) => x.id).map((x) => x.id!));
+      for (const old of existingImages) if (!imageIds.has(old.id)) await tx.productImage.delete({ where: { id: old.id } });
+      for (const [index, image] of images.entries()) {
+        if (image.id) await tx.productImage.update({ where: { id: image.id }, data: { url: image.url, altText: image.altText ?? null, sortOrder: image.sortOrder ?? index } });
+        else await tx.productImage.create({ data: { productId: id, url: image.url, altText: image.altText ?? null, sortOrder: image.sortOrder ?? index } });
       }
     }
 
