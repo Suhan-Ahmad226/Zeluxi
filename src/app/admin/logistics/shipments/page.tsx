@@ -1,0 +1,1 @@
+import {AdminSection} from "@/components/admin/admin-section";export default function Page(){return <AdminSection title="Shipments" description="Review and manage shipments." items={["Pending","Processing","In Transit","Out for Delivery","Delivered","Returned"]}/>}
