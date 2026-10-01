@@ -1,0 +1,1 @@
+import {InfoPage} from "@/components/content/info-page";export default function Page(){return <InfoPage title="Login Activity" description="Review recent account authentication activity." sections={[{title:"Account",body:"If you notice activity you do not recognize, change your password and contact support."}]}/>}
