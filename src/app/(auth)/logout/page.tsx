@@ -1,0 +1,1 @@
+"use client";import {useEffect} from "react";import {useRouter} from "next/navigation";import {createSupabaseBrowserClient} from "@/lib/auth/browser";export default function Page(){const router=useRouter();useEffect(()=>{createSupabaseBrowserClient().auth.signOut().finally(()=>router.replace("/"))},[router]);return <main className="px-4 py-16 text-center">Signing out…</main>}
