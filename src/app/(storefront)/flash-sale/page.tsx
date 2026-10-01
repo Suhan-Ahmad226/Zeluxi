@@ -1,0 +1,1 @@
+import {InfoPage} from "@/components/content/info-page"; export default function Page(){return <InfoPage title="Flash Sale" description="Limited-time offers with clearly stated availability." sections={[{title:"Availability",body:"Flash-sale inventory can change quickly. Items remain subject to stock availability and the terms displayed with each promotion."}]}/>}
