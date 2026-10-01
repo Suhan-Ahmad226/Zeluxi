@@ -1,0 +1,1 @@
+import {InfoPage} from "@/components/content/info-page";export default function Page(){return <InfoPage title="Warranty Policy" description="Warranty terms for eligible products." sections={[{title:"Coverage",body:"Warranty coverage, duration and exclusions follow the applicable product or manufacturer terms."}]}/>}
