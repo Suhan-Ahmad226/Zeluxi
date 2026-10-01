@@ -12,6 +12,25 @@ async function confirmOrderReservedStock(tx: any, orderId: string) {
   }
 }
 
+export async function markPaymentFailed(providerReference:string){
+  return db.$transaction(async tx=>{
+    const payment=await tx.payment.findFirst({where:{providerReference},include:{order:true}});
+    if(!payment)throw new Error("Payment not found");
+    if(payment.status===PaymentStatus.FAILED)return payment;
+    if(payment.status===PaymentStatus.PAID||payment.status===PaymentStatus.REFUNDED)throw new Error("Payment cannot be failed from its current state.");
+    const items=await tx.orderItem.findMany({where:{orderId:payment.orderId},select:{productId:true,variantId:true,quantity:true}});
+    for(const item of items){
+      await tx.inventory.updateMany({where:item.variantId?{variantId:item.variantId,reserved:{gte:item.quantity}}:{productId:item.productId,reserved:{gte:item.quantity}},data:{available:{increment:item.quantity},reserved:{decrement:item.quantity}}});
+    }
+    const updated=await tx.payment.update({where:{id:payment.id},data:{status:PaymentStatus.FAILED}});
+    if(payment.order.status===OrderStatus.PENDING){
+      await tx.order.update({where:{id:payment.orderId},data:{status:OrderStatus.CANCELLED}});
+      await tx.orderStatusHistory.create({data:{orderId:payment.orderId,fromStatus:OrderStatus.PENDING,toStatus:OrderStatus.CANCELLED,note:"Payment failed; reserved stock released"}});
+    }
+    return updated;
+  });
+}
+
 export async function markPaymentPaid(providerReference:string){
   return db.$transaction(async tx=>{
     const payment=await tx.payment.findFirst({where:{providerReference},include:{order:true}});
