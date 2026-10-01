@@ -1,9 +1,9 @@
 import {NextResponse} from "next/server";
-import {createSupabaseServerClient} from "@/lib/auth/server";
+import {getCurrentLocalUser} from "@/lib/auth/current-user";
 import {checkoutSchema} from "@/lib/validation/commerce";
 import {createOrder} from "@/modules/checkout/service";
 export async function POST(req:Request){
-  const supabase=await createSupabaseServerClient(); const {data:{user}}=await supabase.auth.getUser();
+  const user=await getCurrentLocalUser();
   if(!user)return NextResponse.json({error:"Unauthorized"},{status:401});
   const key=req.headers.get("x-idempotency-key")?.trim();
   if(!key||key.length<16||key.length>128)return NextResponse.json({error:"A valid idempotency key is required."},{status:400});
