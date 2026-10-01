@@ -2,6 +2,41 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getCurrentLocalUser } from "@/lib/auth/current-user";
 import { db } from "@/lib/db/client";
-const schema=z.object({inventoryId:z.string().min(1),available:z.coerce.number().int().min(0),lowStockThreshold:z.coerce.number().int().min(0).max(100000)});
-export async function GET(){const u=await getCurrentLocalUser();if(!u||u.role!=="ADMIN")return NextResponse.json({error:"Forbidden"},{status:403});return NextResponse.json(await db.inventory.findMany({orderBy:{updatedAt:"desc"},include:{product:{select:{id:true,name:true,sku:true,isPublished:true}},variant:{select:{id:true,name:true,sku:true}}}));}
-export async function PATCH(req:Request){const u=await getCurrentLocalUser();if(!u||u.role!=="ADMIN")return NextResponse.json({error:"Forbidden"},{status:403});const p=schema.safeParse(await req.json());if(!p.success)return NextResponse.json({error:"Invalid inventory data"},{status:400});const updated=await db.$transaction(async tx=>{const current=await tx.inventory.findUnique({where:{id:p.data.inventoryId}});if(!current)return null;if(p.data.available<current.reserved)return null;return tx.inventory.update({where:{id:p.data.inventoryId},data:{available:p.data.available,lowStockThreshold:p.data.lowStockThreshold}})});if(!updated)return NextResponse.json({error:"Inventory not found or available stock cannot be below reserved stock."},{status:409});return NextResponse.json(updated);}
+
+const schema = z.object({
+  inventoryId: z.string().min(1),
+  available: z.coerce.number().int().min(0),
+  lowStockThreshold: z.coerce.number().int().min(0).max(100000),
+});
+
+export async function GET() {
+  const user = await getCurrentLocalUser();
+  if (!user || user.role !== "ADMIN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  const rows = await db.inventory.findMany({
+    orderBy: { updatedAt: "desc" },
+    include: {
+      product: { select: { id: true, name: true, sku: true, isPublished: true } },
+      variant: { select: { id: true, name: true, sku: true } },
+    },
+  });
+  return NextResponse.json(rows);
+}
+
+export async function PATCH(req: Request) {
+  const user = await getCurrentLocalUser();
+  if (!user || user.role !== "ADMIN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  const parsed = schema.safeParse(await req.json().catch(() => null));
+  if (!parsed.success) return NextResponse.json({ error: "Invalid inventory data" }, { status: 400 });
+
+  const updated = await db.$transaction(async (tx) => {
+    const current = await tx.inventory.findUnique({ where: { id: parsed.data.inventoryId } });
+    if (!current || parsed.data.available < current.reserved) return null;
+    return tx.inventory.update({
+      where: { id: parsed.data.inventoryId },
+      data: { available: parsed.data.available, lowStockThreshold: parsed.data.lowStockThreshold },
+    });
+  });
+
+  if (!updated) return NextResponse.json({ error: "Inventory not found or available stock cannot be below reserved stock." }, { status: 409 });
+  return NextResponse.json(updated);
+}
