@@ -4,8 +4,6 @@ import { db } from "@/lib/db/client";
 
 export const dynamic = "force-dynamic";
 
-export const dynamic = "force-dynamic";
-
 export default async function HomePage() {
   const [featured, categories, banners] = await Promise.all([
     db.product.findMany({
