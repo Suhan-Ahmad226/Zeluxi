@@ -19,12 +19,10 @@ export async function POST(req:Request){
   if(!parsed.success)return NextResponse.json({error:"Invalid webhook payload"},{status:400});
   const data=parsed.data;
   try{
-    try{
+    const existing=await db.webhookEvent.findUnique({where:{provider_eventId:{provider:data.provider,eventId:data.eventId}}});
+    if(existing?.processedAt)return NextResponse.json({ok:true,duplicate:true});
+    if(!existing){
       await db.webhookEvent.create({data:{provider:data.provider,eventId:data.eventId,payload:data}});
-    }catch(error){
-      const duplicate=await db.webhookEvent.findUnique({where:{provider_eventId:{provider:data.provider,eventId:data.eventId}}});
-      if(duplicate)return NextResponse.json({ok:true,duplicate:true});
-      throw error;
     }
 
     if(data.status==="PAID"){
