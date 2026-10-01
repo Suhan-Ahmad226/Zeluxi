@@ -1,1 +1,10 @@
-import {InfoPage} from "@/components/content/info-page";export default function Page(){return <InfoPage title="My Support" description="Review support requests." sections={[{title:"Account",body:"Keep order numbers and relevant details in support requests; never share OTPs or passwords."}]}/>}
+import Link from "next/link";
+import {redirect} from "next/navigation";
+import {getCurrentLocalUser} from "@/lib/auth/current-user";
+import {db} from "@/lib/db/client";
+
+export default async function AccountSupportPage(){
+ const user=await getCurrentLocalUser();if(!user)redirect("/login?next=/account/support");
+ const tickets=await db.supportTicket.findMany({where:{userId:user.id},orderBy:{updatedAt:"desc"},take:50,include:{order:{select:{orderNumber:true}},messages:{orderBy:{createdAt:"desc"},take:1}}});
+ return <main className="mx-auto max-w-5xl px-4 py-8 sm:py-10"><div className="flex flex-wrap items-end justify-between gap-4"><div><p className="text-sm font-semibold text-indigo-600">Support</p><h1 className="mt-1 text-3xl font-bold">My support tickets</h1><p className="mt-2 text-slate-600">Track questions, order issues and requests in one place.</p></div><Link href="/support/new" className="rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white">New ticket</Link></div><div className="mt-8 space-y-3">{tickets.length?tickets.map(t=><Link key={t.id} href={"/account/support/"+t.id} className="block rounded-2xl border border-slate-200 bg-white p-5 transition hover:border-indigo-200 hover:bg-slate-50"><div className="flex flex-wrap items-center justify-between gap-3"><h2 className="font-semibold text-slate-900">{t.subject}</h2><span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium">{t.status}</span></div><p className="mt-2 text-sm text-slate-500">{t.ticketNumber}{t.order?.orderNumber?" · Order "+t.order.orderNumber:""} · {new Date(t.updatedAt).toLocaleDateString("en-BD")}</p>{t.messages[0]?<p className="mt-3 line-clamp-2 text-sm text-slate-600">{t.messages[0].body}</p>:null}</Link>):<div className="rounded-2xl border border-dashed p-10 text-center"><p className="font-medium">No support tickets yet.</p><p className="mt-1 text-sm text-slate-500">Need help with an order? Create a ticket and include the order number.</p></div>}</div></main>
+}
