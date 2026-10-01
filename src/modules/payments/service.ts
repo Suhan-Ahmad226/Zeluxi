@@ -1,7 +1,7 @@
-import {PaymentStatus,OrderStatus} from "@prisma/client";
+import {PaymentStatus,OrderStatus,Prisma} from "@prisma/client";
 import {db} from "@/lib/db/client";
 
-async function confirmOrderReservedStock(tx: any, orderId: string) {
+async function confirmOrderReservedStock(tx: Prisma.TransactionClient, orderId: string) {
   const items = await tx.orderItem.findMany({where:{orderId},select:{productId:true,variantId:true,quantity:true}});
   for (const item of items) {
     const result = await tx.inventory.updateMany({
@@ -20,7 +20,8 @@ export async function markPaymentFailed(providerReference:string){
     if(payment.status===PaymentStatus.PAID||payment.status===PaymentStatus.REFUNDED)throw new Error("Payment cannot be failed from its current state.");
     const items=await tx.orderItem.findMany({where:{orderId:payment.orderId},select:{productId:true,variantId:true,quantity:true}});
     for(const item of items){
-      await tx.inventory.updateMany({where:item.variantId?{variantId:item.variantId,reserved:{gte:item.quantity}}:{productId:item.productId,reserved:{gte:item.quantity}},data:{available:{increment:item.quantity},reserved:{decrement:item.quantity}}});
+      const result=await tx.inventory.updateMany({where:item.variantId?{variantId:item.variantId,reserved:{gte:item.quantity}}:{productId:item.productId,reserved:{gte:item.quantity}},data:{available:{increment:item.quantity},reserved:{decrement:item.quantity}}});
+      if(result.count!==1)throw new Error("Reserved stock is inconsistent for failed payment.");
     }
     const updated=await tx.payment.update({where:{id:payment.id},data:{status:PaymentStatus.FAILED}});
     if(payment.order.status===OrderStatus.PENDING){
