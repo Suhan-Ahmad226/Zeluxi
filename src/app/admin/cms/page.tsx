@@ -1,0 +1,1 @@
+import {AdminSection} from "@/components/admin/admin-section";export default function Page(){return <AdminSection title="CMS" description="Manage storefront content without changing application code." items={["Homepage","Navigation","Footer","Pages","Banners","Blog","Media Library","FAQ"]}/>}
