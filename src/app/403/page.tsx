@@ -1,0 +1,1 @@
+export default function Page(){return <main className="mx-auto max-w-xl px-4 py-20 text-center"><h1 className="text-4xl font-bold">403</h1><p className="mt-3 text-slate-600">You do not have permission to access this page.</p></main>}
