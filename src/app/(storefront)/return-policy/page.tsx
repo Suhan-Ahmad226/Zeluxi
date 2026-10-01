@@ -1,0 +1,1 @@
+import {InfoPage} from "@/components/content/info-page"; export default function Page(){return <InfoPage title="Return Policy" description="Rules for eligible product returns." sections={[{title:"Eligibility",body:"Return eligibility depends on product category, condition and the applicable return window. The final decision follows the published product and store policy."}]}/>
