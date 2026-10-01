@@ -1,0 +1,1 @@
+import {InfoPage} from "@/components/content/info-page";export default function Page(){return <InfoPage title="Security" description="Manage account security and authentication." sections={[{title:"Keep your account secure",body:"Use a strong password, protect OTPs and review account activity when available."}]}/>}
