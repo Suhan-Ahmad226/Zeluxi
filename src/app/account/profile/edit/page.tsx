@@ -1,0 +1,1 @@
+import {InfoPage} from "@/components/content/info-page";export default function Page(){return <InfoPage title="Edit Profile" description="Update your customer profile." sections={[{title:"Account",body:"Keep profile information accurate so order and support communications reach you."}]}/>}
