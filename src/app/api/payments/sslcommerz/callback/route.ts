@@ -9,7 +9,7 @@ async function handle(request:Request){
  if(!payment)return NextResponse.redirect(new URL("/payment/callback?status=NOT_FOUND",url));
  try{
   const provider=getPaymentProvider("SSLCOMMERZ");const verified=await provider.verifyPayment(tranId);
-  if(verified.status==="PAID")await markPaymentPaid(tranId);else if(["FAILED","REFUNDED"].includes(verified.status))await markPaymentFailed(tranId);
+  if(verified.status==="PAID"){const expected=await db.payment.findFirst({where:{provider:"SSLCOMMERZ",providerReference:tranId},select:{amount:true}});if(!expected||!verified.amount||new (await import("@prisma/client")).Prisma.Decimal(verified.amount).neq(expected.amount))throw new Error("Gateway amount validation failed.");await markPaymentPaid(tranId);}else if(["FAILED","REFUNDED"].includes(verified.status))await markPaymentFailed(tranId);
   const result=verified.status==="PAID"?"success":verified.status==="FAILED"?"failed":status==="CANCELLED"?"cancelled":"pending";
   return NextResponse.redirect(new URL(`/payment/callback?status=${result}&order=${encodeURIComponent(payment.orderNumber)}`,url));
  }catch{return NextResponse.redirect(new URL(`/payment/callback?status=ERROR&order=${encodeURIComponent(payment.orderNumber)}`,url))}
