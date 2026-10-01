@@ -1,12 +1,13 @@
 import {NextResponse} from "next/server";
 import {db} from "@/lib/db/client";
-import {PaymentStatus} from "@prisma/client";
+import {PaymentStatus,Prisma} from "@prisma/client";
 import {markPaymentPaid,markPaymentFailed} from "@/modules/payments/service";
 import {z} from "zod";
 
 const schema=z.object({
   provider:z.string().min(1),
   providerReference:z.string().min(1),
+  amount:z.coerce.number().nonnegative().optional(),
   status:z.enum(["PENDING","PAID","FAILED"]),
   eventId:z.string().min(1).max(200)
 });
@@ -22,9 +23,14 @@ export async function POST(req:Request){
     const existing=await db.webhookEvent.findUnique({where:{provider_eventId:{provider:data.provider,eventId:data.eventId}}});
     if(existing?.processedAt)return NextResponse.json({ok:true,duplicate:true});
     if(!existing){
-      await db.webhookEvent.create({data:{provider:data.provider,eventId:data.eventId,payload:data}});
+      try{ await db.webhookEvent.create({data:{provider:data.provider,eventId:data.eventId,payload:data}}); }
+      catch(error){ const duplicate=await db.webhookEvent.findUnique({where:{provider_eventId:{provider:data.provider,eventId:data.eventId}}}); if(duplicate?.processedAt)return NextResponse.json({ok:true,duplicate:true}); }
     }
 
+    const target=await db.payment.findFirst({where:{providerReference:data.providerReference},include:{order:true}});
+    if(!target)throw new Error("Payment not found");
+    if(target.provider && target.provider!==data.provider)throw new Error("Payment provider mismatch");
+    if(data.amount!==undefined && new Prisma.Decimal(data.amount).neq(target.amount))throw new Error("Payment amount mismatch");
     if(data.status==="PAID"){
       const payment=await markPaymentPaid(data.providerReference);
       await db.webhookEvent.update({
