@@ -11,4 +11,5 @@ CANCELLED:[],RETURN_REQUESTED:[OrderStatus.RETURNED],
 RETURNED:[OrderStatus.REFUNDED],REFUNDED:[]
 };
 export function canTransition(from:OrderStatus,to:OrderStatus){return transitions[from].includes(to);}
+export function allowedNextStatuses(from:OrderStatus){return [...transitions[from]];}
 export function assertTransition(from:OrderStatus,to:OrderStatus){if(!canTransition(from,to))throw new Error(`Invalid order status transition: ${from} → ${to}`);}
