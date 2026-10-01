@@ -22,7 +22,8 @@ export async function bookOrderShipment(actorUserId:string,orderId:string){
   if(!provider.createShipment){await db.shipment.update({where:{orderId},data:{status:ShipmentStatus.CANCELLED}});throw new Error(`Courier provider ${provider.name} does not support shipment booking.`);}
   try{
     const weightGrams=await getOrderWeight(orderId);
-    const booked=await provider.createShipment({merchantOrderId:claim.orderNumber,recipientName:claim.recipientName,recipientPhone:claim.recipientPhone,recipientAddress:[claim.area,claim.addressLine,claim.district,claim.division].filter(Boolean).join(", "),itemQuantity:claim.items.reduce((n,x)=>n+x.quantity,0),weightGrams,amountToCollect:claim.paymentMethod===PaymentMethod.COD?claim.total:0,itemDescription:claim.items.map(x=>x.productName).join(", ").slice(0,500)});
+    const merchantOrderId=`ZLX-${claim.id}`;
+    const booked=await provider.createShipment({merchantOrderId,recipientName:claim.recipientName,recipientPhone:claim.recipientPhone,recipientAddress:[claim.area,claim.addressLine,claim.district,claim.division].filter(Boolean).join(", "),itemQuantity:claim.items.reduce((n,x)=>n+x.quantity,0),weightGrams,amountToCollect:claim.paymentMethod===PaymentMethod.COD?claim.total:0,itemDescription:claim.items.map(x=>x.productName).join(", ").slice(0,500)});
     const result=await db.$transaction(async tx=>{
       const shipment=await tx.shipment.update({where:{orderId},data:{provider:provider.name,trackingId:booked.trackingId,status:ShipmentStatus.PICKUP_REQUESTED,shippedAt:new Date()}});
       assertTransition(claim.status,OrderStatus.SHIPPED);
