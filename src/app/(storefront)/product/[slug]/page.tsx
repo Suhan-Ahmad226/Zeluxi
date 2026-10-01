@@ -20,7 +20,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   const image = product.images[0];
   const variants = product.variants;
   const stock = product.inventory?.available ?? 0;
-  return <main className="mx-auto min-h-[70vh] max-w-7xl px-4 py-8 sm:py-12">
+  const productJsonLd = { "@context": "https://schema.org", "@type": "Product", name: product.name, description: product.shortDescription || product.description.slice(0, 300), sku: product.sku, brand: product.brand ? { "@type": "Brand", name: product.brand } : undefined, image: product.images.map(i => i.url), offers: { "@type": "Offer", priceCurrency: "BDT", price: Number(product.price), availability: stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock", url: "https://zelux.vercel.app/product/" + product.slug } };\n  return <main className="mx-auto min-h-[70vh] max-w-7xl px-4 py-8 sm:py-12">\n    <script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(productJsonLd)}} />
     <div className="grid gap-8 md:grid-cols-2 lg:gap-12">
       <div className="relative aspect-square overflow-hidden rounded-3xl bg-slate-100">
         {image ? <Image src={image.url} alt={image.altText || product.name} fill priority sizes="(max-width:768px) 100vw,50vw" className="object-cover" /> : <div className="grid h-full place-items-center text-slate-400">No image</div>}
