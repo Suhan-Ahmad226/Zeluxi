@@ -20,6 +20,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   const image = product.images[0];
   const variants = product.variants;
   const stock = product.inventory?.available ?? 0;
+  const purchasable = variants.length === 0;
   return <main className="mx-auto min-h-[70vh] max-w-7xl px-4 py-8 sm:py-12">
     <div className="grid gap-8 md:grid-cols-2 lg:gap-12">
       <div className="relative aspect-square overflow-hidden rounded-3xl bg-slate-100">
