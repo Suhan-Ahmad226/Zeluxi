@@ -1,0 +1,1 @@
+import {InfoPage} from "@/components/content/info-page"; export default function Page(){return <InfoPage title="Refund Policy" description="How eligible refunds are processed." sections={[{title:"Refunds",body:"Refunds are processed after the applicable return or cancellation conditions are satisfied. Online payment refunds may also depend on gateway processing."}]}/>
