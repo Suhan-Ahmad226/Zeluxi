@@ -234,6 +234,7 @@ model Order {
   shipment Shipment?
   couponUsage CouponUsage?
   statusHistory OrderStatusHistory[]
+  supportTickets SupportTicket[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   @@index([userId, createdAt])
