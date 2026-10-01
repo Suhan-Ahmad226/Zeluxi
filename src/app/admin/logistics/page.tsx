@@ -1,0 +1,1 @@
+import {AdminSection} from "@/components/admin/admin-section";export default function Page(){return <AdminSection title="Logistics Dashboard" description="Monitor shipment operations and courier health." items={["Shipments","Tracking","Delivery Zones","Courier Settings"]}/>}
