@@ -1,0 +1,8 @@
+"use client";
+import {useState} from "react";
+import {Button} from "@/components/ui/button";
+export function ProfileForm({name,phone}:{name:string;phone:string}){
+ const [busy,setBusy]=useState(false),[error,setError]=useState(""),[done,setDone]=useState(false);
+ async function submit(e:React.FormEvent<HTMLFormElement>){e.preventDefault();setBusy(true);setError("");setDone(false);const d=Object.fromEntries(new FormData(e.currentTarget));try{const r=await fetch("/api/account/profile",{method:"PATCH",headers:{"content-type":"application/json"},body:JSON.stringify(d)});const b=await r.json().catch(()=>null);if(!r.ok)throw new Error(b?.error||"Unable to save profile");setDone(true)}catch(e){setError(e instanceof Error?e.message:"Unable to save profile")}finally{setBusy(false)}}
+ return <form onSubmit={submit} className="mt-5 space-y-4"><div><label className="text-sm font-medium">Name</label><input name="name" defaultValue={name} maxLength={100} className="mt-1 h-11 w-full rounded-xl border px-3 text-sm" required/></div><div><label className="text-sm font-medium">Phone</label><input name="phone" defaultValue={phone} maxLength={20} className="mt-1 h-11 w-full rounded-xl border px-3 text-sm" placeholder="01XXXXXXXXX"/></div>{error?<p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</p>:null}{done?<p className="text-sm text-green-700">Profile updated successfully.</p>:null}<Button disabled={busy}>{busy?"Saving…":"Save changes"}</Button></form>
+}
