@@ -1,0 +1,4 @@
+import {NextResponse} from "next/server";
+import {db} from "@/lib/db/client";
+import {getPaymentProvider} from "@/modules/payments/registry";
+export async function GET(req:Request){const secret=process.env.CRON_SECRET;if(!secret||req.headers.get("authorization")!==`Bearer ${secret}`)return NextResponse.json({error:"Unauthorized"},{status:401});const payments=await db.payment.findMany({where:{refundReference:{not:null},refundCompletedAt:null},take:100});let checked=0,completed=0;for(const p of payments){try{const provider=getPaymentProvider(p.provider||"");if(!provider.queryRefund)continue;const r=await provider.queryRefund(p.refundReference!);checked++;if(r.status==="refunded"){await db.payment.update({where:{id:p.id},data:{refundCompletedAt:new Date()}});completed++}}catch{}}return NextResponse.json({checked,completed});}
