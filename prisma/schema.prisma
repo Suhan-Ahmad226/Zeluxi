@@ -134,6 +134,7 @@ model Inventory {
 model Cart {
   id String @id @default(cuid())
   userId String? @unique
+  guestTokenHash String? @unique
   user User? @relation(fields:[userId], references:[id], onDelete:Cascade)
   items CartItem[]
   createdAt DateTime @default(now())
