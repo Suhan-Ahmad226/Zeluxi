@@ -1,8 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ShoppingCart } from "lucide-react";
 import { AddToCartButton } from "@/components/product/add-to-cart-button";
-import { Button } from "@/components/ui/button";
 
 type Product = {
   id: string; name: string; slug: string; price: unknown; compareAtPrice?: unknown | null;
