@@ -31,7 +31,7 @@ export async function POST(req:Request){
     const target=await db.payment.findFirst({where:{providerReference:data.providerReference},include:{order:true}});
     if(!target)throw new Error("Payment not found");
     if(target.provider && target.provider!==data.provider)throw new Error("Payment provider mismatch");
-    if(data.amount!==undefined && new Prisma.Decimal(data.amount).neq(target.amount))throw new Error("Payment amount mismatch");
+    if(data.amount!==undefined && Number(data.amount) !== Number(target.amount))throw new Error("Payment amount mismatch");
     if(data.status==="PAID"){
       const payment=await markPaymentPaid(data.providerReference);
       await db.webhookEvent.update({
