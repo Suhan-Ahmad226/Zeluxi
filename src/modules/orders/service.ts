@@ -13,6 +13,8 @@ export async function updateOrderStatus(actorUserId:string,orderId:string,nextSt
     if(!order) throw new Error("Order not found");
     assertTransition(order.status,nextStatus);
 
+    if([OrderStatus.PROCESSING,OrderStatus.READY_TO_SHIP,OrderStatus.SHIPPED].includes(nextStatus)&&order.paymentMethod===PaymentMethod.ONLINE){ const payment=await tx.payment.findUnique({where:{orderId:order.id},select:{status:true}}); if(payment?.status!==PaymentStatus.PAID) throw new Error("Online payment must be paid before fulfillment."); }
+
     if(nextStatus===OrderStatus.SHIPPED){
       const shipment=await tx.shipment.findUnique({where:{orderId:order.id}});
       if(!shipment?.trackingId) throw new Error("Courier shipment must be booked before marking the order as shipped.");
