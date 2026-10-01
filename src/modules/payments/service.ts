@@ -17,6 +17,7 @@ export async function markPaymentFailed(providerReference:string){
     const payment=await tx.payment.findFirst({where:{providerReference},include:{order:true}});
     if(!payment)throw new Error("Payment not found");
     if(payment.status===PaymentStatus.FAILED)return payment;
+    if(payment.order.status!==OrderStatus.PENDING)throw new Error("Payment failure cannot release stock after order fulfillment has started.");
     if(payment.status===PaymentStatus.PAID||payment.status===PaymentStatus.REFUNDED)throw new Error("Payment cannot be failed from its current state.");
     const items=await tx.orderItem.findMany({where:{orderId:payment.orderId},select:{productId:true,variantId:true,quantity:true}});
     for(const item of items){
