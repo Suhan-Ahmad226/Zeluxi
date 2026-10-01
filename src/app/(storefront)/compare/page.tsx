@@ -1,0 +1,1 @@
+import {InfoPage} from "@/components/content/info-page";export default function Page(){return <InfoPage title="Compare Products" description="Compare products before choosing what to buy." sections={[{title:"Comparison",body:"Select products from the catalog to compare key information. Comparison data should never replace the product's authoritative specifications."}]}/>}
