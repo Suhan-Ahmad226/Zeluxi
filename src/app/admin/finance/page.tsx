@@ -1,0 +1,1 @@
+import {AdminSection} from "@/components/admin/admin-section";export default function Page(){return <AdminSection title="Financial Management" description="Centralize revenue, expenses, settlements, refunds and financial reporting." items={["Revenue","Expenses","Transactions","Refunds","COD Settlement","Courier Settlement","Tax / VAT","Financial Reports"]}/>}
