@@ -1,0 +1,5 @@
+import { redirect } from "next/navigation";
+import { getCurrentLocalUser } from "@/lib/auth/current-user";
+import { db } from "@/lib/db/client";
+import { InventoryEditor } from "@/components/admin/inventory-editor";
+export default async function InventoryPage(){const u=await getCurrentLocalUser();if(!u)redirect("/login?next=/admin/inventory");if(u.role!=="ADMIN")redirect("/account");const items=await db.inventory.findMany({orderBy:{updatedAt:"desc"},include:{product:{select:{name:true,sku:true}},variant:{select:{name:true,sku:true}}}});return <main className="mx-auto max-w-7xl px-4 py-8"><h1 className="text-3xl font-bold">Inventory</h1><p className="mt-2 text-sm text-slate-500">Manage available stock and low-stock thresholds.</p><div className="mt-6 grid gap-3">{items.map(i=><InventoryEditor key={i.id} id={i.id} name={i.product?.name??i.variant?.name??"Unknown"} sku={i.product?.sku??i.variant?.sku??"—"} available={i.available} reserved={i.reserved} threshold={i.lowStockThreshold}/>)}</div></main>}
