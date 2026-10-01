@@ -1,0 +1,1 @@
+import {InfoPage} from "@/components/content/info-page"; export default function Page(){return <InfoPage title="Coupons" description="Browse available coupon promotions." sections={[{title:"Coupon rules",body:"Coupons may have minimum order values, expiry dates, usage limits or product restrictions. Eligibility is validated on the server at checkout."}]}/>}
