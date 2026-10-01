@@ -1,0 +1,2 @@
+import {ProductCollection} from "@/components/product/product-collection";
+export default function Page(){return <main className="mx-auto min-h-[70vh] max-w-7xl px-4 py-10 sm:py-14"><p className="text-sm font-semibold text-indigo-600">Your activity</p><h1 className="mt-1 text-3xl font-bold">Recently viewed</h1><p className="mt-2 text-slate-600">Pick up where you left off.</p><ProductCollection mode="recent"/></main>}
