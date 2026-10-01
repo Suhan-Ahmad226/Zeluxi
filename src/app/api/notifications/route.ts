@@ -1,0 +1,5 @@
+import {NextResponse} from "next/server";
+import {db} from "@/lib/db/client";
+import {getCurrentLocalUser} from "@/lib/auth/current-user";
+export async function GET(){const u=await getCurrentLocalUser();if(!u)return NextResponse.json({error:"Unauthorized"},{status:401});return NextResponse.json(await db.notification.findMany({where:{userId:u.id},orderBy:{createdAt:"desc"},take:50}));}
+export async function PATCH(req:Request){const u=await getCurrentLocalUser();if(!u)return NextResponse.json({error:"Unauthorized"},{status:401});const body=await req.json().catch(()=>({}));if(body.all===true){await db.notification.updateMany({where:{userId:u.id,readAt:null},data:{readAt:new Date()}});return NextResponse.json({ok:true});}if(typeof body.id!=="string")return NextResponse.json({error:"Notification id is required"},{status:400});const n=await db.notification.updateMany({where:{id:body.id,userId:u.id},data:{readAt:new Date()}});return n.count?NextResponse.json({ok:true}):NextResponse.json({error:"Notification not found"},{status:404});}
