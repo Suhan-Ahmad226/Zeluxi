@@ -1,0 +1,1 @@
+import {AdminSection} from "@/components/admin/admin-section";export default function Page(){return <AdminSection title="SEO Management" description="Manage metadata, redirects and search visibility." items={["Metadata","Redirects","Sitemap","Structured Data","Search Console"]}/>}
