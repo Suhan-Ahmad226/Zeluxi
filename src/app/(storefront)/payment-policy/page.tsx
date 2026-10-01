@@ -1,0 +1,1 @@
+import {InfoPage} from "@/components/content/info-page";export default function Page(){return <InfoPage title="Payment Policy" description="Payment methods and payment processing information." sections={[{title:"Payments",body:"Online payment confirmation is verified server-side before fulfillment. Available methods are shown during checkout."}]}/>}
