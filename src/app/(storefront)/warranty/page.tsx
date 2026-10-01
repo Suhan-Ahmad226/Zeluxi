@@ -1,0 +1,1 @@
+import {InfoPage} from "@/components/content/info-page"; export default function Page(){return <InfoPage title="Warranty" description="Warranty information for eligible Zelux products." sections={[{title:"Warranty coverage",body:"Where a manufacturer or store warranty applies, its duration and exclusions are determined by the product documentation and applicable policy."}]}/>}
