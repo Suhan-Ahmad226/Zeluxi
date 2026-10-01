@@ -1,0 +1,1 @@
+import {AdminSection} from "@/components/admin/admin-section";export default function Page(){return <AdminSection title="Staff & Permissions" description="Manage administrative access using least privilege." items={["Staff","Roles","Permissions","Login History"]}/>}
