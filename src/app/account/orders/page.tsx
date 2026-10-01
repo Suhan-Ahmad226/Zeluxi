@@ -1,0 +1,1 @@
+export default function OrdersPage(){return <main className="mx-auto min-h-[70vh] max-w-5xl px-4 py-12"><h1 className="text-3xl font-bold">My orders</h1><div className="mt-8 rounded-2xl border p-8 text-center text-slate-600">No orders yet.</div></main>}
