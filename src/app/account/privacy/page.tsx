@@ -1,0 +1,1 @@
+import {InfoPage} from "@/components/content/info-page";export default function Page(){return <InfoPage title="Privacy" description="Manage privacy-related account information." sections={[{title:"Account",body:"Your personal information is handled according to the site's privacy policy."}]}/>}
