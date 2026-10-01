@@ -1,0 +1,1 @@
+export default function CheckoutPage(){return <main className="mx-auto min-h-[70vh] max-w-5xl px-4 py-12"><h1 className="text-3xl font-bold">Checkout</h1><p className="mt-2 text-slate-600">Server-side price validation, address selection and COD/online payment will be wired here.</p></main>}
