@@ -3,15 +3,17 @@ import { notFound, redirect } from "next/navigation";
 import { getCurrentLocalUser } from "@/lib/auth/current-user";
 import { cookies } from "next/headers";
 import { db } from "@/lib/db/client";
+import { createHash } from "node:crypto";
 
 const money=(v:unknown)=>Number(v).toLocaleString("en-BD",{minimumFractionDigits:0,maximumFractionDigits:2});
 
 export default async function OrderConfirmation({params}:{params:Promise<{orderNumber:string}>}) {
   const user=await getCurrentLocalUser();
   const {orderNumber}=await params;
-  const phone=(await cookies()).get("zelux_guest_phone")?.value;
-  if(!user && !phone) redirect("/login?next=/orders/"+encodeURIComponent(orderNumber));
-  const order=await db.order.findFirst({where:{orderNumber,...(user?{userId:user.id}:{recipientPhone:phone})},include:{items:true,payment:true,shipment:true}});
+  const token=(await cookies()).get("zelux_guest_order_access")?.value;
+  const tokenHash=token?createHash("sha256").update(token).digest("hex"):undefined;
+  if(!user && !tokenHash) redirect("/login?next=/orders/"+encodeURIComponent(orderNumber));
+  const order=await db.order.findFirst({where:{orderNumber,...(user?{userId:user.id}:{guestAccessTokenHash:tokenHash})},include:{items:true,payment:true,shipment:true}});
   if(!order) return notFound();
   return <main className="mx-auto min-h-[70vh] max-w-3xl px-4 py-10 sm:py-14">
     <div className="rounded-3xl border bg-white p-6 sm:p-8"><div className="text-sm font-semibold text-green-700">Order placed successfully</div>
