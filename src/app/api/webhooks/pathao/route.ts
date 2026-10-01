@@ -2,6 +2,7 @@ import {createHmac,timingSafeEqual} from "node:crypto";
 import {NextResponse} from "next/server";
 import {db} from "@/lib/db/client";
 import {OrderStatus,ShipmentStatus} from "@prisma/client";
+import {assertTransition} from "@/modules/orders/transitions";
 import {getCourierProvider} from "@/modules/shipping/registry";
 
 const statusMap:Record<string,{shipment:ShipmentStatus;order?:OrderStatus}>={
@@ -36,7 +37,7 @@ export async function POST(req:Request){
     if(!shipment)return;
     const update:any={status:mapped.shipment};if(mapped.shipment===ShipmentStatus.DELIVERED)update.deliveredAt=new Date();
     await tx.shipment.update({where:{id:shipment.id},data:update});
-    if(mapped.order){const order=await tx.order.findUnique({where:{id:shipment.orderId}});if(order&&order.status!==mapped.order){await tx.order.update({where:{id:order.id},data:{status:mapped.order}});await tx.orderStatusHistory.create({data:{orderId:order.id,fromStatus:order.status,toStatus:mapped.order,note:`Pathao webhook: ${status}`}});}}
+    if(mapped.order){const order=await tx.order.findUnique({where:{id:shipment.orderId}});if(order&&order.status!==mapped.order){assertTransition(order.status,mapped.order);await tx.order.update({where:{id:order.id},data:{status:mapped.order}});await tx.orderStatusHistory.create({data:{orderId:order.id,fromStatus:order.status,toStatus:mapped.order,note:`Pathao webhook: ${status}`}});}}
   });
   return NextResponse.json({received:true});
 }
