@@ -1,0 +1,1 @@
+import {AdminSection} from "@/components/admin/admin-section";export default function Page(){return <AdminSection title="Transactions" description="Review payment transaction records." items={["Successful","Pending","Failed","Refunded"]}/>}
