@@ -29,11 +29,21 @@ async function request(path:string,init:RequestInit={},retry=true):Promise<Patha
   return data;
 }
 function weightKg(weightGrams?:number){return Math.min(10,Math.max(.5,(weightGrams||500)/1000));}
-function manualPrice(address:ShippingAddress,weightGrams?:number){const kg=weightKg(weightGrams);const d=address.district.trim().toLowerCase();const dhaka=d==="dhaka";const suburb=["narayanganj","gazipur","keraniganj","savar"].some(x=>d.includes(x));const base=dhaka?[60,70,90]:suburb?[80,100,130]:[110,130,170];let fee=kg<=.5?base[0]:kg<=1?base[1]:kg<=2?base[2]:base[2]+Math.ceil(kg-2)*(dhaka?15:25);return new Prisma.Decimal(fee);}
+function manualPrice(address:ShippingAddress,weightGrams?:number){
+ const kg=weightKg(weightGrams);
+ const d=address.district.trim().toLowerCase();
+ const isDhaka=d==="dhaka";
+ const suburb=["narayanganj","gazipur","keraniganj","savar"].some(x=>d.includes(x));
+ const base=isDhaka?[60,70,90]:suburb?[80,100,130]:[110,130,170];
+ let fee=kg<=.5?base[0]:kg<=1?base[1]:kg<=2?base[2]:base[2]+Math.ceil(kg-2)*(isDhaka?15:25);
+ return new Prisma.Decimal(fee);
+}
 export const pathaoCourier:CourierProvider={
   name:"PATHAO",
-  async calculatePrice({address,weightGrams}):Promise<ShippingQuote>{return {provider:"PATHAO",fee:manualPrice(address,weightGrams),currency:"BDT",etaDays:dhakaEta(address)}},
-  async createShipment(input){const storeId=Number(required("PATHAO_STORE_ID"));if(!Number.isInteger(storeId))throw new Error("Invalid PATHAO_STORE_ID.");const data=await request("/aladdin/api/v1/orders",{method:"POST",body:JSON.stringify({store_id:storeId,merchant_order_id:input.merchantOrderId,recipient_name:input.recipientName,recipient_phone:input.recipientPhone,recipient_address:input.recipientAddress,delivery_type:48,item_type:2,item_quantity:input.itemQuantity||1,item_weight:weightKg(input.weightGrams).toString(),amount_to_collect:input.amountToCollect||0,item_description:input.itemDescription||"Zelux order"})});const payload=data?.data??data;const trackingId=payload?.consignment_id||payload?.consignmentId||payload?.tracking_id;if(!trackingId)throw new Error("Pathao did not return a consignment ID.");return {trackingId:String(trackingId)}},
+  async calculatePrice({address,weightGrams}):Promise<ShippingQuote>{
+   return {provider:"PATHAO",fee:manualPrice(address,weightGrams),currency:"BDT",etaDays:dhakaEta(address)};
+ },
+  async createShipment(input){const storeId=Number(required("PATHAO_STORE_ID"));if(!Number.isInteger(storeId))throw new Error("Invalid PATHAO_STORE_ID.");if(input.recipientPhone.replace(/\\D/g,"").length!==11)throw new Error("Recipient phone must contain 11 digits.");\n    const address=input.recipientAddress.trim();if(address.length<10||address.length>220)throw new Error("Recipient address must be 10-220 characters.");\n    const data=await request("/aladdin/api/v1/orders",{method:"POST",body:JSON.stringify({store_id:storeId,merchant_order_id:input.merchantOrderId,recipient_name:input.recipientName,recipient_phone:input.recipientPhone,recipient_address:input.recipientAddress,delivery_type:48,item_type:2,item_quantity:input.itemQuantity||1,item_weight:weightKg(input.weightGrams).toString(),amount_to_collect:input.amountToCollect||0,item_description:input.itemDescription||"Zelux order",special_instruction:input.specialInstruction||undefined})});const payload=data?.data??data;const trackingId=payload?.consignment_id||payload?.consignmentId||payload?.tracking_id;if(!trackingId)throw new Error("Pathao did not return a consignment ID.");return {trackingId:String(trackingId)}},
   async getTracking(trackingId){return request(`/aladdin/api/v1/orders/${encodeURIComponent(trackingId)}/info`)},
   async cancelShipment(trackingId){await request(`/aladdin/api/v1/orders/${encodeURIComponent(trackingId)}/cancel`,{method:"POST",body:"{}"})}
 };
