@@ -19,7 +19,7 @@ export function CheckoutForm({ addresses, items }: { addresses: Address[]; items
       const res=await fetch("/api/checkout",{method:"POST",headers:{"content-type":"application/json","x-idempotency-key":key},body:JSON.stringify({items,addressId,paymentMethod,...(couponCode.trim()?{couponCode:couponCode.trim()}: {})})});
       const data=await res.json().catch(()=>null);
       if(!res.ok) throw new Error(data?.error||"Unable to place order.");
-      router.push("/orders/"+data.orderNumber);
+      if(paymentMethod==="ONLINE"){const pr=await fetch("/api/payments/initiate",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({orderNumber:data.orderNumber})});const pd=await pr.json().catch(()=>null);if(!pr.ok||!pd?.gatewayUrl)throw new Error(pd?.error||"Unable to start online payment.");window.location.assign(pd.gatewayUrl);return;}router.push("/orders/"+data.orderNumber);
     } catch(e){setError(e instanceof Error?e.message:"Unable to place order.");setBusy(false);}
   }
   return <form onSubmit={submit} className="space-y-6">
