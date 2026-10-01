@@ -27,5 +27,5 @@ jobs:
       - run: npx prisma@6.19.3 generate --schema=./prisma/schema.prisma
       - run: npm run typecheck
       - run: npm run lint
-      - run: npm test
       - run: npm run build
+      - run: npm test
