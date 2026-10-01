@@ -1,0 +1,1 @@
+import {InfoPage} from "@/components/content/info-page"; export default function Page(){return <InfoPage title="Best Sellers" description="Explore products customers are buying most." sections={[{title:"Popular products",body:"Popularity is based on store activity and can change over time."}]}/>}
