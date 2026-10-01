@@ -1,0 +1,4 @@
+import {redirect} from "next/navigation";
+import {getCurrentLocalUser} from "@/lib/auth/current-user";
+import {db} from "@/lib/db/client";
+export default async function NotificationsPage(){const user=await getCurrentLocalUser();if(!user)redirect("/login?next=/account/notifications");const notifications=await db.notification.findMany({where:{userId:user.id},orderBy:{createdAt:"desc"},take:50});return <main className="mx-auto max-w-3xl px-4 py-10"><h1 className="text-3xl font-bold">Notifications</h1><div className="mt-6 space-y-3">{notifications.length?notifications.map(n=><article key={n.id} className={"rounded-2xl border p-5 "+(n.readAt?"bg-white":"bg-indigo-50")}><p className="font-semibold">{n.title}</p><p className="mt-1 text-sm text-slate-600">{n.body}</p></article>):<p className="rounded-2xl border p-6 text-slate-600">No notifications.</p>}</div></main>}
