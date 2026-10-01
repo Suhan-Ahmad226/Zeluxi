@@ -1,3 +1,3 @@
-export type PaymentResult={provider:string;providerReference:string;status:"PENDING"|"PAID"|"FAILED"|"REFUNDED";gatewayUrl?:string};
+export type PaymentResult={provider:string;providerReference:string;status:"PENDING"|"PAID"|"FAILED"|"REFUNDED";amount?:string;gatewayUrl?:string};
 export interface PaymentProvider{readonly name:string;createPayment(input:{orderId:string;amount:string;currency:"BDT";customerPhone:string;customerName:string;customerEmail:string;customerAddress:string;productCategory:string;returnUrl:string;cancelUrl:string}):Promise<PaymentResult>;verifyPayment(providerReference:string):Promise<PaymentResult>;refundPayment?(providerReference:string,amount:string,remarks:string):Promise<{status:"success"|"processing";refundReference?:string}>;
   queryRefund?(refundReference:string):Promise<{status:"refunded"|"processing"|"cancelled";refundReference:string}>;}
