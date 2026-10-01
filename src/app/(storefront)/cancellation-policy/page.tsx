@@ -1,0 +1,1 @@
+import {InfoPage} from "@/components/content/info-page";export default function Page(){return <InfoPage title="Cancellation Policy" description="When an order can be cancelled." sections={[{title:"Cancellation",body:"Availability depends on the current order state. Once fulfillment or shipment begins, return procedures may apply."}]}/>}
