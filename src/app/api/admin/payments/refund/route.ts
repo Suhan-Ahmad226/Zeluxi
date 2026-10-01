@@ -1,0 +1,8 @@
+import {NextResponse} from "next/server";
+import {z} from "zod";
+import {getCurrentLocalUser} from "@/lib/auth/current-user";
+import {db} from "@/lib/db/client";
+import {getPaymentProvider} from "@/modules/payments/registry";
+import {PaymentStatus} from "@prisma/client";
+const schema=z.object({paymentId:z.string().min(1),amount:z.string().regex(/^\d+(\.\d{1,2})?$/).optional(),remarks:z.string().trim().min(3).max(255)});
+export async function POST(req:Request){const user=await getCurrentLocalUser();if(!user||user.role!=="ADMIN")return NextResponse.json({error:"Forbidden"},{status:403});const parsed=schema.safeParse(await req.json().catch(()=>null));if(!parsed.success)return NextResponse.json({error:"Invalid refund request."},{status:400});const payment=await db.payment.findUnique({where:{id:parsed.data.paymentId}});if(!payment)return NextResponse.json({error:"Payment not found."},{status:404});if(payment.status!==PaymentStatus.PAID)return NextResponse.json({error:"Only paid payments can be refunded."},{status:409});const amount=parsed.data.amount||payment.amount.toString();if(new (await import("@prisma/client")).Prisma.Decimal(amount).gt(payment.amount))return NextResponse.json({error:"Refund cannot exceed the paid amount."},{status:400});const provider=getPaymentProvider(payment.provider||"");if(!provider.refundPayment)return NextResponse.json({error:"This payment provider does not support refunds."},{status:400});const result=await provider.refundPayment(payment.providerReference||"",amount,parsed.data.remarks);if(result.status==="success"&&amount===payment.amount.toString()){await db.payment.update({where:{id:payment.id},data:{status:PaymentStatus.REFUNDED}})}return NextResponse.json({ok:true,...result});}
