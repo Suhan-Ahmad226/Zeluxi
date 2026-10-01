@@ -43,7 +43,7 @@ export async function createOrder(userId:string|null,input:CheckoutInput,idempot
       orderItems.push({productId:p.id,variantId:v?.id,productName:p.name,sku:v?.sku??p.sku,quantity:line.quantity,unitPrice:unit,totalPrice:lineTotal});
     }
 
-    let discount=new Prisma.Decimal(0); let couponId:string|undefined;
+    let discount=new Prisma.Decimal(0); let couponId:string|undefined; let couponUsageLimit:number|null=null;
     if(input.couponCode){
       const coupon=await tx.coupon.findFirst({where:{code:input.couponCode.toUpperCase(),isActive:true}});
       const now=new Date();
@@ -54,7 +54,7 @@ export async function createOrder(userId:string|null,input:CheckoutInput,idempot
       if(coupon.type==="PERCENTAGE") discount=subtotal.mul(coupon.value).div(100);
       else discount=coupon.value;
       if(coupon.maxDiscount) discount=Prisma.Decimal.min(discount,coupon.maxDiscount);
-      discount=Prisma.Decimal.min(discount,subtotal); couponId=coupon.id;
+      discount=Prisma.Decimal.min(discount,subtotal); couponId=coupon.id; couponUsageLimit=coupon.usageLimit;
     }
 
     if(!userId && !guestOrderAccessToken) throw new Error("Guest order access token is required.");
@@ -77,7 +77,7 @@ export async function createOrder(userId:string|null,input:CheckoutInput,idempot
       statusHistory:{create:{toStatus:OrderStatus.PENDING,note:"Order created"}},
       ...(couponId?{couponUsage:{create:{couponId,userId,discount}}}:{}),
     },include:{items:true,payment:true,shipment:true}});
-    if(couponId){const claimed=await tx.coupon.updateMany({where:{id:couponId,isActive:true,OR:[{usageLimit:null},{usedCount:{lt:coupon.usageLimit!}}]},data:{usedCount:{increment:1}}});if(claimed.count!==1)throw new Error("Coupon usage limit reached.");}
+    if(couponId){const claimed=await tx.coupon.updateMany({where:{id:couponId,isActive:true,OR:[{usageLimit:null},{usedCount:{lt:couponUsageLimit!}}]},data:{usedCount:{increment:1}}});if(claimed.count!==1)throw new Error("Coupon usage limit reached.");}
     if(userId){await tx.cartItem.deleteMany({where:{cart:{userId}}});}
     else if(guestCartToken){await tx.cartItem.deleteMany({where:{cart:{guestTokenHash:createGuestCartHash(guestCartToken)}}});}
     return order;
