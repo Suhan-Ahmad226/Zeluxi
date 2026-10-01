@@ -1,0 +1,1 @@
+import type {MetadataRoute} from "next";export default function manifest():MetadataRoute.Manifest{return{name:"Zelux",short_name:"Zelux",description:"Online shopping in Bangladesh with secure checkout and COD.",start_url:"/",display:"standalone",background_color:"#ffffff",theme_color:"#4F46E5",lang:"bn"}}}
