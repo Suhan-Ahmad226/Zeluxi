@@ -1,0 +1,7 @@
+import {NextResponse} from "next/server";
+import {z} from "zod";
+import {getCurrentLocalUser} from "@/lib/auth/current-user";
+import {db} from "@/lib/db/client";
+const schema=z.object({id:z.string().optional(),slug:z.string().regex(/^[a-z0-9-]+$/),title:z.string().min(1).max(200),content:z.unknown(),seoTitle:z.string().max(200).nullable().optional(),seoDescription:z.string().max(500).nullable().optional(),isPublished:z.boolean()});
+export async function POST(req:Request){const u=await getCurrentLocalUser();if(u?.role!=="ADMIN")return NextResponse.json({error:"Forbidden"},{status:403});const p=schema.omit({id:true}).safeParse(await req.json().catch(()=>null));if(!p.success)return NextResponse.json({error:p.error.issues[0]?.message},{status:400});try{return NextResponse.json(await db.page.create({data:p.data}))}catch(e){return NextResponse.json({error:e instanceof Error?e.message:"Unable to create page"},{status:409})}}
+export async function PATCH(req:Request){const u=await getCurrentLocalUser();if(u?.role!=="ADMIN")return NextResponse.json({error:"Forbidden"},{status:403});const p=schema.safeParse(await req.json().catch(()=>null));if(!p.success||!p.data.id)return NextResponse.json({error:"Invalid page"},{status:400});const {id,...data}=p.data;try{return NextResponse.json(await db.page.update({where:{id},data}))}catch(e){return NextResponse.json({error:e instanceof Error?e.message:"Unable to update page"},{status:409})}}
