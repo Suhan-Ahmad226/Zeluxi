@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ShoppingCart } from "lucide-react";
+import { AddToCartButton } from "@/components/product/add-to-cart-button";
 import { Button } from "@/components/ui/button";
 
 type Product = {
@@ -28,12 +29,7 @@ export function ProductCard({ product }: { product: Product }) {
         </div>
       </Link>
       <div className="px-3 pb-3 sm:px-4 sm:pb-4">
-        <form action="/api/cart" method="post">
-          <input type="hidden" name="productId" value={product.id} />
-          <Button type="button" className="w-full" disabled={stock < 1} aria-label={stock < 1 ? "Out of stock" : `Add ${product.name} to cart`}>
-            <ShoppingCart size={16} className="mr-2" />{stock < 1 ? "Out of stock" : "Add to cart"}
-          </Button>
-        </form>
+        <AddToCartButton productId={product.id} disabled={stock < 1} />
       </div>
     </article>
   );
