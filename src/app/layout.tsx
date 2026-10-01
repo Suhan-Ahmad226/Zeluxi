@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Noto_Sans_Bengali } from "next/font/google";
-import "./globals.css";
+import "../styles/globals.css";
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
 const bengali = Noto_Sans_Bengali({ subsets: ["bengali"], variable: "--font-bengali", display: "swap" });
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://zelux.vercel.app";
