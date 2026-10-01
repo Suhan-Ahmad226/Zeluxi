@@ -1,7 +1,7 @@
 import {NextResponse} from "next/server";
 import {db} from "@/lib/db/client";
 import {PaymentStatus} from "@prisma/client";
-import {markPaymentPaid} from "@/modules/payments/service";
+import {markPaymentPaid,markPaymentFailed} from "@/modules/payments/service";
 import {z} from "zod";
 
 const schema=z.object({
@@ -36,10 +36,10 @@ export async function POST(req:Request){
       return NextResponse.json({ok:true,status:payment.status});
     }
 
-    const payment=await db.payment.findFirst({where:{providerReference:data.providerReference}});
+    const payment=data.status==="FAILED"?await markPaymentFailed(data.providerReference):await db.payment.findFirst({where:{providerReference:data.providerReference}});
     if(!payment)throw new Error("Payment not found");
     const next=data.status==="FAILED"?PaymentStatus.FAILED:PaymentStatus.PENDING;
-    await db.payment.update({where:{id:payment.id},data:{status:next,provider:data.provider,providerReference:data.providerReference}});
+    if(data.status!=="FAILED")await db.payment.update({where:{id:payment.id},data:{status:next,provider:data.provider,providerReference:data.providerReference}});
     await db.webhookEvent.update({
       where:{provider_eventId:{provider:data.provider,eventId:data.eventId}},
       data:{processedAt:new Date()}
