@@ -1,0 +1,2 @@
+import Link from "next/link";
+export default function PaymentCallbackPage({searchParams}:{searchParams:Promise<Record<string,string|undefined>>}){return <main className="mx-auto max-w-xl px-4 py-16 text-center"><h1 className="text-2xl font-bold">Payment processing</h1><p className="mt-3 text-slate-600">We are confirming your payment securely. Your order status will update after gateway verification.</p><Link className="mt-6 inline-block rounded-xl bg-indigo-600 px-5 py-3 text-white" href="/orders">View orders</Link></main>}
