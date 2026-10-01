@@ -1,0 +1,1 @@
+import {InfoPage} from "@/components/content/info-page"; export default function Page(){return <InfoPage title="Store Policy" description="General policies for shopping with Zelux." sections={[{title:"Fair and transparent shopping",body:"Product information, pricing, shipping and order status are handled through server-validated commerce flows."}]}/>}
