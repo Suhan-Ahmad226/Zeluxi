@@ -1,0 +1,4 @@
+import {redirect} from "next/navigation";
+import {getCurrentLocalUser} from "@/lib/auth/current-user";
+import {db} from "@/lib/db/client";
+export default async function WishlistPage(){const user=await getCurrentLocalUser();if(!user)redirect("/login?next=/account/wishlist");const items=await db.wishlistItem.findMany({where:{userId:user.id},include:{product:{include:{images:true}}},orderBy:{createdAt:"desc"}});return <main className="mx-auto max-w-5xl px-4 py-10"><h1 className="text-3xl font-bold">Wishlist</h1>{!items.length?<p className="mt-6 rounded-2xl border p-6 text-slate-600">Your wishlist is empty.</p>:<div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{items.map(x=><article key={x.id} className="rounded-2xl border bg-white p-4"><p className="font-semibold">{x.product.name}</p><p className="mt-1 text-sm text-slate-500">৳{Number(x.product.price).toLocaleString("en-BD")}</p></article>)}</div>}</main>}
