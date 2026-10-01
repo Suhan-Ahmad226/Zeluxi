@@ -7,7 +7,10 @@ const money=(v:unknown)=>Number(v).toLocaleString("en-BD",{maximumFractionDigits
 export function GuestCart(){
  const [items,setItems]=useState<Item[]>([]),[loading,setLoading]=useState(true),[busy,setBusy]=useState<string|null>(null),[error,setError]=useState("");
  async function load(){setLoading(true);try{const r=await fetch("/api/cart",{cache:"no-store"});const b=await r.json();if(!r.ok)throw new Error(b?.error||"Unable to load cart");setItems(b.items||[])}catch(e){setError(e instanceof Error?e.message:"Unable to load cart")}finally{setLoading(false)}}
- useEffect(()=>{\n  // eslint-disable-next-line react-hooks/set-state-in-effect\n  void load();\n},[]);
+ useEffect(()=>{
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  void load();
+},[]);
  async function change(id:string,quantity:number){if(quantity<1)return;setBusy(id);setError("");try{const r=await fetch("/api/cart/items/"+id,{method:"PATCH",headers:{"content-type":"application/json"},body:JSON.stringify({quantity})});const b=await r.json().catch(()=>null);if(!r.ok)throw new Error(b?.error||"Unable to update cart");await load()}catch(e){setError(e instanceof Error?e.message:"Unable to update cart")}finally{setBusy(null)}}
  async function remove(id:string){setBusy(id);setError("");try{const r=await fetch("/api/cart/items/"+id,{method:"DELETE"});if(!r.ok)throw new Error("Unable to remove item");setItems(x=>x.filter(i=>i.id!==id))}catch(e){setError(e instanceof Error?e.message:"Unable to remove item")}finally{setBusy(null)}}
  if(loading)return <div className="mt-8 rounded-2xl border p-8 text-center text-sm text-slate-500">Loading your cart…</div>;
