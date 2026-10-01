@@ -1,7 +1,8 @@
 import Link from "next/link";
 import {listPublishedProducts} from "@/modules/products/service";
 import {ProductCard} from "@/components/product/product-card";
-export const metadata={title:"Shop | Zelux"};
+import type {Metadata} from "next";
+export const metadata:Metadata={title:"Shop — Online Shopping in Bangladesh",description:"Browse Zelux products with BDT pricing, COD and reliable delivery across Bangladesh.",alternates:{canonical:"/shop"}};
 export default async function ShopPage({searchParams}:{searchParams:Promise<{q?:string;sort?:string;page?:string}>}){
  const p=await searchParams;const page=Math.max(1,Number(p.page)||1);const take=24;
  const products=await listPublishedProducts({take,skip:(page-1)*take,q:p.q});
