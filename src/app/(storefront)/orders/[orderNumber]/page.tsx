@@ -1,14 +1,17 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getCurrentLocalUser } from "@/lib/auth/current-user";
+import { cookies } from "next/headers";
 import { db } from "@/lib/db/client";
 
 const money=(v:unknown)=>Number(v).toLocaleString("en-BD",{minimumFractionDigits:0,maximumFractionDigits:2});
 
 export default async function OrderConfirmation({params}:{params:Promise<{orderNumber:string}>}) {
-  const user=await getCurrentLocalUser(); if(!user) redirect("/login");
+  const user=await getCurrentLocalUser();
   const {orderNumber}=await params;
-  const order=await db.order.findFirst({where:{orderNumber,userId:user.id},include:{items:true,payment:true,shipment:true}});
+  const phone=(await cookies()).get("zelux_guest_phone")?.value;
+  if(!user && !phone) redirect("/login?next=/orders/"+encodeURIComponent(orderNumber));
+  const order=await db.order.findFirst({where:{orderNumber,...(user?{userId:user.id}:{recipientPhone:phone})},include:{items:true,payment:true,shipment:true}});
   if(!order) return notFound();
   return <main className="mx-auto min-h-[70vh] max-w-3xl px-4 py-10 sm:py-14">
     <div className="rounded-3xl border bg-white p-6 sm:p-8"><div className="text-sm font-semibold text-green-700">Order placed successfully</div>
