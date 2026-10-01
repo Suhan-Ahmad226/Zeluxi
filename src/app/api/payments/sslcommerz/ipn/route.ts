@@ -8,7 +8,7 @@ export async function POST(req:Request){
  try{
   const payment=await db.payment.findFirst({where:{provider:"SSLCOMMERZ",providerReference:tranId},include:{order:true}});if(!payment)throw new Error("Payment not found.");
   if(status==="VALID"||status==="VALIDATED"){
-   if(!valId)throw new Error("Missing validation ID.");const verified=await validate(valId);const verifiedStatus=String(verified.status);const amount=new Prisma.Decimal(String(verified.amount||"0"));if(!["VALID","VALIDATED"].includes(verifiedStatus)||String(verified.tran_id)!==tranId||amount.neq(payment.amount)||String(verified.currency_type||"BDT")!=="BDT")throw new Error("Payment validation mismatch.");
+   if(!valId)throw new Error("Missing validation ID.");const verified=await validate(valId);const verifiedStatus=String(verified.status);const amount=new Prisma.Decimal(String(verified.amount||"0"));if(!["VALID","VALIDATED"].includes(verifiedStatus)||String(verified.tran_id)!==tranId||Number(amount) !== Number(payment.amount)||String(verified.currency_type||"BDT")!=="BDT")throw new Error("Payment validation mismatch.");
    await markPaymentPaid(tranId);
   }else if(["FAILED","CANCELLED","EXPIRED","UNATTEMPTED"].includes(status)){await markPaymentFailed(tranId)}
   return NextResponse.json({ok:true});
