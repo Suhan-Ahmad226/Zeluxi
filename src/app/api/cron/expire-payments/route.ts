@@ -1,0 +1,4 @@
+import {NextResponse} from "next/server";
+import {db} from "@/lib/db/client";
+import {failPendingPaymentByOrder} from "@/modules/payments/service";
+export async function GET(req:Request){const secret=process.env.CRON_SECRET;const auth=req.headers.get("authorization")||"";if(!secret||auth!==`Bearer ${secret}`)return NextResponse.json({error:"Unauthorized"},{status:401});const cutoff=new Date(Date.now()-30*60*1000);const payments=await db.payment.findMany({where:{method:"ONLINE",status:"PENDING",createdAt:{lt:cutoff}},select:{orderId:true},take:100});let expired=0;for(const p of payments){try{await failPendingPaymentByOrder(p.orderId);expired++}catch{}}return NextResponse.json({expired,scanned:payments.length});}
