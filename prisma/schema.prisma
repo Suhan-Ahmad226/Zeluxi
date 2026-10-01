@@ -212,6 +212,9 @@ model Payment {
   providerReference String?
   amount Decimal @db.Decimal(12,2)
   paidAt DateTime?
+  refundReference String?
+  refundInitiatedAt DateTime?
+  refundCompletedAt DateTime?
   order Order @relation(fields:[orderId], references:[id], onDelete:Cascade)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
