@@ -1,0 +1,1 @@
+import {AdminSection} from "@/components/admin/admin-section";export default function Page(){return <AdminSection title="Courier Settings" description="Configure enabled courier providers." items={["Pathao","Manual fallback","Credentials status","Webhook status"]}/>}
