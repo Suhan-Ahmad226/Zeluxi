@@ -32,9 +32,13 @@ export async function POST(req:Request){
   const existing=await db.webhookEvent.findUnique({where:{provider_eventId:{provider:"PATHAO",eventId}}}).catch(()=>null);
   if(existing)return NextResponse.json({received:true,duplicate:true});
   await db.$transaction(async tx=>{
-    await tx.webhookEvent.create({data:{provider:"PATHAO",eventId,payload,processedAt:new Date()}});
     const shipment=await tx.shipment.findFirst({where:{provider:"PATHAO",trackingId}});
-    if(!shipment)return;
+    if(!shipment)throw new Error("Shipment not found for this Pathao event.");
+    try{await tx.webhookEvent.create({data:{provider:"PATHAO",eventId,payload,processedAt:new Date()}})}catch(error){
+      const duplicate=await tx.webhookEvent.findUnique({where:{provider_eventId:{provider:"PATHAO",eventId}}});
+      if(duplicate)return;
+      throw error;
+    }
     const update:any={status:mapped.shipment};if(mapped.shipment===ShipmentStatus.DELIVERED)update.deliveredAt=new Date();
     await tx.shipment.update({where:{id:shipment.id},data:update});
     if(mapped.order){const order=await tx.order.findUnique({where:{id:shipment.orderId}});if(order&&order.status!==mapped.order){assertTransition(order.status,mapped.order);await tx.order.update({where:{id:order.id},data:{status:mapped.order}});await tx.orderStatusHistory.create({data:{orderId:order.id,fromStatus:order.status,toStatus:mapped.order,note:`Pathao webhook: ${status}`}});}}
