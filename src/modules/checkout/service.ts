@@ -5,12 +5,12 @@ import type {CheckoutInput} from "@/lib/validation/commerce";
 const money=(n:Prisma.Decimal.Value)=>new Prisma.Decimal(n);
 const calculateShippingFee=(district:string)=>money(district.trim().toLowerCase()==="dhaka"?80:130);
 
-export async function createOrder(userId:string,input:CheckoutInput,idempotencyKey:string){
+export async function createOrder(userId:string|null,input:CheckoutInput,idempotencyKey:string){
   return db.$transaction(async tx=>{
     const existing=await tx.order.findFirst({where:{userId,idempotencyKey},include:{items:true,payment:true,shipment:true}});
     if(existing) return existing;
 
-    const address=await tx.address.findFirst({where:{id:input.addressId,userId}});
+    const address=input.guestAddress ?? (userId&&input.addressId ? await tx.address.findFirst({where:{id:input.addressId,userId}}) : null);
     if(!address) throw new Error("Delivery address not found.");
 
     const ids=[...new Set(input.items.map(x=>x.productId))];
@@ -53,7 +53,7 @@ export async function createOrder(userId:string,input:CheckoutInput,idempotencyK
     const total=subtotal.sub(discount).add(shippingFee);
     const order=await tx.order.create({data:{
       orderNumber:`ZLX-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2,7).toUpperCase()}`,
-      idempotencyKey,userId,addressId:address.id,
+      idempotencyKey,userId,addressId:userId&&input.addressId?input.addressId:null,
       recipientName:address.recipientName,recipientPhone:address.phone,division:address.division,district:address.district,area:address.area,addressLine:address.addressLine,postalCode:address.postalCode,
       status:OrderStatus.PENDING,paymentMethod:input.paymentMethod as PaymentMethod,
       subtotal,discount,shippingFee,tax:money(0),total,
@@ -64,8 +64,7 @@ export async function createOrder(userId:string,input:CheckoutInput,idempotencyK
       ...(couponId?{couponUsage:{create:{couponId,userId,discount}}}:{}),
     },include:{items:true,payment:true,shipment:true}});
     if(couponId) await tx.coupon.update({where:{id:couponId},data:{usedCount:{increment:1}}});
-    await tx.cart.updateMany({where:{userId},data:{updatedAt:new Date()}});
-    await tx.cartItem.deleteMany({where:{cart:{userId}}});
+    if(userId){await tx.cart.updateMany({where:{userId},data:{updatedAt:new Date()}});await tx.cartItem.deleteMany({where:{cart:{userId}}});}
     return order;
   },{isolationLevel:Prisma.TransactionIsolationLevel.Serializable});
 }
