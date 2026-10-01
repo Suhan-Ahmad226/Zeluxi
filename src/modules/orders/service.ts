@@ -1,7 +1,7 @@
 import { OrderStatus } from "@prisma/client";
 import { db } from "@/lib/db/client";
 import { assertTransition } from "@/modules/orders/transitions";
-import { Prisma } from "@prisma/client";
+
 
 export async function getUserOrder(userId:string,orderNumber:string){
   return db.order.findFirst({where:{userId,orderNumber},include:{items:true,payment:true,shipment:true,statusHistory:{orderBy:{createdAt:"asc"}}}});
