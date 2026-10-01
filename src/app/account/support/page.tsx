@@ -1,0 +1,1 @@
+import {InfoPage} from "@/components/content/info-page";export default function Page(){return <InfoPage title="My Support" description="Review support requests." sections={[{title:"Account",body:"Keep order numbers and relevant details in support requests; never share OTPs or passwords."}]}/>}
