@@ -1,4 +1,4 @@
-import { OrderStatus, Prisma } from "@prisma/client";
+import { OrderStatus } from "@prisma/client";
 import { db } from "@/lib/db/client";
 import { assertTransition } from "@/modules/orders/transitions";
 
@@ -14,7 +14,7 @@ export async function updateOrderStatus(actorUserId:string,orderId:string,nextSt
     assertTransition(order.status,nextStatus);
     const updated=await tx.order.update({where:{id:order.id},data:{status:nextStatus}});
     await tx.orderStatusHistory.create({data:{orderId:order.id,fromStatus:order.status,toStatus:nextStatus,note}});
-    await tx.auditLog.create({data:{actorUserId,action:"ORDER_STATUS_UPDATE",entityType:"Order",entityId:order.id,before:order.status,after:nextStatus as unknown as Prisma.InputJsonValue,context:note?{note}:undefined}});
+    await tx.auditLog.create({data:{actorUserId,action:"ORDER_STATUS_UPDATE",entityType:"Order",entityId:order.id,before:{status:order.status},after:{status:nextStatus},context:note?{note}:undefined}});
     return updated;
   });
 }
