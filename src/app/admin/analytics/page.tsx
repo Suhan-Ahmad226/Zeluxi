@@ -1,0 +1,1 @@
+import {AdminSection} from "@/components/admin/admin-section";export default function Page(){return <AdminSection title="Analytics" description="Understand sales, products, customers, conversion and traffic." items={["Sales","Products","Customers","Conversion","Traffic","Search"]}/>}
