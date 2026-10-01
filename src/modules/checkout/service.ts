@@ -9,7 +9,7 @@ const createGuestCartHash=(token:string)=>createHash("sha256").update(token).dig
 const money=(n:Prisma.Decimal.Value)=>new Prisma.Decimal(n);
 
 
-export async function createOrder(userId:string|null,input:CheckoutInput,idempotencyKey:string,guestCartToken?:string){
+export async function createOrder(userId:string|null,input:CheckoutInput,idempotencyKey:string,guestCartToken?:string,guestOrderAccessToken?:string){
   return db.$transaction(async tx=>{
     const existing=await tx.order.findFirst({where:{idempotencyKey},include:{items:true,payment:true,shipment:true}});
     if(existing) return existing;
@@ -17,9 +17,11 @@ export async function createOrder(userId:string|null,input:CheckoutInput,idempot
     const address=input.guestAddress ?? (userId&&input.addressId ? await tx.address.findFirst({where:{id:input.addressId,userId}}) : null);
     if(!address) throw new Error("Delivery address not found.");
 
-    const authoritativeItems=userId?input.items:(guestCartToken?((await tx.cart.findUnique({where:{guestTokenHash:createGuestCartHash(guestCartToken),include:{items:true}}}))?.items.map(x=>({productId:x.productId,variantId:x.variantId??undefined,quantity:x.quantity}))??[]):[]);
+    const authoritativeItems=userId
+      ? ((await tx.cart.findUnique({where:{userId},include:{items:true}}))?.items.map(x=>({productId:x.productId,variantId:x.variantId??undefined,quantity:x.quantity}))??[])
+      : (guestCartToken?((await tx.cart.findUnique({where:{guestTokenHash:createGuestCartHash(guestCartToken)},include:{items:true}}))?.items.map(x=>({productId:x.productId,variantId:x.variantId??undefined,quantity:x.quantity}))??[]):[]);
     if(!authoritativeItems.length) throw new Error("Cart is empty.");
-    if(!userId && authoritativeItems.some((x,i)=>input.items[i]?.productId!==x.productId || input.items[i]?.variantId!==x.variantId || input.items[i]?.quantity!==x.quantity)) throw new Error("Cart changed. Please review your cart and try again.");
+    if(authoritativeItems.length!==input.items.length || authoritativeItems.some((x,i)=>input.items[i]?.productId!==x.productId || input.items[i]?.variantId!==x.variantId || input.items[i]?.quantity!==x.quantity)) throw new Error("Cart changed. Please review your cart and try again.");
     const ids=[...new Set(authoritativeItems.map(x=>x.productId))];
     const products=await tx.product.findMany({where:{id:{in:ids},isPublished:true},include:{variants:{include:{inventory:true}},inventory:true}});
     const byId=new Map(products.map(p=>[p.id,p]));
@@ -55,13 +57,16 @@ export async function createOrder(userId:string|null,input:CheckoutInput,idempot
       discount=Prisma.Decimal.min(discount,subtotal); couponId=coupon.id;
     }
 
+    if(!userId && !guestOrderAccessToken) throw new Error("Guest order access token is required.");
+
     const courier=getCourierProvider();
-    const quote=await courier.calculatePrice({address:{division:address.division,district:address.district,area:address.area,addressLine:address.addressLine},weightGrams:products.reduce((sum,p)=>sum+(p.weightGrams??0),0)});
+    const quote=await courier.calculatePrice({address:{division:address.division,district:address.district,area:address.area,addressLine:address.addressLine},weightGrams:authoritativeItems.reduce((sum,line)=>sum+(byId.get(line.productId)?.weightGrams??0)*line.quantity,0)});
     const shippingFee=money(quote.fee);
     if(shippingFee.lt(0)) throw new Error("Invalid shipping fee.");
     const total=subtotal.sub(discount).add(shippingFee);
     const order=await tx.order.create({data:{
       orderNumber:`ZLX-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2,7).toUpperCase()}`,
+      guestAccessTokenHash:!userId&&guestOrderAccessToken?createGuestCartHash(guestOrderAccessToken):null,
       idempotencyKey,userId,addressId:userId&&input.addressId?input.addressId:null,
       recipientName:address.recipientName,recipientPhone:address.phone,division:address.division,district:address.district,area:address.area,addressLine:address.addressLine,postalCode:address.postalCode,
       status:OrderStatus.PENDING,paymentMethod:input.paymentMethod as PaymentMethod,
@@ -73,7 +78,8 @@ export async function createOrder(userId:string|null,input:CheckoutInput,idempot
       ...(couponId?{couponUsage:{create:{couponId,userId,discount}}}:{}),
     },include:{items:true,payment:true,shipment:true}});
     if(couponId){const claimed=await tx.coupon.updateMany({where:{id:couponId,isActive:true,OR:[{usageLimit:null},{usedCount:{lt:coupon.usageLimit!}}]},data:{usedCount:{increment:1}}});if(claimed.count!==1)throw new Error("Coupon usage limit reached.");}
-    if(userId){await tx.cart.updateMany({where:{userId},data:{updatedAt:new Date()}});await tx.cartItem.deleteMany({where:{cart:{userId}}});}
+    if(userId){await tx.cartItem.deleteMany({where:{cart:{userId}}});}
+    else if(guestCartToken){await tx.cartItem.deleteMany({where:{cart:{guestTokenHash:createGuestCartHash(guestCartToken)}}});}
     return order;
   },{isolationLevel:Prisma.TransactionIsolationLevel.Serializable});
 }
