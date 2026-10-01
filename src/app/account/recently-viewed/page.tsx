@@ -1,0 +1,1 @@
+import {InfoPage} from "@/components/content/info-page";export default function Page(){return <InfoPage title="Recently Viewed" description="Review products you recently explored." sections={[{title:"Account",body:"Recently viewed items are convenience data and do not guarantee availability."}]}/>}
