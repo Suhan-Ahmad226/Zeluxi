@@ -146,6 +146,7 @@ model CartItem {
 model Order {
   id String @id @default(cuid())
   orderNumber String @unique
+  idempotencyKey String? @unique
   userId String?
   addressId String?
   status OrderStatus @default(PENDING)
