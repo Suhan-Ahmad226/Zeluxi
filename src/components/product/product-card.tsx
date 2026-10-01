@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { AddToCartButton } from "@/components/product/add-to-cart-button";
+import { WishlistButton } from "@/components/product/wishlist-button";
 
 type Product = {
   id: string; name: string; slug: string; price: unknown; compareAtPrice?: unknown | null;
@@ -15,7 +16,7 @@ export function ProductCard({ product }: { product: Product }) {
   return (
     <article className="group overflow-hidden rounded-2xl border border-slate-200 bg-white transition hover:-translate-y-0.5 hover:shadow-md">
       <Link href={`/product/${product.slug}`} className="block">
-        <div className="relative aspect-square overflow-hidden bg-slate-100">
+        <div className="relative aspect-square overflow-hidden bg-slate-100"><WishlistButton productId={product.id} />
           {image ? <Image src={image.url} alt={image.altText || product.name} fill sizes="(max-width:640px) 50vw,(max-width:1024px) 33vw,25vw" className="object-cover transition duration-300 group-hover:scale-[1.03]" /> : <div className="grid h-full place-items-center text-sm text-slate-400">No image</div>}
         </div>
         <div className="p-3 sm:p-4">
