@@ -1,0 +1,1 @@
+import {InfoPage} from "@/components/content/info-page"; export default function Page(){return <InfoPage title="Help Center" description="Find guidance for shopping, payments, delivery and orders." sections={[{title:"Need help?",body:"Start with FAQ and order tracking. For an order-specific issue, keep your order number ready when contacting support."}]}/>}
