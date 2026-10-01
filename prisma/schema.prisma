@@ -73,6 +73,9 @@ model User {
   cart Cart?
   notifications Notification[]
   auditLogs AuditLog[]
+  supportTickets SupportTicket[]
+  productQuestions ProductQuestion[]
+  productAnswers ProductAnswer[]
 }
 
 model Address {
@@ -141,6 +144,7 @@ model Product {
   reviews Review[]
   wishlistItems WishlistItem[]
   cartItems CartItem[]
+  questions ProductQuestion[]
   @@index([isPublished, isFeatured])
 }
 
@@ -379,6 +383,63 @@ model Page {
   seoDescription String?
   isPublished Boolean @default(false)
   updatedAt DateTime @updatedAt
+}
+
+model SupportTicket {
+  id String @id @default(cuid())
+  ticketNumber String @unique
+  userId String
+  orderId String?
+  subject String
+  status String @default("OPEN")
+  priority String @default("NORMAL")
+  category String @default("GENERAL")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user User @relation(fields:[userId], references:[id], onDelete:Cascade)
+  order Order? @relation(fields:[orderId], references:[id], onDelete:SetNull)
+  messages SupportMessage[]
+  @@index([userId, updatedAt])
+  @@index([status, updatedAt])
+}
+
+model SupportMessage {
+  id String @id @default(cuid())
+  ticketId String
+  authorUserId String?
+  body String
+  isStaff Boolean @default(false)
+  createdAt DateTime @default(now())
+  ticket SupportTicket @relation(fields:[ticketId], references:[id], onDelete:Cascade)
+  author User? @relation(fields:[authorUserId], references:[id], onDelete:SetNull)
+  @@index([ticketId, createdAt])
+}
+
+model ProductQuestion {
+  id String @id @default(cuid())
+  productId String
+  userId String
+  question String
+  isPublished Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  product Product @relation(fields:[productId], references:[id], onDelete:Cascade)
+  user User @relation(fields:[userId], references:[id], onDelete:Cascade)
+  answers ProductAnswer[]
+  @@index([productId, createdAt])
+}
+
+model ProductAnswer {
+  id String @id @default(cuid())
+  questionId String
+  authorUserId String
+  answer String
+  isPublished Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  question ProductQuestion @relation(fields:[questionId], references:[id], onDelete:Cascade)
+  author User @relation(fields:[authorUserId], references:[id], onDelete:Cascade)
+  @@index([questionId, createdAt])
 }
 
 model SiteSetting {
