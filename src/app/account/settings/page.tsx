@@ -1,0 +1,3 @@
+import {redirect} from "next/navigation";
+import {getCurrentLocalUser} from "@/lib/auth/current-user";
+export default async function SettingsPage(){const user=await getCurrentLocalUser();if(!user)redirect("/login?next=/account/settings");return <main className="mx-auto max-w-3xl px-4 py-10"><h1 className="text-3xl font-bold">Account settings</h1><section className="mt-6 rounded-2xl border bg-white p-6"><p className="text-sm text-slate-500">Signed-in email</p><p className="mt-1 font-semibold">{user.email}</p><p className="mt-5 text-sm text-slate-500">Name</p><p className="mt-1 font-semibold">{user.name||"Not set"}</p><p className="mt-6 text-sm text-slate-500">Authentication is managed securely by Supabase.</p></section></main>}
