@@ -23,7 +23,8 @@ jobs:
         with:
           node-version: 22
       - run: npm install
-      - run: npx prisma generate --schema=./prisma/schema.prisma
+      - run: npx prisma@6.19.0 validate --schema=./prisma/schema.prisma
+      - run: npx prisma@6.19.0 generate --schema=./prisma/schema.prisma
       - run: npm run typecheck
       - run: npm run lint
       - run: npm test
