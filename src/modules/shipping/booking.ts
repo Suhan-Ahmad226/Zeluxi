@@ -34,8 +34,8 @@ export async function bookOrderShipment(actorUserId:string,orderId:string){
     });
     return result;
   }catch(error){
-    await db.shipment.updateMany({where:{orderId,trackingId:null,status:ShipmentStatus.PROCESSING},data:{status:ShipmentStatus.PENDING}});
+    // Keep PROCESSING after an uncertain external response. Automatic retry could create a duplicate courier parcel.
     throw error;
   }
 }
-async function getOrderWeight(orderId:string){const items=await db.orderItem.findMany({where:{orderId},include:{product:{select:{weightGrams:true}},variant:{include:{inventory:false}}}});return items.reduce((sum,item)=>sum+(item.product.weightGrams??500)*item.quantity,0);}
+async function getOrderWeight(orderId:string){const items=await db.orderItem.findMany({where:{orderId},include:{product:{select:{weightGrams:true}}}});return items.reduce((sum,item)=>sum+(item.product.weightGrams??500)*item.quantity,0);}
