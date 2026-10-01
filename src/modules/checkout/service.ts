@@ -1,9 +1,10 @@
 import {Prisma,PaymentMethod,OrderStatus,ShipmentStatus,PaymentStatus} from "@prisma/client";
 import {db} from "@/lib/db/client";
 import type {CheckoutInput} from "@/lib/validation/commerce";
+import {getCourierProvider} from "@/modules/shipping/registry";
 
 const money=(n:Prisma.Decimal.Value)=>new Prisma.Decimal(n);
-const calculateShippingFee=(district:string)=>money(district.trim().toLowerCase()==="dhaka"?80:130);
+
 
 export async function createOrder(userId:string|null,input:CheckoutInput,idempotencyKey:string){
   return db.$transaction(async tx=>{
@@ -48,7 +49,9 @@ export async function createOrder(userId:string|null,input:CheckoutInput,idempot
       discount=Prisma.Decimal.min(discount,subtotal); couponId=coupon.id;
     }
 
-    const shippingFee=calculateShippingFee(address.district);
+    const courier=getCourierProvider();
+    const quote=await courier.calculatePrice({address:{division:address.division,district:address.district,area:address.area,addressLine:address.addressLine},weightGrams:products.reduce((sum,p)=>sum+(p.weightGrams??0),0)});
+    const shippingFee=money(quote.fee);
     if(shippingFee.lt(0)) throw new Error("Invalid shipping fee.");
     const total=subtotal.sub(discount).add(shippingFee);
     const order=await tx.order.create({data:{
@@ -59,7 +62,7 @@ export async function createOrder(userId:string|null,input:CheckoutInput,idempot
       subtotal,discount,shippingFee,tax:money(0),total,
       items:{create:orderItems.map(x=>({...x}))},
       payment:{create:{method:input.paymentMethod as PaymentMethod,status:PaymentStatus.PENDING,amount:total}},
-      shipment:{create:{status:ShipmentStatus.PENDING,deliveryFee:shippingFee}},
+      shipment:{create:{status:ShipmentStatus.PENDING,provider:quote.provider,deliveryFee:shippingFee}},
       statusHistory:{create:{toStatus:OrderStatus.PENDING,note:"Order created"}},
       ...(couponId?{couponUsage:{create:{couponId,userId,discount}}}:{}),
     },include:{items:true,payment:true,shipment:true}});
