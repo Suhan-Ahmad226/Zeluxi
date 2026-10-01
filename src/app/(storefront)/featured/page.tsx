@@ -1,0 +1,1 @@
+import {InfoPage} from "@/components/content/info-page"; export default function Page(){return <InfoPage title="Featured Products" description="A curated selection from the Zelux catalog." sections={[{title:"Featured selection",body:"Featured products are selected by the store and remain subject to availability."}]}/>}
