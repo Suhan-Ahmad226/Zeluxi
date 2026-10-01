@@ -1,0 +1,1 @@
+import {InfoPage} from "@/components/content/info-page"; export default function Page(){return <InfoPage title="Offers" description="Explore active promotions across the Zelux store." sections={[{title:"How offers work",body:"Eligible discounts are applied according to the promotion rules. Your checkout total is always calculated on the server."}]}/>}
