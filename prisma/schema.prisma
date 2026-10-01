@@ -46,6 +46,15 @@ model Address {
   @@index([userId])
 }
 
+model ProductCategory {
+  productId String
+  categoryId String
+  product Product @relation(fields:[productId], references:[id], onDelete:Cascade)
+  category Category @relation(fields:[categoryId], references:[id], onDelete:Cascade)
+  @@id([productId, categoryId])
+  @@index([categoryId])
+}
+
 model Category {
   id String @id @default(cuid())
   name String
