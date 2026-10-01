@@ -1,0 +1,1 @@
+import {AdminSection} from "@/components/admin/admin-section";export default function Page(){return <AdminSection title="Security" description="Review administrative access, audit activity and security controls." items={["Activity Logs","Audit Logs","Login History","Security Settings","Two-factor Authentication"]}/>}
