@@ -75,15 +75,16 @@ type ProductVariantInput = { id?: string; sku: string; name: string; attributes?
 export async function updateProductCatalog(
   id: string,
   input: Prisma.ProductUpdateInput,
-  images: ProductImageInput[],
-  variants: ProductVariantInput[],
+  images?: ProductImageInput[],
+  variants?: ProductVariantInput[],
 ) {
   return db.$transaction(async (tx) => {
     await tx.product.update({ where: { id }, data: input });
+    if (!images && !variants) return tx.product.findUniqueOrThrow({ where: { id }, include: { inventory: true, images: { orderBy: { sortOrder: "asc" } }, variants: { include: { inventory: true }, orderBy: { sku: "asc" } }, categories: { include: { category: true } } } });
     const existingImages = await tx.productImage.findMany({ where: { productId: id } });
-    const imageIds = new Set(images.filter((x) => x.id).map((x) => x.id!));
+    const imageIds = new Set((images ?? []).filter((x) => x.id).map((x) => x.id!));
     for (const old of existingImages) if (!imageIds.has(old.id)) await tx.productImage.delete({ where: { id: old.id } });
-    for (const [index, image] of images.entries()) {
+    for (const [index, image] of (images ?? []).entries()) {
       if (image.id) {
         await tx.productImage.update({ where: { id: image.id }, data: { url: image.url, altText: image.altText ?? null, sortOrder: image.sortOrder ?? index } });
       } else {
@@ -91,6 +92,7 @@ export async function updateProductCatalog(
       }
     }
 
+    if (!variants) return tx.product.findUniqueOrThrow({ where: { id }, include: { inventory: true, images: { orderBy: { sortOrder: "asc" } }, variants: { include: { inventory: true }, orderBy: { sku: "asc" } }, categories: { include: { category: true } } } });
     const existingVariants = await tx.productVariant.findMany({ where: { productId: id }, include: { orderItems: { select: { id: true }, take: 1 }, cartItems: { select: { id: true }, take: 1 } } });
     const variantIds = new Set(variants.filter((x) => x.id).map((x) => x.id!));
     for (const old of existingVariants) {
