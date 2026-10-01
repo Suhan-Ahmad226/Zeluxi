@@ -26,9 +26,9 @@ export function CartItemControls({ itemId, quantity }: { itemId: string; quantit
     finally { setBusy(false); }
   }
   return <div className="flex items-center gap-2">
-    <Button type="button" variant="outline" className="h-9 min-h-9 w-9 px-0" disabled={busy || value <= 1} onClick={() => update(value - 1)}>-</Button>
+    <Button type="button" className="h-9 min-h-9 w-9 px-0" disabled={busy || value <= 1} onClick={() => update(value - 1)}>-</Button>
     <span className="w-7 text-center text-sm font-semibold">{value}</span>
-    <Button type="button" variant="outline" className="h-9 min-h-9 w-9 px-0" disabled={busy} onClick={() => update(value + 1)}>+</Button>
+    <Button type="button" className="h-9 min-h-9 w-9 px-0" disabled={busy} onClick={() => update(value + 1)}>+</Button>
     <button type="button" onClick={remove} disabled={busy} className="ml-2 text-xs font-medium text-red-600 hover:underline">Remove</button>
   </div>;
 }
