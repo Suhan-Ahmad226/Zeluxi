@@ -1,7 +1,7 @@
 import {createHash,createHmac,timingSafeEqual} from "node:crypto";
 import {NextResponse} from "next/server";
 import {db} from "@/lib/db/client";
-import {OrderStatus,ShipmentStatus} from "@prisma/client";
+import {OrderStatus,ShipmentStatus,Prisma} from "@prisma/client";
 import {assertTransition} from "@/modules/orders/transitions";
 const statusMap:Record<string,{shipment:ShipmentStatus;order?:OrderStatus}>={
  "order.created":{shipment:ShipmentStatus.PICKUP_REQUESTED,order:OrderStatus.SHIPPED},
@@ -32,7 +32,7 @@ export async function POST(req:Request){
   await db.$transaction(async tx=>{
    const existing=await tx.webhookEvent.findUnique({where:{provider_eventId:{provider:"PATHAO",eventId}}});if(existing)return;
    const shipment=await tx.shipment.findFirst({where:{provider:"PATHAO",trackingId}});if(!shipment)throw new Error("Shipment not found for this Pathao event.");
-   await tx.webhookEvent.create({data:{provider:"PATHAO",eventId,payload,processedAt:new Date()}});
+   await tx.webhookEvent.create({data:{provider:"PATHAO",eventId,payload: payload as Prisma.InputJsonValue,processedAt:new Date()}});
    await tx.shipment.update({where:{id:shipment.id},data:{status:mapped.shipment,...(mapped.shipment===ShipmentStatus.DELIVERED?{deliveredAt:new Date()}:{} )}});
    if(mapped.order){const order=await tx.order.findUnique({where:{id:shipment.orderId}});if(order&&order.status!==mapped.order){assertTransition(order.status,mapped.order);await tx.order.update({where:{id:order.id},data:{status:mapped.order}});await tx.orderStatusHistory.create({data:{orderId:order.id,fromStatus:order.status,toStatus:mapped.order,note:`Pathao webhook: ${status}`}});}}
   });
