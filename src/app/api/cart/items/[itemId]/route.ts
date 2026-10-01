@@ -1,6 +1,6 @@
 import {NextResponse} from "next/server";
-import {createSupabaseServerClient} from "@/lib/auth/server";
+import {getCurrentLocalUser} from "@/lib/auth/current-user";
 import {removeCartItem,updateCartItem} from "@/modules/cart/service";
-async function auth(){const s=await createSupabaseServerClient();return (await s.auth.getUser()).data.user;}
+async function auth(){return getCurrentLocalUser();}
 export async function PATCH(req:Request,{params}:{params:Promise<{itemId:string}>}){const u=await auth();if(!u)return NextResponse.json({error:"Unauthorized"},{status:401});const b=await req.json();if(!Number.isInteger(b.quantity)||b.quantity<1)return NextResponse.json({error:"Invalid quantity"},{status:400});try{return NextResponse.json(await updateCartItem(u.id,(await params).itemId,b.quantity));}catch(e){return NextResponse.json({error:e instanceof Error?e.message:"Unable to update item"},{status:409});}}
 export async function DELETE(_:Request,{params}:{params:Promise<{itemId:string}>}){const u=await auth();if(!u)return NextResponse.json({error:"Unauthorized"},{status:401});try{await removeCartItem(u.id,(await params).itemId);return new NextResponse(null,{status:204});}catch(e){return NextResponse.json({error:e instanceof Error?e.message:"Unable to remove item"},{status:404});}}
