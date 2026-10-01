@@ -1,0 +1,1 @@
+import {AdminSection} from "@/components/admin/admin-section";export default function Page(){return <AdminSection title="Settings" description="Configure store-wide operational settings." items={["General","Store","Currency","Checkout","Shipping","Payments","Tax","Notifications","Email","SMS","Social","SEO","Security","API","Integrations"]}/>}
