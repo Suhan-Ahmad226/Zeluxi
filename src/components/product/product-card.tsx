@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { AddToCartButton } from "@/components/product/add-to-cart-button";
 import { WishlistButton } from "@/components/product/wishlist-button";
+import { CompareButton } from "@/components/product/compare-button";
 
 type Product = {
   id: string; name: string; slug: string; price: unknown; compareAtPrice?: unknown | null;
@@ -27,7 +28,7 @@ export function ProductCard({ product }: { product: Product }) {
           </div>
         </div>
       </Link>
-      <div className="px-3 pb-3 sm:px-4 sm:pb-4">
+      <div className="flex items-center justify-between gap-2 px-3 pb-3 sm:px-4 sm:pb-4"><CompareButton productId={product.id} />
         <AddToCartButton productId={product.id} disabled={stock < 1} />
       </div>
     </article>
