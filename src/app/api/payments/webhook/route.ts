@@ -1,4 +1,5 @@
 import {NextResponse} from "next/server";
+import {timingSafeEqual} from "node:crypto";
 import {db} from "@/lib/db/client";
 import {PaymentStatus,Prisma} from "@prisma/client";
 import {markPaymentPaid,markPaymentFailed} from "@/modules/payments/service";
@@ -15,7 +16,7 @@ const schema=z.object({
 export async function POST(req:Request){
   const secret=process.env.PAYMENT_WEBHOOK_SECRET;
   if(!secret)return NextResponse.json({error:"Payment webhook is not configured"},{status:503});
-  if(req.headers.get("x-payment-webhook-secret")!==secret)return NextResponse.json({error:"Unauthorized"},{status:401});
+  const supplied=req.headers.get("x-payment-webhook-secret")||"";const a=Buffer.from(supplied),b=Buffer.from(secret);if(a.length!==b.length||!timingSafeEqual(a,b))return NextResponse.json({error:"Unauthorized"},{status:401});
   const parsed=schema.safeParse(await req.json().catch(()=>null));
   if(!parsed.success)return NextResponse.json({error:"Invalid webhook payload"},{status:400});
   const data=parsed.data;
