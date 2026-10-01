@@ -1,0 +1,1 @@
+import {AdminSection} from "@/components/admin/admin-section";export default function Page(){return <AdminSection title="Reports" description="Operational and financial reporting workspace." items={["Inventory Reports","Sales Reports","Customer Reports","Financial Reports"]}/>}
