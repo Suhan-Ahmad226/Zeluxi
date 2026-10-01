@@ -1,1 +1,5 @@
-import { redirect } from "next/navigation"; export default function Page(){ redirect("/admin/inventory?view=adjustments"); }
+import { redirect } from "next/navigation";
+import { getCurrentLocalUser } from "@/lib/auth/current-user";
+import { db } from "@/lib/db/client";
+import { InventoryAdjustmentForm } from "@/components/admin/inventory-adjustment-form";
+export default async function InventoryAdjustmentsPage(){const u=await getCurrentLocalUser();if(!u)redirect("/login?next=/admin/inventory/adjustments");if(u.role!=="ADMIN")redirect("/account");const items=await db.inventory.findMany({orderBy:[{available:"asc"},{updatedAt:"desc"}],include:{product:{select:{name:true,sku:true}},variant:{select:{name:true,sku:true}}}});return <main className="mx-auto max-w-5xl px-4 py-8"><h1 className="text-3xl font-bold">Inventory Adjustments</h1><p className="mt-2 text-sm text-slate-500">Apply a safe stock increase or decrease. Reserved stock is protected.</p><div className="mt-6 space-y-3">{items.map(i=><InventoryAdjustmentForm key={i.id} id={i.id} name={i.product?.name||i.variant?.name||"Unknown"} sku={i.product?.sku||i.variant?.sku||"—"} available={i.available} reserved={i.reserved} threshold={i.lowStockThreshold}/>)}</div>{!items.length&&<div className="rounded-2xl border bg-white p-10 text-center text-sm text-slate-500">No inventory records found.</div>}</main>}
