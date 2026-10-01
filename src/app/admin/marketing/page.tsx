@@ -1,0 +1,1 @@
+import {AdminSection} from "@/components/admin/admin-section";export default function Page(){return <AdminSection title="Marketing" description="Manage promotions and customer engagement." items={["Coupons","Campaigns","Flash Sales","Banners","Popups","Email Campaigns","SMS Campaigns","Notifications","Referral","Loyalty"]}/>}
