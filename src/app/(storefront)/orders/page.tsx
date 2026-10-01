@@ -1,0 +1,10 @@
+import Link from "next/link";
+import {redirect} from "next/navigation";
+import {getCurrentLocalUser} from "@/lib/auth/current-user";
+import {db} from "@/lib/db/client";
+const money=(v:unknown)=>Number(v).toLocaleString("en-BD",{maximumFractionDigits:2});
+export default async function OrdersPage(){
+ const user=await getCurrentLocalUser();if(!user)redirect("/login?next=/account/orders");
+ const orders=await db.order.findMany({where:{userId:user.id},orderBy:{createdAt:"desc"},take:50,include:{items:{take:3},payment:true,shipment:true}});
+ return <main className="mx-auto min-h-[70vh] max-w-5xl px-4 py-10 sm:py-14"><p className="text-sm font-semibold text-indigo-600">My account</p><h1 className="mt-1 text-3xl font-bold">My orders</h1><p className="mt-2 text-sm text-slate-600">Track recent purchases and open an order for details.</p>{orders.length?<div className="mt-7 space-y-3">{orders.map(o=><article key={o.id} className="rounded-2xl border bg-white p-5"><div className="flex flex-wrap items-start justify-between gap-4"><div><Link href={"/orders/"+o.orderNumber} className="font-bold hover:text-indigo-600">{o.orderNumber}</Link><p className="mt-1 text-xs text-slate-500">{new Date(o.createdAt).toLocaleString("en-BD")}</p></div><span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold">{o.status.replaceAll("_"," ")}</span></div><div className="mt-4 space-y-1 text-sm">{o.items.map(i=><div key={i.id} className="flex justify-between gap-4"><span className="truncate">{i.productName} × {i.quantity}</span><span>৳{money(i.totalPrice)}</span></div>)}</div><div className="mt-4 flex items-center justify-between border-t pt-4"><strong>৳{money(o.total)}</strong><Link href={"/orders/"+o.orderNumber} className="rounded-xl border px-3 py-2 text-xs font-semibold">View details</Link></div></article>)}</div>:<div className="mt-7 rounded-2xl border border-dashed p-10 text-center"><p className="text-slate-600">You have no orders yet.</p><Link href="/shop" className="mt-4 inline-flex rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white">Start shopping</Link></div>}</main>;
+}
