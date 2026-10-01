@@ -1,2 +1,2 @@
-export type PaymentResult={provider:string;providerReference:string;status:"PENDING"|"PAID"|"FAILED"};
+export type PaymentResult={provider:string;providerReference:string;status:"PENDING"|"PAID"|"FAILED"|"REFUNDED"};
 export interface PaymentProvider{readonly name:string;createPayment(input:{orderId:string;amount:string;currency:"BDT";customerPhone:string;returnUrl:string;cancelUrl:string}):Promise<PaymentResult>;verifyPayment(providerReference:string):Promise<PaymentResult>;}
