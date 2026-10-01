@@ -1,0 +1,4 @@
+import {redirect} from "next/navigation";
+import {getCurrentLocalUser} from "@/lib/auth/current-user";
+import {db} from "@/lib/db/client";
+export default async function ReviewsPage(){const user=await getCurrentLocalUser();if(!user)redirect("/login?next=/account/reviews");const reviews=await db.review.findMany({where:{userId:user.id},include:{product:true},orderBy:{createdAt:"desc"}});return <main className="mx-auto max-w-5xl px-4 py-10"><h1 className="text-3xl font-bold">My reviews</h1>{!reviews.length?<p className="mt-6 rounded-2xl border p-6 text-slate-600">You have not written any reviews yet.</p>:<div className="mt-6 space-y-3">{reviews.map(r=><article key={r.id} className="rounded-2xl border bg-white p-5"><p className="font-semibold">{r.product.name}</p><p className="mt-1">{"★".repeat(r.rating)}{"☆".repeat(Math.max(0,5-r.rating))}</p>{r.body&&<p className="mt-2 text-sm text-slate-600">{r.body}</p>}</article>)}</div>}</main>}
