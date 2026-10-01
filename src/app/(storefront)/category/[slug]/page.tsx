@@ -4,7 +4,7 @@ import type {Metadata} from "next";
 import {getCategoryBySlug} from "@/modules/categories/service";
 import {listPublishedProducts} from "@/modules/products/service";
 import {ProductCard} from "@/components/product/product-card";
-export async function generateMetadata({params}:{params:Promise<{slug:string}>}):Promise<Metadata>{const {slug}=await params;const c=await getCategoryBySlug(slug);return c?{title:c.name+" | Zelux",description:c.description||"Shop "+c.name+" products at Zelux."}:{title:"Category not found | Zelux"}}
+export async function generateMetadata({params}:{params:Promise<{slug:string}>}):Promise<Metadata>{const {slug}=await params;const c=await getCategoryBySlug(slug);return c?{title:c.name+" — Shop Online | Zelux",description:c.description||"Shop "+c.name+" products online in Bangladesh.",alternates:{canonical:"/category/"+c.slug},openGraph:{title:c.name+" — Shop Online | Zelux",description:c.description||"Shop "+c.name+" products online in Bangladesh."}}:{title:"Category not found | Zelux",robots:{index:false,follow:false}}}
 export default async function CategoryPage({params,searchParams}:{params:Promise<{slug:string}>;searchParams:Promise<{sort?:string;page?:string}>}){
  const {slug}=await params;const sp=await searchParams;const category=await getCategoryBySlug(slug);if(!category)return notFound();
  const page=Math.max(1,Number(sp.page)||1),take=24;const products=await listPublishedProducts({categorySlug:slug,take,skip:(page-1)*take});const sorted=[...products].sort((a,b)=>sp.sort==="price_asc"?Number(a.price)-Number(b.price):sp.sort==="price_desc"?Number(b.price)-Number(a.price):0);
