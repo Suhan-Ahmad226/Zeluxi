@@ -40,6 +40,7 @@ export async function createOrder(userId:string,input:CheckoutInput,idempotencyK
       const now=new Date();
       if(!coupon || (coupon.startsAt&&coupon.startsAt>now) || (coupon.endsAt&&coupon.endsAt<now)) throw new Error("Coupon is invalid or expired.");
       if(coupon.minOrder&&subtotal.lt(coupon.minOrder)) throw new Error("Order total does not meet the coupon minimum.");
+      if(userId){const prior=await tx.couponUsage.findFirst({where:{couponId:coupon.id,userId}});if(prior) throw new Error("You have already used this coupon.");}
       if(coupon.usageLimit!==null&&coupon.usedCount>=coupon.usageLimit) throw new Error("Coupon usage limit reached.");
       if(coupon.type==="PERCENTAGE") discount=subtotal.mul(coupon.value).div(100);
       else discount=coupon.value;
