@@ -8,7 +8,7 @@ const money=(n:Prisma.Decimal.Value)=>new Prisma.Decimal(n);
 
 export async function createOrder(userId:string|null,input:CheckoutInput,idempotencyKey:string){
   return db.$transaction(async tx=>{
-    const existing=await tx.order.findFirst({where:{userId,idempotencyKey},include:{items:true,payment:true,shipment:true}});
+    const existing=await tx.order.findFirst({where:{idempotencyKey},include:{items:true,payment:true,shipment:true}});
     if(existing) return existing;
 
     const address=input.guestAddress ?? (userId&&input.addressId ? await tx.address.findFirst({where:{id:input.addressId,userId}}) : null);
