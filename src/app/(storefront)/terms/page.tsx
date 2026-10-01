@@ -1,0 +1,1 @@
+import {InfoPage} from "@/components/content/info-page"; export default function Page(){return <InfoPage title="Terms & Conditions" description="Terms governing use of the Zelux store." sections={[{title:"Using Zelux",body:"By using the store, customers agree to provide accurate information and comply with applicable laws and the policies presented for products and orders."}]}/>
