@@ -1,0 +1,1 @@
+import {InfoPage} from "@/components/content/info-page"; export default function Page(){return <InfoPage title="New Arrivals" description="Browse the latest products added to Zelux." sections={[{title:"Fresh products",body:"Newly published products appear here as the catalog grows."}]}/>}
