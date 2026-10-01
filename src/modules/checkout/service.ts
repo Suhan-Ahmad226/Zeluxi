@@ -3,6 +3,7 @@ import {db} from "@/lib/db/client";
 import type {CheckoutInput} from "@/lib/validation/commerce";
 
 const money=(n:Prisma.Decimal.Value)=>new Prisma.Decimal(n);
+const calculateShippingFee=(district:string)=>money(district.trim().toLowerCase()==="dhaka"?80:130);
 
 export async function createOrder(userId:string,input:CheckoutInput,idempotencyKey:string){
   return db.$transaction(async tx=>{
@@ -45,7 +46,7 @@ export async function createOrder(userId:string,input:CheckoutInput,idempotencyK
       discount=Prisma.Decimal.min(discount,subtotal); couponId=coupon.id;
     }
 
-    const shippingFee=money(input.shippingFee??0);
+    const shippingFee=calculateShippingFee(address.district);
     if(shippingFee.lt(0)) throw new Error("Invalid shipping fee.");
     const total=subtotal.sub(discount).add(shippingFee);
     const order=await tx.order.create({data:{
