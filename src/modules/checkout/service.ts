@@ -1,12 +1,15 @@
+import {createHash} from "node:crypto";
 import {Prisma,PaymentMethod,OrderStatus,ShipmentStatus,PaymentStatus} from "@prisma/client";
 import {db} from "@/lib/db/client";
 import type {CheckoutInput} from "@/lib/validation/commerce";
 import {getCourierProvider} from "@/modules/shipping/registry";
 
+const createGuestCartHash=(token:string)=>createHash("sha256").update(token).digest("hex");
+
 const money=(n:Prisma.Decimal.Value)=>new Prisma.Decimal(n);
 
 
-export async function createOrder(userId:string|null,input:CheckoutInput,idempotencyKey:string){
+export async function createOrder(userId:string|null,input:CheckoutInput,idempotencyKey:string,guestCartToken?:string){
   return db.$transaction(async tx=>{
     const existing=await tx.order.findFirst({where:{idempotencyKey},include:{items:true,payment:true,shipment:true}});
     if(existing) return existing;
@@ -14,13 +17,15 @@ export async function createOrder(userId:string|null,input:CheckoutInput,idempot
     const address=input.guestAddress ?? (userId&&input.addressId ? await tx.address.findFirst({where:{id:input.addressId,userId}}) : null);
     if(!address) throw new Error("Delivery address not found.");
 
-    const ids=[...new Set(input.items.map(x=>x.productId))];
+    const authoritativeItems=userId?input.items:(guestCartToken?((await tx.cart.findUnique({where:{guestTokenHash:createGuestCartHash(guestCartToken),include:{items:true}}}))?.items.map(x=>({productId:x.productId,variantId:x.variantId??undefined,quantity:x.quantity}) )??[]):input.items);
+    if(!authoritativeItems.length) throw new Error("Cart is empty.");
+    const ids=[...new Set(authoritativeItems.map(x=>x.productId))];
     const products=await tx.product.findMany({where:{id:{in:ids},isPublished:true},include:{variants:{include:{inventory:true}},inventory:true}});
     const byId=new Map(products.map(p=>[p.id,p]));
     let subtotal=new Prisma.Decimal(0);
     const orderItems:{productId:string;variantId?:string;productName:string;sku:string;quantity:number;unitPrice:Prisma.Decimal;totalPrice:Prisma.Decimal}[]=[];
 
-    for(const line of input.items){
+    for(const line of authoritativeItems){
       const p=byId.get(line.productId);
       if(!p) throw new Error("One or more products are unavailable.");
       const v=line.variantId?p.variants.find(x=>x.id===line.variantId):undefined;
