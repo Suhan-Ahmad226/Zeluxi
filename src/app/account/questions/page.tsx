@@ -1,0 +1,1 @@
+import {InfoPage} from "@/components/content/info-page";export default function Page(){return <InfoPage title="My Questions" description="Review product questions you have submitted." sections={[{title:"Account",body:"Product questions can be associated with your account and the relevant product."}]}/>}
