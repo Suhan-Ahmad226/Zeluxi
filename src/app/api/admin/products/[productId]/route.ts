@@ -1,0 +1,6 @@
+import { NextResponse } from "next/server";
+import { z } from "zod";
+import { getCurrentLocalUser } from "@/lib/auth/current-user";
+import { updateProduct } from "@/modules/products/service";
+const schema=z.object({name:z.string().trim().min(2).max(200).optional(),slug:z.string().trim().min(2).max(220).regex(/^[a-z0-9-]+$/).optional(),sku:z.string().trim().min(1).max(100).optional(),description:z.string().min(1).optional(),shortDescription:z.string().max(500).nullable().optional(),brand:z.string().max(120).nullable().optional(),price:z.coerce.number().positive().optional(),compareAtPrice:z.coerce.number().positive().nullable().optional(),costPrice:z.coerce.number().nonnegative().nullable().optional(),weightGrams:z.coerce.number().int().positive().nullable().optional(),isPublished:z.boolean().optional(),isFeatured:z.boolean().optional()});
+export async function PATCH(req:Request,{params}:{params:Promise<{productId:string}>}){const u=await getCurrentLocalUser();if(!u||u.role!=="ADMIN")return NextResponse.json({error:"Forbidden"},{status:403});const p=schema.safeParse(await req.json());if(!p.success)return NextResponse.json({error:"Invalid product"},{status:400});try{return NextResponse.json(await updateProduct((await params).productId,p.data));}catch(e){return NextResponse.json({error:e instanceof Error?e.message:"Unable to update product"},{status:409});}}
