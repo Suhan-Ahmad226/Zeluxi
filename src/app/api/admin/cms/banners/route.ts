@@ -1,0 +1,8 @@
+import {NextResponse} from "next/server";
+import {z} from "zod";
+import {getCurrentLocalUser} from "@/lib/auth/current-user";
+import {db} from "@/lib/db/client";
+const schema=z.object({id:z.string().optional(),title:z.string().min(1).max(200),imageUrl:z.string().url().max(2000),href:z.string().max(1000).nullable().optional(),isActive:z.boolean(),sortOrder:z.number().int().min(0)});
+export async function POST(req:Request){const u=await getCurrentLocalUser();if(u?.role!=="ADMIN")return NextResponse.json({error:"Forbidden"},{status:403});const p=schema.omit({id:true}).safeParse(await req.json().catch(()=>null));if(!p.success)return NextResponse.json({error:p.error.issues[0]?.message},{status:400});return NextResponse.json(await db.banner.create({data:p.data}))}
+export async function PATCH(req:Request){const u=await getCurrentLocalUser();if(u?.role!=="ADMIN")return NextResponse.json({error:"Forbidden"},{status:403});const p=schema.safeParse(await req.json().catch(()=>null));if(!p.success||!p.data.id)return NextResponse.json({error:"Invalid banner"},{status:400});const {id,...data}=p.data;return NextResponse.json(await db.banner.update({where:{id},data}))}
+export async function DELETE(req:Request){const u=await getCurrentLocalUser();if(u?.role!=="ADMIN")return NextResponse.json({error:"Forbidden"},{status:403});const id=new URL(req.url).searchParams.get("id");if(!id)return NextResponse.json({error:"Missing id"},{status:400});await db.banner.delete({where:{id}});return NextResponse.json({ok:true})}
