@@ -1,0 +1,3 @@
+import {describe,expect,it} from "vitest";
+import {checkRateLimit} from "@/lib/security/rate-limit";
+describe("security rate limiting",()=>{it("allows requests within the configured limit",async()=>{const key="test-"+Date.now();const a=await checkRateLimit(key,2,60_000);const b=await checkRateLimit(key,2,60_000);expect(a.allowed).toBe(true);expect(b.allowed).toBe(true);});it("blocks requests over the configured limit",async()=>{const key="test-"+Date.now();await checkRateLimit(key,1,60_000);const b=await checkRateLimit(key,1,60_000);expect(b.allowed).toBe(false);expect(b.remaining).toBe(0);});});
