@@ -18,6 +18,6 @@ export class SSLCommerzProvider implements PaymentProvider{
  async verifyPayment(providerReference:string){
   const params=new URLSearchParams({tran_id:providerReference,store_id:req("SSLCOMMERZ_STORE_ID"),store_passwd:req("SSLCOMMERZ_STORE_PASSWORD"),format:"json"});
   const res=await fetch(`${validatorBase()}/validator/api/merchantTransIDvalidationAPI.php?${params}`,{cache:"no-store"});const data=await res.json().catch(()=>({}));if(!res.ok)throw new Error("Unable to query payment status.");
-  const elements=Array.isArray(data?.element)?data.element:[];const match=elements.find((x:any)=>String(x?.tran_id)===providerReference)||elements[0];const rawStatus=String(match?.status||data?.status||"PENDING").toUpperCase();const status=rawStatus==="VALID"||rawStatus==="VALIDATED"?"PAID":rawStatus==="FAILED"?"FAILED":"PENDING";return{provider:this.name,providerReference,status,amount:match?.currency_type==="BDT"?String(match?.amount||match?.currency_amount||""):String(match?.amount||"")};
+  const elements=Array.isArray(data?.element)?data.element:[];const match=elements.find((x:any)=>String(x?.tran_id)===providerReference)||elements[0];const rawStatus=String(match?.status||data?.status||"PENDING").toUpperCase();const status: PaymentResult["status"]=rawStatus==="VALID"||rawStatus==="VALIDATED"?"PAID":rawStatus==="FAILED"?"FAILED":"PENDING";return{provider:this.name,providerReference,status,amount:match?.currency_type==="BDT"?String(match?.amount||match?.currency_amount||""):String(match?.amount||"")};
  }
 }
