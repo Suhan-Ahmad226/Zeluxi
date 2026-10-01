@@ -1,0 +1,1 @@
+export default function Page(){return <main className="mx-auto max-w-xl px-4 py-20 text-center"><h1 className="text-4xl font-bold">401</h1><p className="mt-3 text-slate-600">Authentication is required to access this page.</p></main>}
