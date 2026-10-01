@@ -1,0 +1,1 @@
+import {InfoPage} from "@/components/content/info-page";export default function Page(){return <InfoPage title="My Coupons" description="View coupons available to your account." sections={[{title:"Account",body:"Coupon eligibility and validity are checked again at checkout."}]}/>}
