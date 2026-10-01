@@ -13,7 +13,7 @@ export async function POST(req:Request){
  const order=await db.order.findUnique({where:{orderNumber:parsed.data.orderNumber},include:{payment:true}});
  if(!order)return NextResponse.json({error:"Order not found."},{status:404});
  if(user?order.userId!==user.id:(!cookie||order.guestAccessTokenHash!==hash(cookie)))return NextResponse.json({error:"Forbidden"},{status:403});
- if(order.paymentMethod!=="ONLINE")return NextResponse.json({error:"This order does not require online payment."},{status:400});
+ if(order.paymentMethod!=="ONLINE")return NextResponse.json({error:"This order does not require online payment."},{status:400});if(!user&&!parsed.data.email)return NextResponse.json({error:"Email is required for guest online payment."},{status:400});
  if(order.payment?.status==="PAID")return NextResponse.json({error:"Payment is already confirmed."},{status:409});
  const provider=getPaymentProvider(process.env.DEFAULT_PAYMENT_PROVIDER||"SSLCOMMERZ");
  const result=await provider.createPayment({orderId:order.orderNumber,amount:order.total.toString(),currency:"BDT",customerPhone:order.recipientPhone,customerName:order.recipientName,customerEmail:order.userId?(user?.email||"customer@zelux.local"):(parsed.data.email||"guest@zelux.local"),customerAddress:[order.addressLine,order.area,order.district,order.division].filter(Boolean).join(", "),productCategory:"ecommerce",returnUrl:(process.env.NEXT_PUBLIC_SITE_URL||new URL(req.url).origin)+"/payment/callback",cancelUrl:(process.env.NEXT_PUBLIC_SITE_URL||new URL(req.url).origin)+"/payment/callback"});
