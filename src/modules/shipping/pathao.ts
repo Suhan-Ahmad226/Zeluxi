@@ -33,7 +33,7 @@ function manualPrice(address:ShippingAddress,weightGrams?:number){
  const kg=weightKg(weightGrams);
  const d=address.district.trim().toLowerCase();
  const isDhaka=d==="dhaka";
- const suburb=["narayanganj","gazipur","keraniganj","savar"].some(x=>d.includes(x));
+ const suburb=pickup==="dhaka"&&["narayanganj","gazipur","keraniganj","savar"].some(x=>d.includes(x));
  const base=isDhaka?[60,70,90]:suburb?[80,100,130]:[110,130,170];
  let fee=kg<=.5?base[0]:kg<=1?base[1]:kg<=2?base[2]:base[2]+Math.ceil(kg-2)*(isDhaka?15:25);
  return new Prisma.Decimal(fee);
