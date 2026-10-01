@@ -1,0 +1,9 @@
+"use client";
+import {useState} from "react";
+type Address={id:string;label:string|null;recipientName:string;phone:string;division:string;district:string;area:string|null;addressLine:string;postalCode:string|null;isDefault:boolean};
+export function AddressList({addresses}:{addresses:Address[]}){
+ const [items,setItems]=useState(addresses),[busy,setBusy]=useState<string|null>(null),[error,setError]=useState("");
+ async function remove(id:string){if(!window.confirm("Delete this address?"))return;setBusy(id);setError("");try{const r=await fetch("/api/addresses/"+id,{method:"DELETE"});const b=await r.json().catch(()=>null);if(!r.ok)throw new Error(b?.error||"Unable to delete address");setItems(x=>x.filter(a=>a.id!==id));}catch(e){setError(e instanceof Error?e.message:"Unable to delete address")}finally{setBusy(null)}}
+ if(!items.length)return <p className="rounded-2xl border border-dashed p-6 text-sm text-slate-500">No saved addresses yet.</p>;
+ return <div className="grid gap-3 sm:grid-cols-2">{error?<p role="alert" className="sm:col-span-2 rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</p>:null}{items.map(a=><article key={a.id} className="rounded-2xl border bg-white p-4"><div className="flex justify-between gap-3"><strong>{a.label||"Address"}</strong>{a.isDefault?<span className="text-xs font-semibold text-indigo-600">Default</span>:null}</div><p className="mt-2 text-sm font-medium">{a.recipientName} · {a.phone}</p><p className="mt-1 text-sm text-slate-600">{a.addressLine}, {a.area?a.area+", ":""}{a.district}, {a.division}{a.postalCode?", "+a.postalCode:""}</p><button type="button" disabled={busy===a.id} onClick={()=>remove(a.id)} className="mt-4 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 disabled:opacity-50">{busy===a.id?"Deleting…":"Delete"}</button></article>)}</div>
+}
