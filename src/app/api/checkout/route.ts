@@ -11,6 +11,6 @@ export async function POST(req:Request){
   if(!key||key.length<16||key.length>128)return NextResponse.json({error:"A valid idempotency key is required."},{status:400});
   const parsed=checkoutSchema.safeParse(await req.json());
   if(!parsed.success)return NextResponse.json({error:"Invalid checkout data",details:parsed.error.flatten()},{status:400});
-  try{const order=await createOrder(user?.id??null,parsed.data,key);const response=NextResponse.json(order,{status:201});if(!user&&parsed.data.guestAddress){const guestToken=(await cookies()).get("zelux_guest_cart")?.value;if(guestToken)await clearGuestCart(guestToken);(await cookies()).set("zelux_guest_phone",parsed.data.guestAddress.phone,{httpOnly:true,secure:process.env.NODE_ENV==="production",sameSite:"lax",path:"/",maxAge:60*60*24*30});}return response;}
+  try{const guestCartToken=!user?(await cookies()).get("zelux_guest_cart")?.value:undefined;const order=await createOrder(user?.id??null,parsed.data,key,guestCartToken);const response=NextResponse.json(order,{status:201});if(!user&&parsed.data.guestAddress){const guestToken=(await cookies()).get("zelux_guest_cart")?.value;if(guestToken)await clearGuestCart(guestToken);(await cookies()).set("zelux_guest_phone",parsed.data.guestAddress.phone,{httpOnly:true,secure:process.env.NODE_ENV==="production",sameSite:"lax",path:"/",maxAge:60*60*24*30});}return response;}
   catch(e){return NextResponse.json({error:e instanceof Error?e.message:"Unable to create order"},{status:409});}
 }
