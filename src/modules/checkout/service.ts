@@ -19,6 +19,7 @@ export async function createOrder(userId:string|null,input:CheckoutInput,idempot
 
     const authoritativeItems=userId?input.items:(guestCartToken?((await tx.cart.findUnique({where:{guestTokenHash:createGuestCartHash(guestCartToken),include:{items:true}}}))?.items.map(x=>({productId:x.productId,variantId:x.variantId??undefined,quantity:x.quantity}))??[]):[]);
     if(!authoritativeItems.length) throw new Error("Cart is empty.");
+    if(!userId && authoritativeItems.some((x,i)=>input.items[i]?.productId!==x.productId || input.items[i]?.variantId!==x.variantId || input.items[i]?.quantity!==x.quantity)) throw new Error("Cart changed. Please review your cart and try again.");
     const ids=[...new Set(authoritativeItems.map(x=>x.productId))];
     const products=await tx.product.findMany({where:{id:{in:ids},isPublished:true},include:{variants:{include:{inventory:true}},inventory:true}});
     const byId=new Map(products.map(p=>[p.id,p]));
