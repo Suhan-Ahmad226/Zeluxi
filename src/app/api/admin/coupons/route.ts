@@ -1,9 +1,18 @@
-import {NextResponse} from "next/server";
-import {z} from "zod";
-import {CouponType} from "@prisma/client";
-import {getCurrentLocalUser} from "@/lib/auth/current-user";
-import {db} from "@/lib/db/client";
-const schema=z.object({code:z.string().trim().min(2).max(50).regex(/^[A-Za-z0-9_-]+$/),type:z.nativeEnum(CouponType),value:z.coerce.number().positive(),minOrder:z.coerce.number().nonnegative().optional(),maxDiscount:z.coerce.number().positive().optional(),startsAt:z.string().datetime().optional(),endsAt:z.string().datetime().optional(),usageLimit:z.coerce.number().int().positive().optional(),isActive:z.boolean().optional()});
-async function admin(){const u=await getCurrentLocalUser();return u?.role==="ADMIN";}
-export async function GET(){if(!await admin())return NextResponse.json({error:"Forbidden"},{status:403});return NextResponse.json(await db.coupon.findMany({orderBy:{createdAt:"desc"}}));}
-export async function POST(req:Request){if(!await admin())return NextResponse.json({error:"Forbidden"},{status:403});const p=schema.safeParse(await req.json());if(!p.success)return NextResponse.json({error:p.error.issues[0]?.message||"Invalid coupon"},{status:400});if(p.data.type===CouponType.PERCENTAGE&&p.data.value>100)return NextResponse.json({error:"Percentage cannot exceed 100."},{status:400});if(p.data.endsAt&&p.data.startsAt&&new Date(p.data.endsAt)<=new Date(p.data.startsAt))return NextResponse.json({error:"End date must be after start date."},{status:400});try{return NextResponse.json(await db.coupon.create({data:{code:p.data.code.toUpperCase(),type:p.data.type,value:p.data.value,minOrder:p.data.minOrder??null,maxDiscount:p.data.maxDiscount??null,startsAt:p.data.startsAt?new Date(p.data.startsAt):null,endsAt:p.data.endsAt?new Date(p.data.endsAt):null,usageLimit:p.data.usageLimit??null,isActive:p.data.isActive??true}}),{status:201});}catch(e){return NextResponse.json({error:e instanceof Error?e.message:"Unable to create coupon"},{status:409});}}
+import { NextResponse } from "next/server";
+import { z } from "zod";
+import { CouponType } from "@prisma/client";
+import { getCurrentLocalUser } from "@/lib/auth/current-user";
+import { db } from "@/lib/db/client";
+const schema = z.object({ code: z.string().trim().min(2).max(50).regex(/^[A-Za-z0-9_-]+$/), type: z.nativeEnum(CouponType), value: z.coerce.number().positive(), minOrder: z.coerce.number().nonnegative().optional(), maxDiscount: z.coerce.number().positive().optional(), startsAt: z.string().datetime().optional(), endsAt: z.string().datetime().optional(), usageLimit: z.coerce.number().int().positive().optional(), isActive: z.boolean().optional() });
+async function admin() { const u = await getCurrentLocalUser(); return u?.role === "ADMIN"; }
+export async function GET() { if (!await admin()) return NextResponse.json({ error: "Forbidden" }, { status: 403 }); return NextResponse.json(await db.coupon.findMany({ orderBy: { code: "asc" } })); }
+export async function POST(req: Request) {
+  if (!await admin()) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  const p = schema.safeParse(await req.json().catch(() => null));
+  if (!p.success) return NextResponse.json({ error: p.error.issues[0]?.message || "Invalid coupon" }, { status: 400 });
+  if (p.data.type === CouponType.PERCENTAGE && p.data.value > 100) return NextResponse.json({ error: "Percentage cannot exceed 100." }, { status: 400 });
+  if (p.data.endsAt && p.data.startsAt && new Date(p.data.endsAt) <= new Date(p.data.startsAt)) return NextResponse.json({ error: "End date must be after start date." }, { status: 400 });
+  try {
+    return NextResponse.json(await db.coupon.create({ data: { code: p.data.code.toUpperCase(), type: p.data.type, value: p.data.value, minOrder: p.data.minOrder ?? null, maxDiscount: p.data.maxDiscount ?? null, startsAt: p.data.startsAt ? new Date(p.data.startsAt) : null, endsAt: p.data.endsAt ? new Date(p.data.endsAt) : null, usageLimit: p.data.usageLimit ?? null, isActive: p.data.isActive ?? true } }), { status: 201 });
+  } catch (e) { return NextResponse.json({ error: e instanceof Error ? e.message : "Unable to create coupon" }, { status: 409 }); }
+}
