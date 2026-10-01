@@ -14,7 +14,7 @@ const statusMap:Record<string,{shipment:ShipmentStatus;order?:OrderStatus}>={
   delivered:{shipment:ShipmentStatus.DELIVERED,order:OrderStatus.DELIVERED},
   returned:{shipment:ShipmentStatus.RETURNED,order:OrderStatus.RETURN_REQUESTED},
   return:{shipment:ShipmentStatus.RETURNED,order:OrderStatus.RETURN_REQUESTED},
-  cancelled:{shipment:ShipmentStatus.CANCELLED,order:OrderStatus.CANCELLED}
+  cancelled:{shipment:ShipmentStatus.CANCELLED}
 };
 
 function verify(raw:string,signature:string,secret:string){
