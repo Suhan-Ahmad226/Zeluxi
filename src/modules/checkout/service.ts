@@ -17,7 +17,7 @@ export async function createOrder(userId:string|null,input:CheckoutInput,idempot
     const address=input.guestAddress ?? (userId&&input.addressId ? await tx.address.findFirst({where:{id:input.addressId,userId}}) : null);
     if(!address) throw new Error("Delivery address not found.");
 
-    const authoritativeItems=userId?input.items:(guestCartToken?((await tx.cart.findUnique({where:{guestTokenHash:createGuestCartHash(guestCartToken),include:{items:true}}}))?.items.map(x=>({productId:x.productId,variantId:x.variantId??undefined,quantity:x.quantity}) )??[]):input.items);
+    const authoritativeItems=userId?input.items:(guestCartToken?((await tx.cart.findUnique({where:{guestTokenHash:createGuestCartHash(guestCartToken),include:{items:true}}}))?.items.map(x=>({productId:x.productId,variantId:x.variantId??undefined,quantity:x.quantity}))??[]):[]);
     if(!authoritativeItems.length) throw new Error("Cart is empty.");
     const ids=[...new Set(authoritativeItems.map(x=>x.productId))];
     const products=await tx.product.findMany({where:{id:{in:ids},isPublished:true},include:{variants:{include:{inventory:true}},inventory:true}});
