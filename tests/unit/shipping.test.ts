@@ -1,0 +1,3 @@
+import {describe,expect,it} from "vitest";
+import {pathaoCourier} from "@/modules/shipping/pathao";
+describe("Pathao shipping rules",()=>{it("uses the published Dhaka rates",async()=>{const q=await pathaoCourier.calculatePrice({address:{division:"Dhaka",district:"Dhaka",addressLine:"Test"},weightGrams:900});expect(q.fee.toString()).toBe("70");expect(q.currency).toBe("BDT");});it("uses the published outside-Dhaka rate",async()=>{const q=await pathaoCourier.calculatePrice({address:{division:"Chattogram",district:"Chattogram",addressLine:"Test"},weightGrams:1500});expect(q.fee.toString()).toBe("170");});});
