@@ -1,0 +1,1 @@
+import {InfoPage} from "@/components/content/info-page";export default function Page(){return <InfoPage title="Delete Account" description="Request account deletion." sections={[{title:"Account",body:"Account deletion should preserve legally required order and financial records while removing eligible personal data."}]}/>}
