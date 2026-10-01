@@ -1,0 +1,8 @@
+import {redirect} from "next/navigation";
+import {getCurrentLocalUser} from "@/lib/auth/current-user";
+import {db} from "@/lib/db/client";
+export default async function ReviewsPage(){
+ const u=await getCurrentLocalUser(); if(!u) redirect("/login?next=/admin/reviews"); if(u.role!=="ADMIN") redirect("/account");
+ const reviews=await db.review.findMany({orderBy:{createdAt:"desc"},take:200,include:{product:{select:{name:true}},user:{select:{name:true,email:true}}}});
+ return <main className="mx-auto max-w-7xl px-4 py-8"><h1 className="text-3xl font-bold">Reviews</h1><div className="mt-6 space-y-3">{reviews.map(r=><div key={r.id} className="rounded-2xl border bg-white p-5"><div className="flex flex-wrap justify-between gap-3"><div><p className="font-semibold">{r.product.name}</p><p className="text-sm text-slate-500">{r.user.name||r.user.email} · {r.rating}/5</p></div><div className="flex gap-2"><form action={"/api/admin/reviews/"+r.id} method="post"><input type="hidden" name="isPublished" value={String(!r.isPublished)}/><button className="rounded-lg border px-3 py-1.5">{r.isPublished?"Unpublish":"Publish"}</button></form><form action={"/api/admin/reviews/"+r.id} method="post"><input type="hidden" name="_method" value="DELETE"/><button className="rounded-lg border border-red-200 px-3 py-1.5 text-red-600">Delete</button></form></div></div>{r.title&&<p className="mt-3 font-medium">{r.title}</p>}<p className="mt-1 text-sm text-slate-600">{r.body||"No comment."}</p></div>)}</div></main>;
+}
