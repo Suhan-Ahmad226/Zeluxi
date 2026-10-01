@@ -1,4 +1,4 @@
-import { OrderStatus, PaymentMethod } from "@prisma/client";
+import { OrderStatus, PaymentMethod, PaymentStatus } from "@prisma/client";
 import { db } from "@/lib/db/client";
 import { assertTransition } from "@/modules/orders/transitions";
 
@@ -17,7 +17,7 @@ export async function updateOrderStatus(actorUserId:string,orderId:string,nextSt
       const shipment=await tx.shipment.findUnique({where:{orderId:order.id}});
       if(!shipment?.trackingId) throw new Error("Courier shipment must be booked before marking the order as shipped.");
       if(shipment.status==="CANCELLED") throw new Error("Cancelled shipment cannot be marked as shipped.");
-      if(order.paymentMethod===PaymentMethod.ONLINE && order.paymentStatus!=="PAID") throw new Error("Online payment must be paid before shipping.");
+      if(order.paymentMethod===PaymentMethod.ONLINE){ const payment=await tx.payment.findUnique({where:{orderId:order.id},select:{status:true}}); if(payment?.status!==PaymentStatus.PAID) throw new Error("Online payment must be paid before shipping."); }
     }
 
     const items=nextStatus===OrderStatus.CANCELLED || nextStatus===OrderStatus.RETURNED
