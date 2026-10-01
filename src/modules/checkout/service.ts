@@ -61,7 +61,7 @@ export async function createOrder(userId:string|null,input:CheckoutInput,idempot
       status:OrderStatus.PENDING,paymentMethod:input.paymentMethod as PaymentMethod,
       subtotal,discount,shippingFee,tax:money(0),total,
       items:{create:orderItems.map(x=>({...x}))},
-      payment:{create:{method:input.paymentMethod as PaymentMethod,status:PaymentStatus.PENDING,amount:total}},
+      payment:{create:{method:input.paymentMethod as PaymentMethod,status:PaymentStatus.PENDING,amount:total,provider:input.paymentMethod==="COD"?"MANUAL":null,providerReference:input.paymentMethod==="COD"?`COD-${idempotencyKey}`:null}},
       shipment:{create:{status:ShipmentStatus.PENDING,provider:quote.provider,deliveryFee:shippingFee}},
       statusHistory:{create:{toStatus:OrderStatus.PENDING,note:"Order created"}},
       ...(couponId?{couponUsage:{create:{couponId,userId,discount}}}:{}),
