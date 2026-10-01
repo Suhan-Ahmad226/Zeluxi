@@ -20,4 +20,5 @@ export async function POST(req:Request){
  let result;try{result=await provider.createPayment({orderId:order.orderNumber,amount:order.total.toString(),currency:"BDT",customerPhone:order.recipientPhone,customerName:order.recipientName,customerEmail:order.userId?(user?.email||"customer@zelux.local"):(parsed.data.email||"guest@zelux.local"),customerAddress:[order.addressLine,order.area,order.district,order.division].filter(Boolean).join(", "),productCategory:"ecommerce",returnUrl:(process.env.NEXT_PUBLIC_SITE_URL||new URL(req.url).origin)+"/api/payments/sslcommerz/callback",cancelUrl:(process.env.NEXT_PUBLIC_SITE_URL||new URL(req.url).origin)+"/payment/callback"});
  await db.payment.update({where:{orderId:order.id},data:{provider:result.provider,providerReference:result.providerReference}});
  return NextResponse.json({gatewayUrl:result.gatewayUrl,provider:result.provider});
+ }catch(error){try{await failPendingPaymentByOrder(order.id)}catch{};return NextResponse.json({error:error instanceof Error?error.message:"Unable to initiate payment."},{status:502});}
 }
