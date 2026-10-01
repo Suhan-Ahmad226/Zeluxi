@@ -1,1 +1,18 @@
-"use client";import {useState} from "react";import {useSearchParams} from "next/navigation";import {createSupabaseBrowserClient} from "@/lib/auth/browser";export default function Page(){const p=useSearchParams();const email=p.get("email")||"";const[token,setToken]=useState("");const[msg,setMsg]=useState("");async function submit(e:React.FormEvent){e.preventDefault();const{error}=await createSupabaseBrowserClient().auth.verifyOtp({email,token,type:"email"});setMsg(error?.message||"Verification successful. You can continue.");}return <main className="mx-auto max-w-md px-4 py-12"><h1 className="text-3xl font-bold">Verify OTP</h1><p className="mt-2 text-slate-600">{email||"Enter the email used for your account."}</p><form onSubmit={submit} className="mt-6 space-y-4"><input className="w-full rounded-xl border p-3" inputMode="numeric" required value={token} onChange={e=>setToken(e.target.value)} placeholder="Verification code"/><button className="w-full rounded-xl bg-indigo-600 p-3 font-semibold text-white">Verify</button>{msg&&<p className="text-sm text-slate-600">{msg}</p>}</form></main>}
+"use client";
+import { Suspense, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { createSupabaseBrowserClient } from "@/lib/auth/browser";
+
+function VerifyOtpForm() {
+  const params = useSearchParams();
+  const email = params.get("email") || "";
+  const [token, setToken] = useState("");
+  const [msg, setMsg] = useState("");
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    const { error } = await createSupabaseBrowserClient().auth.verifyOtp({ email, token, type: "email" });
+    setMsg(error?.message || "Verification successful. You can continue.");
+  }
+  return <main className="mx-auto max-w-md px-4 py-12"><h1 className="text-3xl font-bold">Verify OTP</h1><p className="mt-2 text-slate-600">{email || "Enter the email used for your account."}</p><form onSubmit={submit} className="mt-6 space-y-4"><input className="w-full rounded-xl border p-3" inputMode="numeric" required value={token} onChange={(e) => setToken(e.target.value)} placeholder="Verification code" /><button className="w-full rounded-xl bg-indigo-600 p-3 font-semibold text-white">Verify</button>{msg && <p className="text-sm text-slate-600">{msg}</p>}</form></main>;
+}
+export default function Page() { return <Suspense fallback={<main className="mx-auto max-w-md px-4 py-12"><div className="h-40 animate-pulse rounded-2xl bg-slate-100" /></main>}><VerifyOtpForm /></Suspense>; }
