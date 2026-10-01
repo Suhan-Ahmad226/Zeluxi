@@ -5,4 +5,6 @@ export const checkoutSchema=z.object({
   addressId:z.string().min(1),
   paymentMethod:z.enum(["COD","ONLINE"]),
   couponCode:z.string().trim().max(50).optional(),
+  shippingFee:z.number().finite().min(0).max(10000).optional(),
 });
+export type CheckoutInput=z.infer<typeof checkoutSchema>;
