@@ -1,15 +1,16 @@
 import Image from "next/image";
 import Link from "next/link";
-import { redirect } from "next/navigation";
+
 import { getCurrentLocalUser } from "@/lib/auth/current-user";
 import { getOrCreateCart } from "@/modules/cart/service";
 import { CartItemControls } from "@/components/cart/cart-item-controls";
+import { GuestCart } from "@/components/cart/guest-cart";
 
 const money = (value: unknown) => Number(value).toLocaleString("en-BD", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 
 export default async function CartPage() {
   const user = await getCurrentLocalUser();
-  if (!user) redirect("/login?next=/cart");
+  if (!user) return <main className="mx-auto min-h-[70vh] max-w-5xl px-4 py-8 sm:py-12"><h1 className="text-3xl font-bold">Your cart</h1><GuestCart /></main>;
   const cart = await getOrCreateCart(user.id);
   const subtotal = cart.items.reduce((sum, item) => sum + Number(item.variant?.price ?? item.product.price) * item.quantity, 0);
   return <main className="mx-auto min-h-[70vh] max-w-5xl px-4 py-8 sm:py-12">
