@@ -1,0 +1,1 @@
+import {InfoPage} from "@/components/content/info-page";export default function Page(){return <InfoPage title="Cookie Policy" description="Information about cookies and browser storage." sections={[{title:"Cookies",body:"Essential browser storage may support shopping and security flows. Optional tracking should follow the site's applicable settings."}]}/>}
