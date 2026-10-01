@@ -1,0 +1,1 @@
+export const siteConfig={name:"Zelux",description:"Fast, modern Bangladesh-focused ecommerce.",currency:"BDT",locale:"bn-BD"} as const;
