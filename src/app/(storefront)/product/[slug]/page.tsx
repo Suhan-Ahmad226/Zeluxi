@@ -1,41 +1,27 @@
 import Image from "next/image";
-import { notFound } from "next/navigation";
-import type { Metadata } from "next";
-import { getPublishedProduct } from "@/modules/products/service";
-import { AddToCartButton } from "@/components/product/add-to-cart-button";
-
-const money = (value: unknown) => Number(value).toLocaleString("en-BD", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
-
-export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
-  const { slug } = await params;
-  const product = await getPublishedProduct(slug);
-  if (!product) return { title: "Product not found | Zelux" };
-  return { title: product.seoTitle || product.name, description: product.seoDescription || product.shortDescription || product.description.slice(0, 160) };
-}
-
-export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
-  const { slug } = await params;
-  const product = await getPublishedProduct(slug);
-  if (!product) return notFound();
-  const image = product.images[0];
-  const variants = product.variants;
-  const stock = product.inventory?.available ?? 0;
-  const productJsonLd = { "@context": "https://schema.org", "@type": "Product", name: product.name, description: product.shortDescription || product.description.slice(0, 300), sku: product.sku, brand: product.brand ? { "@type": "Brand", name: product.brand } : undefined, image: product.images.map(i => i.url), offers: { "@type": "Offer", priceCurrency: "BDT", price: Number(product.price), availability: stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock", url: "https://zelux.vercel.app/product/" + product.slug } };\n  return <main className="mx-auto min-h-[70vh] max-w-7xl px-4 py-8 sm:py-12">\n    <script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(productJsonLd)}} />
-    <div className="grid gap-8 md:grid-cols-2 lg:gap-12">
-      <div className="relative aspect-square overflow-hidden rounded-3xl bg-slate-100">
-        {image ? <Image src={image.url} alt={image.altText || product.name} fill priority sizes="(max-width:768px) 100vw,50vw" className="object-cover" /> : <div className="grid h-full place-items-center text-slate-400">No image</div>}
-      </div>
-      <section className="flex flex-col">
-        {product.brand ? <p className="text-sm font-semibold text-indigo-600">{product.brand}</p> : null}
-        <h1 className="mt-1 text-3xl font-bold tracking-tight sm:text-4xl">{product.name}</h1>
-        <p className="mt-3 text-2xl font-bold">৳{money(product.price)}</p>
-        {product.compareAtPrice ? <p className="mt-1 text-sm text-slate-400 line-through">৳{money(product.compareAtPrice)}</p> : null}
-        {product.shortDescription ? <p className="mt-5 text-slate-600">{product.shortDescription}</p> : null}
-        {variants.length ? <div className="mt-6"><p className="mb-2 text-sm font-semibold">Options</p><div className="grid gap-2 sm:grid-cols-2">{variants.map(v => <div key={v.id} className="rounded-xl border p-3"><div className="font-medium">{v.name}</div><div className="mt-1 text-sm text-slate-500">৳{money(v.price ?? product.price)} · {(v.inventory?.available ?? 0) > 0 ? "In stock" : "Out of stock"}</div><div className="mt-3"><AddToCartButton productId={product.id} variantId={v.id} disabled={(v.inventory?.available ?? 0) < 1}/></div></div>)}</div></div> : null}
-        <div className="mt-7 flex items-center gap-3"><span className={stock > 0 ? "text-sm font-medium text-green-700" : "text-sm font-medium text-red-600"}>{stock > 0 ? `${stock} in stock` : "Out of stock"}</span></div>
-        {!variants.length ? <div className="mt-5"><AddToCartButton productId={product.id} disabled={stock < 1} /></div> : null}
-        <div className="prose prose-slate mt-8 max-w-none text-sm"><p>{product.description}</p></div>
-      </section>
-    </div>
-  </main>;
+import Link from "next/link";
+import {notFound} from "next/navigation";
+import type {Metadata} from "next";
+import {getPublishedProduct,listPublishedProducts} from "@/modules/products/service";
+import {AddToCartButton} from "@/components/product/add-to-cart-button";
+import {WishlistButton} from "@/components/product/wishlist-button";
+const money=(v:unknown)=>Number(v).toLocaleString("en-BD",{minimumFractionDigits:0,maximumFractionDigits:2});
+const siteUrl=process.env.NEXT_PUBLIC_SITE_URL||"https://zelux.vercel.app";
+export async function generateMetadata({params}:{params:Promise<{slug:string}>}):Promise<Metadata>{const {slug}=await params;const p=await getPublishedProduct(slug);if(!p)return{title:"Product not found | Zelux"};return{title:p.seoTitle||p.name,description:p.seoDescription||p.shortDescription||p.description.slice(0,160),alternates:{canonical:siteUrl+"/product/"+p.slug},openGraph:{title:p.seoTitle||p.name,description:p.seoDescription||p.shortDescription||p.description.slice(0,160),images:p.images[0]?[p.images[0].url]:[]}}}
+export default async function ProductPage({params}:{params:Promise<{slug:string}>}){
+ const {slug}=await params;const product=await getPublishedProduct(slug);if(!product)return notFound();
+ const stock=product.inventory?.available??0;const categoryIds=product.categories.map(c=>c.categoryId);
+ const related=categoryIds.length?await listPublishedProducts({take:4,categorySlug:product.categories[0].category.slug}):[];
+ const relatedProducts=related.filter(p=>p.id!==product.id).slice(0,4);
+ const productJsonLd={"@context":"https://schema.org","@type":"Product",name:product.name,description:product.shortDescription||product.description.slice(0,300),sku:product.sku,brand:product.brand?{"@type":"Brand",name:product.brand}:undefined,image:product.images.map(i=>i.url),offers:{"@type":"Offer",priceCurrency:"BDT",price:Number(product.price),availability:stock>0?"https://schema.org/InStock":"https://schema.org/OutOfStock",url:siteUrl+"/product/"+product.slug}};
+ return <main className="mx-auto min-h-[70vh] max-w-7xl px-4 py-8 sm:py-12"><script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(productJsonLd).replace(/</g,"\\u003c")}}/>
+  <div className="grid gap-8 md:grid-cols-2 lg:gap-12"><div><div className="relative aspect-square overflow-hidden rounded-3xl bg-slate-100">{product.images[0]?<Image src={product.images[0].url} alt={product.images[0].altText||product.name} fill priority sizes="(max-width:768px) 100vw,50vw" className="object-cover"/>:<div className="grid h-full place-items-center text-slate-400">No image</div>}</div>{product.images.length>1?<div className="mt-3 grid grid-cols-5 gap-2">{product.images.slice(0,5).map(i=><div key={i.id} className="relative aspect-square overflow-hidden rounded-xl border bg-slate-100"><Image src={i.url} alt={i.altText||product.name} fill sizes="80px" className="object-cover"/></div>)}</div>:null}</div>
+   <section className="flex flex-col">{product.brand?<p className="text-sm font-semibold text-indigo-600">{product.brand}</p>:null}<div className="mt-1 flex items-start justify-between gap-4"><h1 className="text-3xl font-bold tracking-tight sm:text-4xl">{product.name}</h1><WishlistButton productId={product.id}/></div><div className="mt-3 flex items-center gap-3"><p className="text-2xl font-bold">৳{money(product.price)}</p>{product.compareAtPrice?<p className="text-sm text-slate-400 line-through">৳{money(product.compareAtPrice)}</p>:null}</div>{product.shortDescription?<p className="mt-5 text-slate-600">{product.shortDescription}</p>:null}
+    {product.variants.length?<div className="mt-6"><p className="mb-2 text-sm font-semibold">Options</p><div className="grid gap-2 sm:grid-cols-2">{product.variants.map(v=><div key={v.id} className="rounded-xl border p-3"><div className="font-medium">{v.name}</div><div className="mt-1 text-sm text-slate-500">৳{money(v.price??product.price)} · {(v.inventory?.available??0)>0?"In stock":"Out of stock"}</div><div className="mt-3"><AddToCartButton productId={product.id} variantId={v.id} disabled={(v.inventory?.available??0)<1}/></div></div>)}</div></div>:<div className="mt-6"><span className={stock>0?"text-sm font-medium text-green-700":"text-sm font-medium text-red-600"}>{stock>0?stock+" in stock":"Out of stock"}</span><div className="mt-4"><AddToCartButton productId={product.id} disabled={stock<1}/></div></div>}
+    <div className="mt-8 border-t pt-7"><h2 className="text-lg font-bold">Product details</h2><p className="mt-3 whitespace-pre-line text-sm leading-7 text-slate-600">{product.description}</p></div>
+   </section>
+  </div>
+  {product.reviews.length?<section className="mt-12 border-t pt-10"><h2 className="text-2xl font-bold">Customer reviews</h2><div className="mt-5 grid gap-3 md:grid-cols-2">{product.reviews.map(r=><article key={r.id} className="rounded-2xl border bg-white p-5"><div className="font-semibold">{"★".repeat(Math.min(5,Math.max(1,r.rating)))} <span className="text-sm text-slate-500">{r.rating}/5</span></div>{r.title?<h3 className="mt-2 font-semibold">{r.title}</h3>:null}{r.body?<p className="mt-2 text-sm leading-6 text-slate-600">{r.body}</p>:null}</article>)}</div></section>:null}
+  {relatedProducts.length?<section className="mt-12 border-t pt-10"><div className="flex items-end justify-between"><h2 className="text-2xl font-bold">You may also like</h2><Link href="/shop" className="text-sm font-semibold text-indigo-600">View all</Link></div><div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">{relatedProducts.map(p=><Link key={p.id} href={"/product/"+p.slug} className="rounded-2xl border bg-white p-3"><div className="relative aspect-square overflow-hidden rounded-xl bg-slate-100">{p.images[0]?<Image src={p.images[0].url} alt={p.images[0].altText||p.name} fill sizes="25vw" className="object-cover"/>:null}</div><p className="mt-3 line-clamp-2 text-sm font-semibold">{p.name}</p><p className="mt-1 font-bold">৳{money(p.price)}</p></Link>)}</div></section>:null}
+ </main>;
 }
