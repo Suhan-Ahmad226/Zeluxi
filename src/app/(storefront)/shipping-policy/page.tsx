@@ -1,0 +1,1 @@
+import {InfoPage} from "@/components/content/info-page"; export default function Page(){return <InfoPage title="Shipping Policy" description="Shipping and delivery policy for Zelux orders." sections={[{title:"Shipping",body:"Shipping fees and delivery estimates depend on destination, order characteristics and available courier service."}]}/>
