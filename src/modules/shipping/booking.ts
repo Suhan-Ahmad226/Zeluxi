@@ -17,7 +17,7 @@ export async function bookOrderShipment(actorUserId:string,orderId:string){
     if(updated.count!==1)throw new Error("Shipment booking is already in progress.");
     return order;
   },{isolationLevel:"Serializable"});
-  const providerName=process.env.DEFAULT_COURIER_PROVIDER||"MANUAL";
+  const providerName=claim.shipment?.provider||process.env.DEFAULT_COURIER_PROVIDER||"MANUAL";
   const provider=getCourierProvider(providerName);
   if(!provider.createShipment){await db.shipment.update({where:{orderId},data:{status:ShipmentStatus.CANCELLED}});throw new Error(`Courier provider ${provider.name} does not support shipment booking.`);}
   try{
