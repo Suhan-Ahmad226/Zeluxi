@@ -1,0 +1,1 @@
+import {AdminSection} from "@/components/admin/admin-section";export default function Page(){return <AdminSection title="Invoices" description="Review customer invoices and invoice records." items={["All invoices","Paid","Pending","Cancelled"]}/>}
