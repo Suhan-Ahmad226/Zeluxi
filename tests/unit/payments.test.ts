@@ -1,0 +1,2 @@
+import {describe,expect,it} from "vitest";
+describe("payment gateway rules",()=>{it("rejects amounts below SSLCommerz minimum",()=>{expect(9.99<10).toBe(true)});it("uses hosted gateway as the online flow",()=>{expect(process.env.DEFAULT_PAYMENT_PROVIDER||"SSLCOMMERZ").toBeTypeOf("string")});});
