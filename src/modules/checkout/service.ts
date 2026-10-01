@@ -24,6 +24,7 @@ export async function createOrder(userId:string,input:CheckoutInput,idempotencyK
       if(!p) throw new Error("One or more products are unavailable.");
       const v=line.variantId?p.variants.find(x=>x.id===line.variantId):undefined;
       if(line.variantId&&!v) throw new Error("Invalid product variant.");
+      if(!line.variantId && p.variants.length) throw new Error(`Please select an option for ${p.name}.`);
       const inv=v?.inventory??p.inventory;
       if(!inv) throw new Error(`Product ${p.name} is out of stock.`);
       const unit=v?.price??p.price;
