@@ -72,7 +72,7 @@ export async function createOrder(userId:string|null,input:CheckoutInput,idempot
       statusHistory:{create:{toStatus:OrderStatus.PENDING,note:"Order created"}},
       ...(couponId?{couponUsage:{create:{couponId,userId,discount}}}:{}),
     },include:{items:true,payment:true,shipment:true}});
-    if(couponId) await tx.coupon.update({where:{id:couponId},data:{usedCount:{increment:1}}});
+    if(couponId){const claimed=await tx.coupon.updateMany({where:{id:couponId,isActive:true,OR:[{usageLimit:null},{usedCount:{lt:coupon.usageLimit!}}]},data:{usedCount:{increment:1}}});if(claimed.count!==1)throw new Error("Coupon usage limit reached.");}
     if(userId){await tx.cart.updateMany({where:{userId},data:{updatedAt:new Date()}});await tx.cartItem.deleteMany({where:{cart:{userId}}});}
     return order;
   },{isolationLevel:Prisma.TransactionIsolationLevel.Serializable});
