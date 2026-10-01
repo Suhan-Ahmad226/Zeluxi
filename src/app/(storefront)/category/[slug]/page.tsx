@@ -1,16 +1,13 @@
-import { notFound } from "next/navigation";
-import { getCategoryBySlug } from "@/modules/categories/service";
-import { listPublishedProducts } from "@/modules/products/service";
-import { ProductCard } from "@/components/product/product-card";
-
-export default async function CategoryPage({ params }: { params: Promise<{ slug: string }> }) {
-  const { slug } = await params;
-  const category = await getCategoryBySlug(slug);
-  if (!category) return notFound();
-  const products = await listPublishedProducts({ categorySlug: slug, take: 48 });
-  return <main className="mx-auto min-h-[70vh] max-w-7xl px-4 py-8 sm:py-10">
-    <p className="text-sm font-semibold text-indigo-600">Category</p><h1 className="mt-1 text-3xl font-bold">{category.name}</h1>
-    {category.description ? <p className="mt-2 max-w-2xl text-sm text-slate-600">{category.description}</p> : null}
-    {products.length ? <div className="mt-7 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-5 lg:grid-cols-4">{products.map(p => <ProductCard key={p.id} product={p} />)}</div> : <div className="mt-8 rounded-2xl border border-dashed p-12 text-center text-slate-500">No products in this category.</div>}
-  </main>;
+import Link from "next/link";
+import {notFound} from "next/navigation";
+import type {Metadata} from "next";
+import {getCategoryBySlug} from "@/modules/categories/service";
+import {listPublishedProducts} from "@/modules/products/service";
+import {ProductCard} from "@/components/product/product-card";
+export async function generateMetadata({params}:{params:Promise<{slug:string}>}):Promise<Metadata>{const {slug}=await params;const c=await getCategoryBySlug(slug);return c?{title:c.name+" | Zelux",description:c.description||"Shop "+c.name+" products at Zelux."}:{title:"Category not found | Zelux"}}
+export default async function CategoryPage({params,searchParams}:{params:Promise<{slug:string}>;searchParams:Promise<{sort?:string;page?:string}>}){
+ const {slug}=await params;const sp=await searchParams;const category=await getCategoryBySlug(slug);if(!category)return notFound();
+ const page=Math.max(1,Number(sp.page)||1),take=24;const products=await listPublishedProducts({categorySlug:slug,take,skip:(page-1)*take});const sorted=[...products].sort((a,b)=>sp.sort==="price_asc"?Number(a.price)-Number(b.price):sp.sort==="price_desc"?Number(b.price)-Number(a.price):0);
+ const href=(n:number)=>{const x=new URLSearchParams();if(sp.sort)x.set("sort",sp.sort);x.set("page",String(n));return "/category/"+slug+"?"+x.toString()};
+ return <main className="mx-auto min-h-[70vh] max-w-7xl px-4 py-8 sm:py-10"><div className="flex flex-wrap items-end justify-between gap-4"><div><p className="text-sm font-semibold text-indigo-600">Category</p><h1 className="mt-1 text-3xl font-bold">{category.name}</h1>{category.description?<p className="mt-2 max-w-2xl text-sm text-slate-600">{category.description}</p>:null}</div><form><select name="sort" defaultValue={sp.sort||""} className="h-10 rounded-lg border px-3 text-sm"><option value="">Newest</option><option value="price_asc">Price: low to high</option><option value="price_desc">Price: high to low</option></select><button className="ml-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white">Apply</button></form></div>{sorted.length?<><div className="mt-7 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-5 lg:grid-cols-4">{sorted.map(p=><ProductCard key={p.id} product={p}/>)}</div><div className="mt-8 flex justify-center gap-2">{page>1?<Link href={href(page-1)} className="rounded-xl border px-4 py-2 text-sm font-semibold">Previous</Link>:null}{products.length===take?<Link href={href(page+1)} className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold">Next</Link>:null}</div></>:<div className="mt-8 rounded-2xl border border-dashed p-12 text-center text-slate-500">No products in this category.</div>}</main>;
 }
