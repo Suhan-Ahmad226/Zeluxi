@@ -1,0 +1,1 @@
+import {InfoPage} from "@/components/content/info-page";export default function Page(){return <InfoPage title="Recently Viewed" description="Products you recently explored." sections={[{title:"Your browsing list",body:"Recently viewed products can be surfaced from your account activity where available."}]}/>}
