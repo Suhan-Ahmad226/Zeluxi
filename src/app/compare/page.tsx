@@ -1,2 +1,5 @@
 import {ProductCollection} from "@/components/product/product-collection";
-export default function Page(){return <main className="mx-auto min-h-[70vh] max-w-7xl px-4 py-10 sm:py-14"><p className="text-sm font-semibold text-indigo-600">Compare</p><h1 className="mt-1 text-3xl font-bold">Compare products</h1><p className="mt-2 text-slate-600">Keep a few products together while you decide.</p><ProductCollection mode="compare"/></main>
+
+export default function Page(){
+ return <main className="mx-auto min-h-[70vh] max-w-7xl px-4 py-10 sm:py-14"><p className="text-sm font-semibold text-indigo-600">Compare</p><h1 className="mt-1 text-3xl font-bold">Compare products</h1><p className="mt-2 text-slate-600">Keep a few products together while you decide.</p><ProductCollection mode="compare"/></main>;
+}
