@@ -461,6 +461,23 @@ model ProductAnswer {
   @@index([questionId, createdAt])
 }
 
+model SiteSetting {
+  id String @id @default(cuid())
+  key String @unique
+  value Json
+  updatedAt DateTime @updatedAt
+}
+
+model WebhookEvent {
+  id String @id @default(cuid())
+  provider String
+  eventId String
+  payload Json
+  processedAt DateTime?
+  createdAt DateTime @default(now())
+  @@unique([provider, eventId])
+}
+
 model AuditLog {
   id String @id @default(cuid())
   actorUserId String?
@@ -469,9 +486,12 @@ model AuditLog {
   entityId String?
   before Json?
   after Json?
+  ipAddress String?
+  context Json?
   metadata Json?
   createdAt DateTime @default(now())
   actor User? @relation(fields:[actorUserId], references:[id], onDelete:SetNull)
   @@index([entityType, createdAt])
   @@index([actorUserId, createdAt])
+  @@index([entityType, entityId])
 }
