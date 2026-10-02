@@ -29,10 +29,15 @@ export async function PATCH(req: Request) {
   const updated = await db.$transaction(async (tx) => {
     const current = await tx.inventory.findUnique({ where: { id: parsed.data.inventoryId } });
     if (!current || parsed.data.available < current.reserved) return null;
-    const next = await tx.inventory.update({
-      where: { id: parsed.data.inventoryId },
+
+    // Compare-and-swap prevents an older admin screen from silently overwriting a newer stock change.
+    const result = await tx.inventory.updateMany({
+      where: { id: current.id, available: current.available },
       data: { available: parsed.data.available, lowStockThreshold: parsed.data.lowStockThreshold },
     });
+    if (result.count !== 1) return null;
+
+    const next = await tx.inventory.findUniqueOrThrow({ where: { id: current.id } });
     if (current.available !== next.available || current.lowStockThreshold !== next.lowStockThreshold) {
       await tx.auditLog.create({
         data: {
@@ -60,6 +65,6 @@ export async function PATCH(req: Request) {
     return next;
   });
 
-  if (!updated) return NextResponse.json({ error: "Inventory not found or available stock cannot be below reserved stock." }, { status: 409 });
+  if (!updated) return NextResponse.json({ error: "Inventory changed concurrently, was not found, or available stock cannot be below reserved stock. Refresh and try again." }, { status: 409 });
   return NextResponse.json(updated);
 }
