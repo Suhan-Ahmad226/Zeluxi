@@ -7,6 +7,7 @@ const schema = z.object({
   inventoryId: z.string().min(1),
   available: z.coerce.number().int().min(0),
   lowStockThreshold: z.coerce.number().int().min(0).max(100000),
+  reason: z.string().trim().min(2).max(200).optional(),
 });
 
 export async function GET() {
@@ -41,6 +42,18 @@ export async function PATCH(req: Request) {
           entityId: current.id,
           before: { available: current.available, reserved: current.reserved, lowStockThreshold: current.lowStockThreshold },
           after: { available: next.available, reserved: next.reserved, lowStockThreshold: next.lowStockThreshold },
+        },
+      });
+    }
+    if (current.available !== next.available) {
+      await tx.inventoryAdjustment.create({
+        data: {
+          inventoryId: current.id,
+          actorUserId: user.id,
+          quantityDelta: next.available - current.available,
+          previousAvailable: current.available,
+          newAvailable: next.available,
+          reason: parsed.data.reason ?? "Manual stock adjustment",
         },
       });
     }
