@@ -3,7 +3,7 @@ import { useStore } from '../../context/StoreContext';
 import { ArrowRight } from 'lucide-react';
 
 export const HeroBanner: React.FC = () => {
-  const { setActiveView, setSelectedCategoryFilter, storefrontCMS } = useStore();
+  const { categories, setActiveView, setSelectedCategoryFilter, storefrontCMS } = useStore();
   const hero = storefrontCMS?.hero;
 
   const handleExplore = () => {
@@ -56,8 +56,9 @@ export const HeroBanner: React.FC = () => {
 
               <button
                 onClick={() => {
+                  const leatherCategory = categories.find((category) => /leather/i.test(`${category.name} ${category.slug}`) && category.isActive !== false);
                   setActiveView('shop');
-                  setSelectedCategoryFilter('full-grain-leather');
+                  setSelectedCategoryFilter(leatherCategory?.slug ?? null);
                 }}
                 className="px-5 py-2.5 text-xs sm:text-sm font-medium text-slate-300 hover:text-white rounded-lg border border-slate-700 hover:border-slate-500 transition-colors whitespace-nowrap"
               >
@@ -71,9 +72,10 @@ export const HeroBanner: React.FC = () => {
             <div className="relative mx-auto rounded-2xl overflow-hidden border border-slate-800 shadow-2xl bg-slate-800 aspect-[4/3] group">
               <img
                 src={heroImg}
-                alt="Zelux Premium Handcrafted Goods"
+                alt={highlightSubtitle}
+                fetchPriority="high"
+                decoding="async"
                 className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                referrerPolicy="no-referrer"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent" />
               <div className="absolute bottom-4 left-4 right-4 text-left">
