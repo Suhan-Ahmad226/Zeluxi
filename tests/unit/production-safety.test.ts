@@ -1,9 +1,9 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { PaymentService } from '../../src/lib/payments/paymentService';
-import { SecurityService } from '../../src/lib/security';
+import { SecurityService } from '../../src/lib/security/index.ts';
 import { getCourierProvider } from '../../src/lib/shipping/couriers';
-import { EmailService } from '../../src/lib/email';
+import { EmailService } from '../../src/lib/email/index.ts';
 
 describe('Production safety: payment, webhook and courier adapters', () => {
   it('does not treat a customer-provided online payment reference as verified payment', async () => {
