@@ -46,7 +46,7 @@ export class EmailService {
           <div style="padding: 24px;">
             <h2 style="font-size: 18px; color: #0F172A; margin: 0 0 12px;">Thank you for your order, ${order.customer.fullName}!</h2>
             <p style="font-size: 14px; color: #475569; margin: 0 0 20px;">
-              Your order <strong>#${order.id}</strong> has been received and scheduled for fulfillment from our Banani, Dhaka studio.
+              Your order <strong>#${order.id}</strong> has been received. We will confirm fulfillment details after the order is verified.
             </p>
             <table style="width: 100%; border-collapse: collapse; font-size: 14px; margin-bottom: 24px;">
               <thead>
@@ -78,7 +78,7 @@ export class EmailService {
               </div>
             </div>
             <p style="font-size: 12px; color: #94A3B8; text-align: center; margin: 0;">
-              ZELUX Flagship Studio · Banani 11, Dhaka 1213 · Hotline: +880 1700-112233
+              Zelux Customer Support
             </p>
           </div>
         </div>
@@ -90,33 +90,13 @@ export class EmailService {
   /**
    * Dispatch notification safely
    */
-  static async sendOrderNotification(order: Order): Promise<EmailDispatchResult> {
-    const hasSmtp = Boolean(process.env.SMTP_HOST || process.env.RESEND_API_KEY);
-    const html = this.renderOrderConfirmationHtml(order);
-
-    if (!hasSmtp) {
-      console.log(`[EmailService] SMTP unconfigured. Simulated dispatch for Order ${order.id} to ${order.customer.email}`);
-      return {
-        success: true,
-        messageId: `sim-${Date.now()}`,
-        provider: 'CONSOLE_LOG',
-      };
-    }
-
-    try {
-      // Production email dispatch logic
-      return {
-        success: true,
-        messageId: `msg-${Date.now()}`,
-        provider: 'SMTP',
-      };
-    } catch (err: any) {
-      console.error('[EmailService] Dispatch failed:', err);
-      return {
-        success: false,
-        provider: 'SMTP',
-        error: err?.message || 'Email delivery failed',
-      };
-    }
+  static async sendOrderNotification(_order: Order): Promise<EmailDispatchResult> {
+    // No SMTP/Resend provider client is implemented in this SPA. Never return success for a
+    // notification that was not actually sent; real delivery belongs in a server-side service.
+    return {
+      success: false,
+      provider: process.env.SMTP_HOST || process.env.RESEND_API_KEY ? 'SMTP' : 'CONSOLE_LOG',
+      error: 'Email delivery is not configured. Add a server-side SMTP/Resend adapter before enabling order notifications.',
+    };
   }
 }
