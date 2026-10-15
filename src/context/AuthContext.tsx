@@ -592,30 +592,39 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Update profile details (address, phone, name)
   const updateProfileDetails = async (details: Partial<UserProfile>) => {
-    if (!userProfile) return;
-    const updated = { ...userProfile, ...details };
+    if (!userProfile || !supabaseUser || !session) {
+      throw new Error('A valid signed-in session is required to update your profile.');
+    }
+    requireSupabaseConfiguration();
+
+    // Only allow customer-editable profile fields. Identity, role, verification,
+    // provider, and account timestamps are server-controlled.
+    const updated: UserProfile = {
+      ...userProfile,
+      displayName: details.displayName?.trim() || userProfile.displayName,
+      phone: details.phone?.trim() ?? userProfile.phone,
+      address: details.address?.trim() ?? userProfile.address,
+      division: details.division?.trim() ?? userProfile.division,
+      avatarUrl: details.avatarUrl ?? userProfile.avatarUrl,
+    };
+
+    const { error } = await supabase.auth.updateUser({
+      data: {
+        full_name: updated.displayName,
+        displayName: updated.displayName,
+        phone: updated.phone,
+        address: updated.address,
+        division: updated.division,
+      },
+    });
+    if (error) throw error;
+
     setUserProfile(updated);
     localStorage.setItem('ZELUX_ACTIVE_PROFILE', JSON.stringify(updated));
-
-    if (supabaseUser) {
-      try {
-        localStorage.setItem(
-          `ZELUX_USER_META_${supabaseUser.id}`,
-          JSON.stringify({ address: updated.address, division: updated.division })
-        );
-        await supabase.auth.updateUser({
-          data: {
-            full_name: updated.displayName,
-            displayName: updated.displayName,
-            phone: updated.phone,
-            address: updated.address,
-            division: updated.division,
-          },
-        });
-      } catch (e) {
-        console.warn('Failed to update Supabase user metadata:', e);
-      }
-    }
+    localStorage.setItem(
+      `ZELUX_USER_META_${supabaseUser.id}`,
+      JSON.stringify({ address: updated.address, division: updated.division })
+    );
   };
 
   const currentUser = userProfile
