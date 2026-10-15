@@ -70,14 +70,8 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [supabaseUser, setSupabaseUser] = useState<SupabaseUser | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(() => {
-    try {
-      const saved = localStorage.getItem('ZELUX_ACTIVE_PROFILE');
-      return saved ? JSON.parse(saved) : null;
-    } catch {
-      return null;
-    }
-  });
+  // A cached profile is not proof of authentication. Populate this only from a validated Supabase session.
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
 
   const [loading, setLoading] = useState<boolean>(true);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
@@ -131,7 +125,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const isVerified = Boolean(
       user.email_confirmed_at ||
       user.confirmed_at ||
-      meta.email_verified ||
       user.app_metadata?.provider === 'google' ||
       user.app_metadata?.provider === 'facebook'
     );
