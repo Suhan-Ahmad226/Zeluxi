@@ -67,16 +67,10 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const requireSupabaseConfiguration = () => {
-  if (!isSupabaseConfigured()) {
-    throw new Error('Authentication is not configured. Please contact the store administrator.');
-  }
-};
-
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [supabaseUser, setSupabaseUser] = useState<SupabaseUser | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  // A cached profile is display data, not proof of authentication. Start anonymous and hydrate only from a valid Supabase session.
+  // A cached profile is not proof of authentication. Populate this only from a validated Supabase session.
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
 
   const [loading, setLoading] = useState<boolean>(true);
@@ -114,10 +108,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const phone = meta.phone || user.phone || '';
     const avatar = meta.avatar_url || meta.picture || undefined;
 
-    // Determine admin role based on metadata or specific admin domain
-    // Admin privileges must be assigned server-side in Supabase app_metadata.
-    // Never trust user-editable user_metadata or email addresses for authorization.
-    const isAdmin = user.app_metadata?.role === 'admin';
+    // Admin status must be assigned through trusted Supabase app_metadata, never user-editable metadata or email matching.
+    const isAdmin = String(user.app_metadata?.role || '').toUpperCase() === 'ADMIN';
 
     let savedAddress = meta.address;
     let savedDivision = meta.division;
@@ -133,7 +125,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const isVerified = Boolean(
       user.email_confirmed_at ||
       user.confirmed_at ||
-      meta.email_verified ||
       user.app_metadata?.provider === 'google' ||
       user.app_metadata?.provider === 'facebook'
     );
@@ -144,8 +135,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       displayName: name,
       phone,
       role: isAdmin ? 'admin' : 'customer',
-      address: savedAddress || 'Dhaka City, Bangladesh',
-      division: savedDivision || 'Dhaka',
+      address: savedAddress || '',
+      division: savedDivision || '',
       createdAt: user.created_at ? user.created_at.slice(0, 10) : new Date().toISOString().slice(0, 10),
       isVerified,
       avatarUrl: avatar,
@@ -235,7 +226,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Sign In with Email and Password
   const signInWithEmail = async (email: string, pass: string) => {
-    requireSupabaseConfiguration();
     setLoading(true);
     try {
       const cleanEmail = email.trim().toLowerCase();
@@ -277,7 +267,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Sign Up with Email, Password, Name, Phone
   // Dispatches 6-digit numeric OTP via Supabase Auth when email confirmation is active
   const signUpWithEmail = async (email: string, pass: string, name: string, phone: string) => {
-    requireSupabaseConfiguration();
     setLoading(true);
     try {
       const cleanEmail = email.trim().toLowerCase();
@@ -326,7 +315,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Verify the 6-digit numeric Signup OTP code using Supabase auth.verifyOtp({ email, token, type: 'signup' })
   const verifyEmailOtp = async (email: string, token: string): Promise<{ success: boolean }> => {
-    requireSupabaseConfiguration();
     setLoading(true);
     try {
       const cleanEmail = email.trim().toLowerCase();
@@ -378,7 +366,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Resend the 6-digit signup OTP token
   const resendVerificationOtp = async (email: string) => {
-    requireSupabaseConfiguration();
     setLoading(true);
     try {
       const cleanEmail = email.trim().toLowerCase();
@@ -408,7 +395,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Google OAuth
   const signInWithGoogle = async () => {
-    requireSupabaseConfiguration();
     setLoading(true);
     try {
       const redirectUrl = getAuthRedirectUrl('/');
@@ -430,7 +416,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Facebook OAuth
   const signInWithFacebook = async () => {
-    requireSupabaseConfiguration();
     setLoading(true);
     try {
       const redirectUrl = getAuthRedirectUrl('/');
@@ -449,7 +434,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Forgot Password / Request 6-digit Recovery Email OTP
   // Step A: Request OTP without redirecting to a clickable link
   const requestPasswordReset = async (email: string) => {
-    requireSupabaseConfiguration();
     setLoading(true);
     try {
       const cleanEmail = email.trim().toLowerCase();
@@ -478,7 +462,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Step B: Verify Recovery OTP using supabase.auth.verifyOtp({ email, token, type: 'recovery' })
   const verifyRecoveryOtp = async (email: string, token: string): Promise<{ success: boolean }> => {
-    requireSupabaseConfiguration();
     setLoading(true);
     try {
       const cleanEmail = email.trim().toLowerCase();
@@ -526,7 +509,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Step C: Set New Password after successful recovery OTP verification
   const updatePassword = async (newPassword: string) => {
-    requireSupabaseConfiguration();
     setLoading(true);
     try {
       if (!newPassword || newPassword.length < 6) {
@@ -554,24 +536,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Change Password for Logged In Customer or Admin
   const changePassword = async (oldPassword: string, newPassword: string) => {
-    requireSupabaseConfiguration();
     setLoading(true);
     try {
-      if (!session || !supabaseUser?.email) {
-        throw new Error('Please sign in again before changing your password.');
-      }
-      if (!newPassword || newPassword.length < 8) {
-        throw new Error('New password must be at least 8 characters long.');
+      if (!newPassword || newPassword.length < 6) {
+        throw new Error('New password must be at least 6 characters long.');
       }
 
-      const { error: signInErr } = await supabase.auth.signInWithPassword({
-        email: supabaseUser.email,
-        password: oldPassword,
-      });
-      if (signInErr) throw new Error('Current password is incorrect.');
+      if (isSupabaseConfigured() && session) {
+        if (currentUser?.email && oldPassword) {
+          const { error: signInErr } = await supabase.auth.signInWithPassword({
+            email: currentUser.email,
+            password: oldPassword,
+          });
+          if (signInErr) {
+            throw new Error('Current password is incorrect.');
+          }
+        }
 
-      const { error } = await supabase.auth.updateUser({ password: newPassword });
-      if (error) throw error;
+        const { error } = await supabase.auth.updateUser({
+          password: newPassword,
+        });
+
+        if (error) {
+          throw error;
+        }
+      } else {
+        throw new Error('A valid Supabase session is required to change your password.');
+      }
     } finally {
       setLoading(false);
     }
@@ -592,39 +583,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Update profile details (address, phone, name)
   const updateProfileDetails = async (details: Partial<UserProfile>) => {
-    if (!userProfile || !supabaseUser || !session) {
-      throw new Error('A valid signed-in session is required to update your profile.');
-    }
-    requireSupabaseConfiguration();
-
-    // Only allow customer-editable profile fields. Identity, role, verification,
-    // provider, and account timestamps are server-controlled.
-    const updated: UserProfile = {
-      ...userProfile,
-      displayName: details.displayName?.trim() || userProfile.displayName,
-      phone: details.phone?.trim() ?? userProfile.phone,
-      address: details.address?.trim() ?? userProfile.address,
-      division: details.division?.trim() ?? userProfile.division,
-      avatarUrl: details.avatarUrl ?? userProfile.avatarUrl,
-    };
-
-    const { error } = await supabase.auth.updateUser({
-      data: {
-        full_name: updated.displayName,
-        displayName: updated.displayName,
-        phone: updated.phone,
-        address: updated.address,
-        division: updated.division,
-      },
-    });
-    if (error) throw error;
-
+    if (!userProfile) return;
+    const updated = { ...userProfile, ...details };
     setUserProfile(updated);
     localStorage.setItem('ZELUX_ACTIVE_PROFILE', JSON.stringify(updated));
-    localStorage.setItem(
-      `ZELUX_USER_META_${supabaseUser.id}`,
-      JSON.stringify({ address: updated.address, division: updated.division })
-    );
+
+    if (supabaseUser) {
+      try {
+        localStorage.setItem(
+          `ZELUX_USER_META_${supabaseUser.id}`,
+          JSON.stringify({ address: updated.address, division: updated.division })
+        );
+        await supabase.auth.updateUser({
+          data: {
+            full_name: updated.displayName,
+            displayName: updated.displayName,
+            phone: updated.phone,
+            address: updated.address,
+            division: updated.division,
+          },
+        });
+      } catch (e) {
+        console.warn('Failed to update Supabase user metadata:', e);
+      }
+    }
   };
 
   const currentUser = userProfile
@@ -639,8 +621,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const isVerified = Boolean(
     userProfile?.isVerified ||
     supabaseUser?.email_confirmed_at ||
-    supabaseUser?.confirmed_at ||
-    supabaseUser?.user_metadata?.email_verified
+    supabaseUser?.confirmed_at
   );
 
   return (

@@ -16,12 +16,9 @@ export interface OrderAlertPayload {
   trackingCode?: string;
 }
 
-/**
- * Telegram notifications must be sent by a trusted server endpoint. Never put a
- * Telegram bot token in a Vite client bundle or return success without delivery.
- */
 export async function sendTelegramOrderNotification(_payload: OrderAlertPayload): Promise<boolean> {
-  // No server-side notification endpoint is implemented in this Vite SPA.
-  // Intentionally fail closed; add a protected server endpoint before enabling.
+  // Telegram bot tokens must never be embedded in a browser bundle. This app has no authenticated
+  // server-side notification endpoint yet, so report unavailable rather than pretending delivery worked.
+  console.warn('[Telegram Notification] Disabled until a server-side notification endpoint is configured.');
   return false;
 }

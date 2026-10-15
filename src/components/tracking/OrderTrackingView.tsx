@@ -117,24 +117,6 @@ export const OrderTrackingView: React.FC = () => {
           </button>
         </form>
 
-        {/* Quick Demo links */}
-        <div className="flex items-center justify-center gap-2 text-xs text-slate-500">
-          <span>Sample active orders:</span>
-          {orders.slice(0, 3).map((o) => (
-            <button
-              key={o.id}
-              onClick={() => {
-                setSearchKey(o.id);
-                setSearchedOrder(o);
-                setSearchError(false);
-              }}
-              className="font-mono text-indigo-600 hover:underline px-1"
-            >
-              #{o.id}
-            </button>
-          ))}
-        </div>
-
         {searchError && (
           <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800 text-center flex items-center justify-center gap-2">
             <AlertCircle className="w-4 h-4 text-amber-600" />

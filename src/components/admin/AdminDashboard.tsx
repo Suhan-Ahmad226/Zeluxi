@@ -411,7 +411,7 @@ export const AdminDashboard: React.FC = () => {
           <div>
             <h2 className="text-lg font-bold text-slate-900">Administrator Console Restricted</h2>
             <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
-              This portal is restricted to authorized store managers. Sign in with an administrator account provisioned by the store owner.
+              This portal is restricted to authorized store managers. Sign in with an authorized administrator account.
             </p>
           </div>
 
@@ -3026,7 +3026,7 @@ export const AdminDashboard: React.FC = () => {
                     </button>
                   </div>
                   <p className="text-[10px] text-slate-400 mt-1">
-                    Default demo administrator password: <span className="font-mono font-semibold">123456</span>
+                    Use your administrator account password.
                   </p>
                 </div>
 

@@ -78,62 +78,14 @@ export interface ICourierProvider {
 
 /**
  * Pathao Express Courier Implementation
- * Client-side adapter only. Real booking must be performed by a trusted server integration.
+ * Fail-closed adapter placeholder. Real API calls must be implemented server-side.
  */
 export class PathaoCourierProvider implements ICourierProvider {
   readonly code = 'PATHAO' as const;
   readonly name = 'Pathao Express Logistics (Hermes / Aladdin API)';
-  // In-flight booking lock map to prevent concurrent duplicate calls for the same order
-  private inFlightBookings = new Map<string, Promise<ShipmentResult>>();
+  // Credentials and live API calls must be implemented in a trusted server environment.
 
-  async createShipment(request: ShipmentRequest): Promise<ShipmentResult> {
-    // 1. Check in-flight lock to guarantee idempotency across concurrent clicks
-    if (this.inFlightBookings.has(request.orderId)) {
-      return this.inFlightBookings.get(request.orderId)!;
-    }
-
-    const bookingPromise = this.executeBooking(request);
-    this.inFlightBookings.set(request.orderId, bookingPromise);
-
-    try {
-      return await bookingPromise;
-    } finally {
-      this.inFlightBookings.delete(request.orderId);
-    }
-  }
-
-  private async executeBooking(request: ShipmentRequest): Promise<ShipmentResult> {
-    // Validation: Phone must be 11 digit BD format
-    const cleanPhone = request.customerPhone.replace(/[\s-]/g, '');
-    const isPhoneValid = /^(?:\+?88)?01[3-9]\d{8}$/.test(cleanPhone);
-    if (!isPhoneValid) {
-      return {
-        success: false,
-        courier: 'PATHAO',
-        consignmentId: '',
-        trackingCode: '',
-        deliveryFee: 0,
-        estimatedDelivery: '',
-        hubLocation: '',
-        errorMessage: `Invalid recipient phone number "${request.customerPhone}". Pathao requires an active 11-digit Bangladesh phone number.`,
-      };
-    }
-
-    if (!request.deliveryAddress || request.deliveryAddress.trim().length < 5) {
-      return {
-        success: false,
-        courier: 'PATHAO',
-        consignmentId: '',
-        trackingCode: '',
-        deliveryFee: 0,
-        estimatedDelivery: '',
-        hubLocation: '',
-        errorMessage: 'Detailed recipient address is required (minimum 5 characters).',
-      };
-    }
-
-    // This frontend bundle must not contain courier credentials or claim a
-    // shipment exists without a real response from the courier API.
+  async createShipment(_request: ShipmentRequest): Promise<ShipmentResult> {
     return {
       success: false,
       courier: 'PATHAO',
@@ -142,17 +94,18 @@ export class PathaoCourierProvider implements ICourierProvider {
       deliveryFee: 0,
       estimatedDelivery: '',
       hubLocation: '',
-      errorMessage: 'Pathao is not connected to a trusted server integration. No shipment was created.',
+      errorMessage: 'Live Pathao booking is not implemented. Configure a secure server-side Pathao API integration before booking real shipments.',
     };
   }
 
   async cancelShipment(_consignmentId: string): Promise<{ success: boolean; message: string }> {
-    return { success: false, message: 'Pathao cancellation requires the trusted server integration; no cancellation was sent.' };
+    return { success: false, message: 'Live Pathao cancellation is not configured. No cancellation was sent.' };
   }
 
-  async getTracking(_trackingCode: string) {
-    throw new Error('Live Pathao tracking is unavailable until the trusted server integration is configured.');
+  async getTracking(_trackingCode: string): Promise<{ status: string; currentLocation: string; events: TrackingEvent[] }> {
+    throw new Error('Live Pathao tracking is not configured. No live tracking data is available.');
   }
+
 }
 
 /**
@@ -171,17 +124,18 @@ export class SteadfastCourierProvider implements ICourierProvider {
       deliveryFee: 0,
       estimatedDelivery: '',
       hubLocation: '',
-      errorMessage: 'Steadfast booking is not connected to a trusted server API. No shipment was created.',
+      errorMessage: 'Live Steadfast booking is not implemented. Configure a secure server-side Steadfast API integration before booking real shipments.',
     };
   }
 
   async cancelShipment(_consignmentId: string): Promise<{ success: boolean; message: string }> {
-    return { success: false, message: 'Steadfast cancellation requires the trusted server integration; no cancellation was sent.' };
+    return { success: false, message: 'Live Steadfast cancellation is not configured. No cancellation was sent.' };
   }
 
   async getTracking(_trackingCode: string) {
-    throw new Error('Live Steadfast tracking is unavailable until the trusted server integration is configured.');
+    throw new Error('Live Steadfast tracking is not configured. No live tracking data is available.');
   }
+
 }
 
 /**
@@ -190,8 +144,26 @@ export class SteadfastCourierProvider implements ICourierProvider {
 const pathaoService = new PathaoCourierProvider();
 const steadfastService = new SteadfastCourierProvider();
 
+const inHouseService: ICourierProvider = {
+  code: 'IN_HOUSE',
+  name: 'In-house delivery (not configured)',
+  async createShipment(): Promise<ShipmentResult> {
+    return {
+      success: false, courier: 'IN_HOUSE', consignmentId: '', trackingCode: '',
+      deliveryFee: 0, estimatedDelivery: '', hubLocation: '',
+      errorMessage: 'In-house delivery is not configured. No shipment was created.',
+    };
+  },
+  async cancelShipment(): Promise<{ success: boolean; message: string }> {
+    return { success: false, message: 'In-house shipment cancellation is not configured.' };
+  },
+  async getTracking() {
+    throw new Error('In-house tracking is not configured.');
+  },
+};
+
 export const getCourierProvider = (provider: 'PATHAO' | 'STEADFAST' | 'IN_HOUSE'): ICourierProvider => {
   if (provider === 'STEADFAST') return steadfastService;
-  if (provider === 'PATHAO') return pathaoService;
-  throw new Error('IN_HOUSE courier has no implementation configured.');
+  if (provider === 'IN_HOUSE') return inHouseService;
+  return pathaoService;
 };

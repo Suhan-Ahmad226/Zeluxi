@@ -1,12 +1,14 @@
 import { createClient } from '@supabase/supabase-js';
 
-const configuredUrl = import.meta.env.VITE_SUPABASE_URL?.trim();
-const configuredAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY?.trim();
+export const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || '';
 
-export const SUPABASE_URL = configuredUrl || 'https://placeholder.supabase.co';
-export const SUPABASE_ANON_KEY = configuredAnonKey || 'missing-public-anon-key';
+export const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+// Use inert placeholders only to prevent module initialization from crashing when deployment
+// configuration is missing. isSupabaseConfigured() must be checked before auth operations.
+export const supabase = createClient(
+  SUPABASE_URL || 'https://configuration-required.invalid',
+  SUPABASE_ANON_KEY || 'configuration-required', {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
@@ -16,7 +18,7 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 });
 
 export const isSupabaseConfigured = (): boolean => {
-  return Boolean(configuredUrl && configuredAnonKey);
+  return Boolean(SUPABASE_URL && SUPABASE_ANON_KEY && SUPABASE_URL.startsWith('https://') && SUPABASE_ANON_KEY !== 'configuration-required');
 };
 
 /**

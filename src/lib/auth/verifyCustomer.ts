@@ -20,7 +20,7 @@ export async function verifyCustomerOrderEligibility(): Promise<CustomerVerifica
       user: null,
       email: null,
       reason: 'INVALID_SESSION',
-      message: 'Authentication is temporarily unavailable. Please try again later.',
+      message: 'Authentication is not configured. Orders are disabled until Supabase is configured.',
     };
   }
 
@@ -51,7 +51,6 @@ export async function verifyCustomerOrderEligibility(): Promise<CustomerVerifica
     const isEmailConfirmed = Boolean(
       user.email_confirmed_at ||
       user.confirmed_at ||
-      user.user_metadata?.email_verified ||
       user.app_metadata?.provider === 'google' ||
       user.app_metadata?.provider === 'facebook'
     );

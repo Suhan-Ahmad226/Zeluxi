@@ -151,7 +151,7 @@ interface StoreContextType {
 
 const StoreContext = createContext<StoreContextType | undefined>(undefined);
 
-const LOCAL_STORAGE_KEY = 'ZELUX_ECOMMERCE_STATE_V1';
+const LOCAL_STORAGE_KEY = 'ZELUX_ECOMMERCE_STATE_V2';
 
 export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // Load initial state from LocalStorage if available
@@ -185,9 +185,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [wishlist, setWishlist] = useState<string[]>(() => {
     try {
       const saved = localStorage.getItem(`${LOCAL_STORAGE_KEY}_WISHLIST`);
-      return saved ? JSON.parse(saved) : ['prod-001', 'prod-003'];
+      return saved ? JSON.parse(saved) : [];
     } catch {
-      return ['prod-001', 'prod-003'];
+      return [];
     }
   });
 
@@ -254,13 +254,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   });
 
-  const [recentlyViewed, setRecentlyViewed] = useState<string[]>(() => {
-    try {
-      const saved = localStorage.getItem(`${LOCAL_STORAGE_KEY}_RECENTLY_VIEWED`);
-      const parsed: unknown = saved ? JSON.parse(saved) : [];
-      return Array.isArray(parsed) ? parsed.filter((id): id is string => typeof id === 'string').slice(0, 6) : [];
-    } catch { return []; }
-  });
+  const [recentlyViewed, setRecentlyViewed] = useState<string[]>([]);
   const [compareList, setCompareList] = useState<string[]>([]);
   const [isCompareOpen, setIsCompareOpen] = useState(false);
   const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false);
@@ -348,11 +342,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       localStorage.setItem(`${LOCAL_STORAGE_KEY}_LOGS`, JSON.stringify(auditLogs));
       localStorage.setItem(`${LOCAL_STORAGE_KEY}_REVIEWS`, JSON.stringify(reviews));
       localStorage.setItem(`${LOCAL_STORAGE_KEY}_QUESTIONS`, JSON.stringify(questions));
-      localStorage.setItem(`${LOCAL_STORAGE_KEY}_RECENTLY_VIEWED`, JSON.stringify(recentlyViewed));
     } catch (e) {
       console.warn('Storage sync failed', e);
     }
-  }, [products, categories, cart, wishlist, orders, coupons, customers, pages, storefrontCMS, settings, auditLogs, reviews, questions, recentlyViewed]);
+  }, [products, categories, cart, wishlist, orders, coupons, customers, pages, storefrontCMS, settings, auditLogs, reviews, questions]);
 
   const addRecentlyViewed = (productId: string) => {
     setRecentlyViewed((prev) => {
@@ -679,9 +672,6 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       now.getDate()
     ).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 
-    const trackingPrefix = courierChoice === 'PATHAO' ? 'PTH' : courierChoice === 'STEADFAST' ? 'STF' : 'ZLX';
-    const trackingCode = `${trackingPrefix}-${Math.floor(100000 + Math.random() * 900000)}`;
-
     const newOrder: Order = {
       id: orderId,
       createdAt: timestampStr,
@@ -701,9 +691,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       couponCode: appliedCoupon ? appliedCoupon.code : undefined,
       status: 'PENDING',
       paymentMethod,
-      // No online payment is considered paid without server-side gateway verification.
+      // Customer-submitted transaction references are not proof of payment. An authorized
+      // server-side gateway callback or a documented manual review must mark an order as PAID.
       paymentStatus: 'UNPAID',
-      transactionId: transactionId?.trim() || undefined,
+      transactionId: transactionId || undefined,
       courier: {
         provider: courierChoice,
         trackingCode: '',
@@ -718,7 +709,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           timestamp: timestampStr,
           note: paymentMethod === 'COD'
             ? 'Order placed with Cash on Delivery (COD). Awaiting Admin verification & courier booking.'
-            : `Order placed. Paid online via ${paymentMethod} (TrxID: ${transactionId || 'Verified'}). Awaiting Admin dispatch acceptance.`,
+            : `Order placed with ${paymentMethod}. Reference ${transactionId ? 'submitted for manual verification' : 'not provided'}; payment remains unverified until an authorized review.`,
         },
       ],
     };
@@ -799,7 +790,6 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       grandTotal,
       paymentMethod,
       courierProvider: courierChoice,
-      trackingCode,
     }).catch(() => {});
 
     showToast(`Order #${orderId} successfully placed!`, 'success');
@@ -1352,17 +1342,53 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     orderId: string,
     amount: number,
     reason: string,
-    adminActor: string = 'Admin'
+    adminActor: string = 'Admin Superuser'
   ): Promise<{ success: boolean; message: string }> => {
-    // This client-only application has no payment-provider refund API. Never
-    // mark an order refunded or claim money was returned without provider proof.
-    void orderId;
-    void amount;
-    void reason;
-    void adminActor;
-    const message = 'Refund processing is unavailable until a verified server-side payment gateway is configured. No refund was issued.';
-    showToast(message, 'error');
-    return { success: false, message };
+    const target = orders.find((o) => o.id === orderId);
+    if (!target) {
+      showToast('Order not found', 'error');
+      return { success: false, message: 'Order not found' };
+    }
+
+    if (target.paymentStatus === 'REFUNDED') {
+      showToast('This order has already been fully refunded', 'info');
+      return { success: false, message: 'Order already refunded' };
+    }
+
+    const now = new Date();
+    const timestampStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(
+      now.getDate()
+    ).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+    setOrders((prev) =>
+      prev.map((o) => {
+        if (o.id === orderId) {
+          return {
+            ...o,
+            status: 'REFUNDED' as OrderStatus,
+            paymentStatus: 'REFUNDED',
+            statusHistory: [
+              ...o.statusHistory,
+              {
+                status: 'REFUNDED',
+                timestamp: timestampStr,
+                note: `Refund issued for ৳${amount.toLocaleString()} BDT via ${o.paymentMethod}. Reason: ${reason} (Authorized by: ${adminActor})`,
+              },
+            ],
+          };
+        }
+        return o;
+      })
+    );
+
+    addAuditLog(
+      'ORDER_REFUNDED',
+      `Refund of ৳${amount.toLocaleString()} issued for order #${orderId} (${target.paymentMethod}). Reason: ${reason}`,
+      adminActor
+    );
+
+    showToast(`Refund of ৳${amount.toLocaleString()} processed for order #${orderId}`, 'success');
+    return { success: true, message: 'Refund successfully completed' };
   };
 
   const adjustStock = (productId: string, newStock: number, reason: string) => {

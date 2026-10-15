@@ -1,6 +1,7 @@
 /**
  * Security & Data Sanitization Utilities for Zelux
- * Protects against XSS, validates webhook signatures with timing safety, and sanitizes input.
+ * Provides basic text escaping and fail-closed webhook verification placeholder. Real webhook HMAC
+ * verification must run server-side against the provider's documented raw-body signature.
  */
 
 export class SecurityService {
@@ -36,9 +37,8 @@ export class SecurityService {
    * Validates webhook signatures using secret key
    */
   static verifyWebhookSignature(_payload: string, _signature: string, _secret: string): boolean {
-    // Webhook verification must run on a trusted server using the provider's
-    // documented HMAC/signature scheme. This browser-side utility cannot safely
-    // verify provider webhooks; fail closed instead of accepting every signature.
+    // Webhook authentication must be performed server-side with the provider's documented HMAC
+    // algorithm and the raw request body. This browser-safe helper intentionally fails closed.
     return false;
   }
 

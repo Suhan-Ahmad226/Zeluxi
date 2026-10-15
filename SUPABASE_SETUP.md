@@ -1,7 +1,7 @@
 # ZELUX - Supabase Authentication & 6-Digit Numeric Email OTP Setup Guide
 
 > **Important Notice on Dashboard Configuration:**
-> The code in this repository has been fully implemented to use 6-digit numeric email OTP flows:
+> The client-side UI and Supabase Auth calls for 6-digit numeric email OTP flows are present, but they are not proof of live delivery. Configure the templates and providers below, then test signup and recovery against the actual project before launch:
 > 1. Signup Email Verification: `supabase.auth.verifyOtp({ email, token, type: 'signup' })`
 > 2. Password Recovery Verification: `supabase.auth.verifyOtp({ email, token, type: 'recovery' })`
 >

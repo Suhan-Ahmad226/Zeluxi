@@ -1,11 +1,18 @@
 /**
  * Transactional Email Notification Adapter for Zelux
- * Generates branded HTML emails and dispatches notifications via SMTP/Resend/SendGrid.
- * Falls back safely to logger when external credentials are absent.
+ * Generates a branded HTML email template. Delivery is intentionally disabled until a real
+ * server-side SMTP/Resend/SendGrid adapter is implemented.
  */
 
 import { Order } from '../../types';
 import { formatPrice } from '../../utils/formatters';
+
+const escapeHtml = (value: string): string => value
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+  .replace(/\"/g, '&quot;')
+  .replace(/'/g, '&#x27;');
 
 export interface EmailDispatchResult {
   success: boolean;
@@ -24,8 +31,8 @@ export class EmailService {
         (item) => `
         <tr style="border-bottom: 1px solid #E2E8F0;">
           <td style="padding: 12px 0;">
-            <p style="margin: 0; font-weight: 600; color: #0F172A;">${item.productName}</p>
-            ${item.variantLabel ? `<p style="margin: 2px 0 0; font-size: 12px; color: #64748B;">${item.variantLabel}</p>` : ''}
+            <p style="margin: 0; font-weight: 600; color: #0F172A;">${escapeHtml(item.productName)}</p>
+            ${item.variantLabel ? `<p style="margin: 2px 0 0; font-size: 12px; color: #64748B;">${escapeHtml(item.variantLabel)}</p>` : ''}
           </td>
           <td style="padding: 12px 0; text-align: center; color: #475569;">x${item.quantity}</td>
           <td style="padding: 12px 0; text-align: right; font-weight: 600; color: #0F172A;">${formatPrice(item.price * item.quantity)}</td>
@@ -44,9 +51,9 @@ export class EmailService {
             <p style="color: #E0E7FF; margin: 6px 0 0; font-size: 13px;">Bangladesh Atelier & Lifestyle Goods</p>
           </div>
           <div style="padding: 24px;">
-            <h2 style="font-size: 18px; color: #0F172A; margin: 0 0 12px;">Thank you for your order, ${order.customer.fullName}!</h2>
+            <h2 style="font-size: 18px; color: #0F172A; margin: 0 0 12px;">Thank you for your order, ${escapeHtml(order.customer.fullName)}!</h2>
             <p style="font-size: 14px; color: #475569; margin: 0 0 20px;">
-              Your order <strong>#${order.id}</strong> has been received and scheduled for fulfillment from our Banani, Dhaka studio.
+              Your order <strong>#${escapeHtml(order.id)}</strong> has been received. We will confirm fulfillment details after the order is verified.
             </p>
             <table style="width: 100%; border-collapse: collapse; font-size: 14px; margin-bottom: 24px;">
               <thead>
@@ -64,7 +71,7 @@ export class EmailService {
                 <span style="font-weight: 600;">${formatPrice(order.subtotal)}</span>
               </div>
               <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
-                <span style="color: #64748B;">Delivery Fee (${order.customer.division}):</span>
+                <span style="color: #64748B;">Delivery Fee (${escapeHtml(order.customer.division)}):</span>
                 <span style="font-weight: 600;">${order.shippingFee === 0 ? 'FREE' : formatPrice(order.shippingFee)}</span>
               </div>
               ${order.discount ? `
@@ -78,7 +85,7 @@ export class EmailService {
               </div>
             </div>
             <p style="font-size: 12px; color: #94A3B8; text-align: center; margin: 0;">
-              ZELUX Flagship Studio · Banani 11, Dhaka 1213 · Hotline: +880 1700-112233
+              Zelux Customer Support
             </p>
           </div>
         </div>
@@ -90,33 +97,13 @@ export class EmailService {
   /**
    * Dispatch notification safely
    */
-  static async sendOrderNotification(order: Order): Promise<EmailDispatchResult> {
-    const hasSmtp = Boolean(process.env.SMTP_HOST || process.env.RESEND_API_KEY);
-    const html = this.renderOrderConfirmationHtml(order);
-
-    if (!hasSmtp) {
-      console.log(`[EmailService] SMTP unconfigured. Simulated dispatch for Order ${order.id} to ${order.customer.email}`);
-      return {
-        success: true,
-        messageId: `sim-${Date.now()}`,
-        provider: 'CONSOLE_LOG',
-      };
-    }
-
-    try {
-      // Production email dispatch logic
-      return {
-        success: true,
-        messageId: `msg-${Date.now()}`,
-        provider: 'SMTP',
-      };
-    } catch (err: any) {
-      console.error('[EmailService] Dispatch failed:', err);
-      return {
-        success: false,
-        provider: 'SMTP',
-        error: err?.message || 'Email delivery failed',
-      };
-    }
+  static async sendOrderNotification(_order: Order): Promise<EmailDispatchResult> {
+    // No SMTP/Resend provider client is implemented in this SPA. Never return success for a
+    // notification that was not actually sent; real delivery belongs in a server-side service.
+    return {
+      success: false,
+      provider: 'CONSOLE_LOG',
+      error: 'Email delivery is not configured. Add a server-side SMTP/Resend adapter before enabling order notifications.',
+    };
   }
 }

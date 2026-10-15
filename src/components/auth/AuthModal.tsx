@@ -10,7 +10,6 @@ import {
   Eye,
   EyeOff,
   ShieldCheck,
-  Sparkles,
   ArrowRight,
   AlertCircle,
   CheckCircle2,
@@ -199,7 +198,7 @@ export const AuthModal: React.FC = () => {
       console.error('Auth action error:', err);
       const msg = err.message || '';
       if (msg.includes('Invalid login credentials') || msg.includes('invalid-credential')) {
-        setErrorMsg('Invalid email or password. Please verify your credentials or use 1-Click Demo Login.');
+        setErrorMsg('Invalid email or password. Please check your credentials and try again.');
       } else if (msg.includes('Email not confirmed') || msg.includes('not verified')) {
         setErrorMsg('Your email address is not yet verified. Please enter the 6-digit numeric OTP sent to your inbox.');
         setAuthNoticeEmail(email.trim());

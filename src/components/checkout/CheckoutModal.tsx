@@ -88,7 +88,6 @@ export const CheckoutModal: React.FC = () => {
     isVerified ||
     supabaseUser?.email_confirmed_at ||
     supabaseUser?.confirmed_at ||
-    supabaseUser?.user_metadata?.email_verified ||
     supabaseUser?.app_metadata?.provider === 'google' ||
     supabaseUser?.app_metadata?.provider === 'facebook'
   );
@@ -138,8 +137,8 @@ export const CheckoutModal: React.FC = () => {
       return;
     }
 
-    if (paymentMethod !== 'COD') {
-      setFormError('Online payment is temporarily unavailable because no verified payment gateway is connected. Please choose Cash on Delivery.');
+    if ((paymentMethod === 'BKASH' || paymentMethod === 'NAGAD' || paymentMethod === 'ROCKET') && (!bkashTrxId.trim() || bkashTrxId.length < 5)) {
+      setFormError(`Please enter your ${paymentMethod} Transaction ID (TrxID).`);
       return;
     }
 
@@ -173,9 +172,9 @@ export const CheckoutModal: React.FC = () => {
         return;
       }
     } catch (err: any) {
-      console.error('Identity verification failed closed:', err);
+      console.error('Identity verification failed; checkout has been blocked.', err);
       setIsProcessing(false);
-      setFormError('We could not verify your account right now. Please try again before placing your order.');
+      setFormError('We could not verify your account. Please try again after signing in.');
       return;
     }
 

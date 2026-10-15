@@ -34,7 +34,7 @@ export class PaymentService {
    * Validates and verifies transaction state
    */
   static async verifyPayment(request: PaymentInitiationRequest): Promise<PaymentValidationResult> {
-    const { idempotencyKey, orderId, amount, paymentMethod, transactionReference } = request;
+    const { idempotencyKey, orderId, amount, paymentMethod } = request;
 
     if (!idempotencyKey) {
       throw new Error('Security Error: Idempotency key is required to prevent double-charging.');
@@ -44,13 +44,20 @@ export class PaymentService {
       throw new Error('Duplicate Request: This transaction has already been captured and processed.');
     }
 
+    // This frontend has no server-side gateway verification yet. Never trust a customer-supplied TrxID
+    // or manufacture a successful payment result for an online payment method.
+    if (paymentMethod !== 'COD') {
+      throw new Error(`Live ${paymentMethod} payment verification is not configured. The payment remains unverified.`);
+    }
+
+    processedIdempotencyKeys.add(idempotencyKey);
+
     const now = new Date().toISOString();
 
     if (paymentMethod === 'COD') {
-      processedIdempotencyKeys.add(idempotencyKey);
       return {
         success: true,
-        transactionId: `COD-${orderId}`,
+        transactionId: '',
         amount,
         paymentStatus: 'UNPAID',
         paymentMethod: 'COD',
@@ -59,13 +66,6 @@ export class PaymentService {
         message: 'Order verified for Cash on Delivery collection upon handover.',
       };
     }
-
-    // Online payment methods must never be marked PAID from a client-supplied
-    // transaction reference. Until server-side gateway initiation and callback
-    // signature verification are configured, fail closed.
-    throw new Error(
-      `Online payment provider "${paymentMethod}" is not configured for verified production payments. Please choose Cash on Delivery or contact support.`
-    );
 
     throw new Error(`Unsupported payment provider: ${paymentMethod}`);
   }
