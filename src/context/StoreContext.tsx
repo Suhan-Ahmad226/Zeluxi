@@ -185,9 +185,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [wishlist, setWishlist] = useState<string[]>(() => {
     try {
       const saved = localStorage.getItem(`${LOCAL_STORAGE_KEY}_WISHLIST`);
-      return saved ? JSON.parse(saved) : ['prod-001', 'prod-003'];
+      return saved ? JSON.parse(saved) : [];
     } catch {
-      return ['prod-001', 'prod-003'];
+      return [];
     }
   });
 
@@ -254,7 +254,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   });
 
-  const [recentlyViewed, setRecentlyViewed] = useState<string[]>(['prod-001', 'prod-002']);
+  const [recentlyViewed, setRecentlyViewed] = useState<string[]>([]);
   const [compareList, setCompareList] = useState<string[]>([]);
   const [isCompareOpen, setIsCompareOpen] = useState(false);
   const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false);
@@ -672,9 +672,6 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       now.getDate()
     ).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 
-    const trackingPrefix = courierChoice === 'PATHAO' ? 'PTH' : courierChoice === 'STEADFAST' ? 'STF' : 'ZLX';
-    const trackingCode = `${trackingPrefix}-${Math.floor(100000 + Math.random() * 900000)}`;
-
     const newOrder: Order = {
       id: orderId,
       createdAt: timestampStr,
@@ -694,8 +691,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       couponCode: appliedCoupon ? appliedCoupon.code : undefined,
       status: 'PENDING',
       paymentMethod,
-      paymentStatus: paymentMethod === 'COD' ? 'UNPAID' : 'PAID',
-      transactionId: transactionId || (paymentMethod === 'BKASH' ? `BKS${Date.now().toString().slice(-8)}` : undefined),
+      // Customer-submitted transaction references are not proof of payment. An authorized
+      // server-side gateway callback or a documented manual review must mark an order as PAID.
+      paymentStatus: 'UNPAID',
+      transactionId: transactionId || undefined,
       courier: {
         provider: courierChoice,
         trackingCode: '',
@@ -710,7 +709,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           timestamp: timestampStr,
           note: paymentMethod === 'COD'
             ? 'Order placed with Cash on Delivery (COD). Awaiting Admin verification & courier booking.'
-            : `Order placed. Paid online via ${paymentMethod} (TrxID: ${transactionId || 'Verified'}). Awaiting Admin dispatch acceptance.`,
+            : `Order placed with ${paymentMethod}. Reference ${transactionId ? 'submitted for manual verification' : 'not provided'}; payment remains unverified until an authorized review.`,
         },
       ],
     };
@@ -791,7 +790,6 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       grandTotal,
       paymentMethod,
       courierProvider: courierChoice,
-      trackingCode,
     }).catch(() => {});
 
     showToast(`Order #${orderId} successfully placed!`, 'success');
