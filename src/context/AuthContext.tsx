@@ -559,14 +559,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           throw error;
         }
       } else {
-        // Sandbox / Demo / Local Storage account
-        await new Promise((r) => setTimeout(r, 600));
-        const storedPwdKey = `ZELUX_PWD_${userProfile?.email || 'user'}`;
-        const existingPwd = localStorage.getItem(storedPwdKey) || '123456';
-        if (oldPassword && oldPassword !== existingPwd && oldPassword !== '123456') {
-          throw new Error('Current password is incorrect. (Default demo password is: 123456)');
-        }
-        localStorage.setItem(storedPwdKey, newPassword);
+        throw new Error('A valid Supabase session is required to change your password.');
       }
     } finally {
       setLoading(false);
@@ -627,7 +620,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     userProfile?.isVerified ||
     supabaseUser?.email_confirmed_at ||
     supabaseUser?.confirmed_at ||
-    supabaseUser?.user_metadata?.email_verified
+    false
   );
 
   return (
