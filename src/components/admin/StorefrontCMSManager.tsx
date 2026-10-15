@@ -199,29 +199,18 @@ export const StorefrontCMSManager: React.FC = () => {
                 <span>Hero Banner Content & Call to Actions</span>
               </h4>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Tagline (EN)</label>
-                  <input
-                    type="text"
-                    value={formData.hero.tagline}
-                    onChange={(e) => handleHeroChange('tagline', e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-                  />
-                </div>
-                <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Tagline (BN)</label>
-                  <input
-                    type="text"
-                    value={formData.hero.taglineBn}
-                    onChange={(e) => handleHeroChange('taglineBn', e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-                  />
-                </div>
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">Tagline</label>
+                <input
+                  type="text"
+                  value={formData.hero.tagline}
+                  onChange={(e) => handleHeroChange('tagline', e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                />
               </div>
 
               <div>
-                <label className="block font-semibold text-slate-700 mb-1">Main Headline (EN) *</label>
+                <label className="block font-semibold text-slate-700 mb-1">Main Headline *</label>
                 <input
                   type="text"
                   value={formData.hero.headline}
@@ -231,39 +220,18 @@ export const StorefrontCMSManager: React.FC = () => {
               </div>
 
               <div>
-                <label className="block font-semibold text-slate-700 mb-1">Main Headline (BN)</label>
-                <input
-                  type="text"
-                  value={formData.hero.headlineBn}
-                  onChange={(e) => handleHeroChange('headlineBn', e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-semibold"
+                <label className="block font-semibold text-slate-700 mb-1">Description</label>
+                <textarea
+                  rows={3}
+                  value={formData.hero.description}
+                  onChange={(e) => handleHeroChange('description', e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
                 />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Description (EN)</label>
-                  <textarea
-                    rows={2}
-                    value={formData.hero.description}
-                    onChange={(e) => handleHeroChange('description', e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-                  />
-                </div>
-                <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Description (BN)</label>
-                  <textarea
-                    rows={2}
-                    value={formData.hero.descriptionBn}
-                    onChange={(e) => handleHeroChange('descriptionBn', e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Primary Button Text (EN)</label>
+                  <label className="block font-semibold text-slate-700 mb-1">Primary Button Text</label>
                   <input
                     type="text"
                     value={formData.hero.primaryButtonText}
@@ -272,32 +240,11 @@ export const StorefrontCMSManager: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Primary Button Text (BN)</label>
-                  <input
-                    type="text"
-                    value={formData.hero.primaryButtonTextBn}
-                    onChange={(e) => handleHeroChange('primaryButtonTextBn', e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Secondary Button Text (EN)</label>
+                  <label className="block font-semibold text-slate-700 mb-1">Secondary Button Text</label>
                   <input
                     type="text"
                     value={formData.hero.secondaryButtonText}
                     onChange={(e) => handleHeroChange('secondaryButtonText', e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-                  />
-                </div>
-                <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Secondary Button Text (BN)</label>
-                  <input
-                    type="text"
-                    value={formData.hero.secondaryButtonTextBn}
-                    onChange={(e) => handleHeroChange('secondaryButtonTextBn', e.target.value)}
                     className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
                   />
                 </div>
@@ -371,10 +318,6 @@ export const StorefrontCMSManager: React.FC = () => {
                       setIsDraggingBanner(true);
                     }}
                     onDragLeave={(e) => {
-                      e.preventDefault();
-                      setIsDraggingBanner(false);
-                    }}
-                    onDrop={(e) => {
                       e.preventDefault();
                       setIsDraggingBanner(false);
                     }}
@@ -517,7 +460,7 @@ export const StorefrontCMSManager: React.FC = () => {
                 <p className="font-bold text-slate-900 text-xs">Featured Atelier Spotlight Badge</p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block font-semibold text-slate-600 mb-1 text-[11px]">Badge Title (EN)</label>
+                    <label className="block font-semibold text-slate-600 mb-1 text-[11px]">Badge Title</label>
                     <input
                       type="text"
                       value={formData.hero.highlightTitle}

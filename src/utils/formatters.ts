@@ -1,9 +1,5 @@
 import { Language } from '../types';
 
-export function toBengaliDigits(input: number | string): string {
-  return String(input);
-}
-
 export function formatPrice(amount: number, _lang?: Language): string {
   const formatted = amount.toLocaleString('en-US');
   return `৳${formatted}`;
@@ -15,7 +11,7 @@ export function calculateShipping(
   freeShippingThreshold: number,
   shippingDhaka: number,
   shippingOutsideDhaka: number
-): { fee: number; isFree: boolean; provider: 'PATHAO' | 'STEADFAST'; eta: string; etaBn: string } {
+): { fee: number; isFree: boolean; provider: 'PATHAO' | 'STEADFAST'; eta: string } {
   const isDhaka = division.toLowerCase().includes('dhaka');
   const isFree = subtotal >= freeShippingThreshold;
 
@@ -25,7 +21,6 @@ export function calculateShipping(
       isFree: true,
       provider: isDhaka ? 'PATHAO' : 'STEADFAST',
       eta: isDhaka ? '24–48 hours' : '2–4 days',
-      etaBn: isDhaka ? '24–48 hours' : '2–4 days',
     };
   }
 
@@ -35,7 +30,6 @@ export function calculateShipping(
     isFree: false,
     provider: isDhaka ? 'PATHAO' : 'STEADFAST',
     eta: isDhaka ? '24–48 hours' : '2–4 days',
-    etaBn: isDhaka ? '24–48 hours' : '2–4 days',
   };
 }
 

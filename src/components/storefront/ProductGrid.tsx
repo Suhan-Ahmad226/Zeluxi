@@ -66,9 +66,9 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
       // Search query filter
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
-        const matchName = p.name.toLowerCase().includes(q) || (p.nameBn && p.nameBn.toLowerCase().includes(q));
+        const matchName = p.name.toLowerCase().includes(q);
         const matchSku = p.sku.toLowerCase().includes(q);
-        const matchCat = p.category.toLowerCase().includes(q) || (p.categoryBn && p.categoryBn.toLowerCase().includes(q));
+        const matchCat = p.category.toLowerCase().includes(q);
         const matchTags = p.tags.some((t) => t.toLowerCase().includes(q));
         if (!matchName && !matchSku && !matchCat && !matchTags) return false;
       }

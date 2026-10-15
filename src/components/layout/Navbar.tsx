@@ -21,8 +21,6 @@ export const Navbar: React.FC = () => {
   const {
     cart,
     wishlist,
-    language,
-    setLanguage,
     activeView,
     setActiveView,
     activeFilterTab,

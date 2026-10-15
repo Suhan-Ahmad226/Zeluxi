@@ -30,18 +30,14 @@ export const PagesCMSManager: React.FC = () => {
   // Form states
   const [slug, setSlug] = useState('');
   const [title, setTitle] = useState('');
-  const [titleBn, setTitleBn] = useState('');
   const [content, setContent] = useState('');
-  const [contentBn, setContentBn] = useState('');
   const [isPublished, setIsPublished] = useState(true);
 
   const openCreateModal = () => {
     setEditingPage(null);
     setSlug('');
     setTitle('');
-    setTitleBn('');
     setContent('');
-    setContentBn('');
     setIsPublished(true);
     setIsModalOpen(true);
   };
@@ -50,9 +46,7 @@ export const PagesCMSManager: React.FC = () => {
     setEditingPage(page);
     setSlug(page.slug);
     setTitle(page.title);
-    setTitleBn(page.titleBn || '');
     setContent(page.content);
-    setContentBn(page.contentBn || '');
     setIsPublished(page.isPublished ?? true);
     setIsModalOpen(true);
   };
@@ -75,9 +69,7 @@ export const PagesCMSManager: React.FC = () => {
     const pageData: StaticPageContent = {
       slug: cleanedSlug,
       title: title.trim(),
-      titleBn: titleBn.trim(),
       content: content.trim(),
-      contentBn: contentBn.trim(),
       lastUpdated: new Date().toISOString().slice(0, 10),
       isPublished,
     };
@@ -96,8 +88,7 @@ export const PagesCMSManager: React.FC = () => {
     const q = search.toLowerCase();
     return (
       p.title.toLowerCase().includes(q) ||
-      p.slug.toLowerCase().includes(q) ||
-      (p.titleBn && p.titleBn.toLowerCase().includes(q))
+      p.slug.toLowerCase().includes(q)
     );
   });
 
@@ -157,11 +148,6 @@ export const PagesCMSManager: React.FC = () => {
                     <FileText className="w-4 h-4 text-indigo-600 shrink-0" />
                     <div>
                       <span>{page.title}</span>
-                      {page.titleBn && (
-                        <span className="block text-[11px] font-normal text-slate-400">
-                          {page.titleBn}
-                        </span>
-                      )}
                     </div>
                   </div>
                 </td>
@@ -229,28 +215,16 @@ export const PagesCMSManager: React.FC = () => {
             </div>
 
             <form onSubmit={handleSave} className="p-6 overflow-y-auto space-y-4 text-xs">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Page Title (EN) *</label>
-                  <input
-                    type="text"
-                    required
-                    value={title}
-                    onChange={(e) => handleTitleChange(e.target.value)}
-                    placeholder="e.g. Shipping & Delivery Policy"
-                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-semibold"
-                  />
-                </div>
-                <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Page Title (BN)</label>
-                  <input
-                    type="text"
-                    value={titleBn}
-                    onChange={(e) => setTitleBn(e.target.value)}
-                    placeholder="যেমন: শিপিং ও ডেলিভারি নীতিমালা"
-                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-semibold"
-                  />
-                </div>
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">Page Title *</label>
+                <input
+                  type="text"
+                  required
+                  value={title}
+                  onChange={(e) => handleTitleChange(e.target.value)}
+                  placeholder="e.g. Shipping & Delivery Policy"
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-semibold"
+                />
               </div>
 
               <div>
@@ -271,24 +245,13 @@ export const PagesCMSManager: React.FC = () => {
               </div>
 
               <div>
-                <label className="block font-semibold text-slate-700 mb-1">Content (English) *</label>
+                <label className="block font-semibold text-slate-700 mb-1">Content *</label>
                 <textarea
-                  rows={6}
+                  rows={8}
                   required
                   value={content}
                   onChange={(e) => setContent(e.target.value)}
                   placeholder="Enter policy text, terms, or customer information..."
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg font-sans leading-relaxed focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-                />
-              </div>
-
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">Content (Bengali)</label>
-                <textarea
-                  rows={6}
-                  value={contentBn}
-                  onChange={(e) => setContentBn(e.target.value)}
-                  placeholder="বাংলা অনুবাদ লিখুন..."
                   className="w-full px-3 py-2 border border-slate-200 rounded-lg font-sans leading-relaxed focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
                 />
               </div>

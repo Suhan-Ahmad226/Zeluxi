@@ -10,7 +10,7 @@ interface StaticPagesModalProps {
 }
 
 export const StaticPagesModal: React.FC<StaticPagesModalProps> = ({ page, onClose }) => {
-  const { settings, language, pages } = useStore();
+  const { settings, pages } = useStore();
 
   if (!page) return null;
 

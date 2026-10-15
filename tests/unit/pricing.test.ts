@@ -7,14 +7,9 @@ export function runPricingTests() {
   console.log('Running Pricing & Shipping Logic Tests...');
 
   // Test 1: BDT Price formatting
-  const priceEn = formatPrice(6850, 'en');
+  const priceEn = formatPrice(6850);
   if (priceEn !== '৳6,850') {
     throw new Error(`Expected ৳6,850, got ${priceEn}`);
-  }
-
-  const priceBn = formatPrice(6850, 'bn');
-  if (!priceBn.includes('৬,৮৫০')) {
-    throw new Error(`Expected Bengali formatted price, got ${priceBn}`);
   }
 
   // Test 2: Shipping Inside Dhaka

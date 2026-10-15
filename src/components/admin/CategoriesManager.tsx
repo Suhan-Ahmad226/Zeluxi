@@ -39,7 +39,7 @@ export const CategoriesManager: React.FC<CategoriesManagerProps> = ({
   initialAction = null,
   onActionConsumed,
 }) => {
-  const { categories, products, addCategory, updateCategory, deleteCategory, showToast, language } = useStore();
+  const { categories, products, addCategory, updateCategory, deleteCategory, showToast } = useStore();
 
   const [search, setSearch] = useState('');
   const [viewMode, setViewMode] = useState<'all' | 'main' | 'sub' | 'hierarchy'>('hierarchy');
@@ -51,7 +51,6 @@ export const CategoriesManager: React.FC<CategoriesManagerProps> = ({
   const [isSubCategory, setIsSubCategory] = useState(false);
   const [parentId, setParentId] = useState<string>('');
   const [name, setName] = useState('');
-  const [nameBn, setNameBn] = useState('');
   const [slug, setSlug] = useState('');
   const [description, setDescription] = useState('');
   const [image, setImage] = useState('');
@@ -72,7 +71,6 @@ export const CategoriesManager: React.FC<CategoriesManagerProps> = ({
     setIsSubCategory(false);
     setParentId('');
     setName('');
-    setNameBn('');
     setSlug('');
     setDescription('');
     setImage('https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=800&q=80');
@@ -87,7 +85,6 @@ export const CategoriesManager: React.FC<CategoriesManagerProps> = ({
     const defaultParent = presetParentId || (mainCategories[0]?.id ?? '');
     setParentId(defaultParent);
     setName('');
-    setNameBn('');
     setSlug('');
     setDescription('');
     setImage('https://images.unsplash.com/photo-1627123424574-724758594e93?auto=format&fit=crop&w=800&q=80');
@@ -112,7 +109,6 @@ export const CategoriesManager: React.FC<CategoriesManagerProps> = ({
     setIsSubCategory(!!cat.parentId);
     setParentId(cat.parentId || '');
     setName(cat.name);
-    setNameBn(cat.nameBn || '');
     setSlug(cat.slug);
     setDescription(cat.description || '');
     setImage(cat.image || '');
@@ -173,7 +169,6 @@ export const CategoriesManager: React.FC<CategoriesManagerProps> = ({
       updateCategory({
         ...editingCategory,
         name: name.trim(),
-        nameBn: nameBn.trim(),
         slug: cleanedSlug,
         description: description.trim(),
         image: image.trim() || 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=800&q=80',
@@ -185,7 +180,6 @@ export const CategoriesManager: React.FC<CategoriesManagerProps> = ({
     } else {
       addCategory({
         name: name.trim(),
-        nameBn: nameBn.trim(),
         slug: cleanedSlug,
         description: description.trim(),
         image: image.trim() || 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=800&q=80',
@@ -237,7 +231,6 @@ export const CategoriesManager: React.FC<CategoriesManagerProps> = ({
     const parent = categories.find((p) => p.id === c.parentId);
     return (
       c.name.toLowerCase().includes(q) ||
-      (c.nameBn && c.nameBn.toLowerCase().includes(q)) ||
       c.slug.toLowerCase().includes(q) ||
       (c.description && c.description.toLowerCase().includes(q)) ||
       (parent && parent.name.toLowerCase().includes(q))
@@ -374,9 +367,6 @@ export const CategoriesManager: React.FC<CategoriesManagerProps> = ({
                           Main Category
                         </span>
                         <h4 className="font-bold text-sm text-slate-900">{mainCat.name}</h4>
-                        {mainCat.nameBn && (
-                          <span className="text-xs text-slate-400 font-medium">({mainCat.nameBn})</span>
-                        )}
                       </div>
                       <div className="flex items-center gap-2 text-xs text-slate-500 mt-1">
                         <span className="font-mono text-indigo-600 text-[11px]">/{mainCat.slug}</span>
@@ -448,11 +438,6 @@ export const CategoriesManager: React.FC<CategoriesManagerProps> = ({
                                 <p className="font-semibold text-xs text-slate-900 truncate">
                                   {sub.name}
                                 </p>
-                                {sub.nameBn && (
-                                  <p className="text-[11px] text-slate-400 truncate">
-                                    {sub.nameBn}
-                                  </p>
-                                )}
                                 <p className="text-[10px] font-mono text-slate-500 mt-0.5">
                                   {subProdCount} items · /{sub.slug}
                                 </p>
@@ -552,9 +537,6 @@ export const CategoriesManager: React.FC<CategoriesManagerProps> = ({
                       </p>
                     )}
                     <h4 className="font-bold text-sm text-slate-900">{cat.name}</h4>
-                    {cat.nameBn && (
-                      <p className="text-xs text-slate-400 font-medium mt-0.5">{cat.nameBn}</p>
-                    )}
                     <p className="text-[11px] font-mono text-indigo-600 mt-1 truncate">/{cat.slug}</p>
                     <p className="text-xs text-slate-500 line-clamp-2 mt-1.5">{cat.description}</p>
                   </div>
@@ -717,7 +699,7 @@ export const CategoriesManager: React.FC<CategoriesManagerProps> = ({
                     <option value="" disabled>-- Choose Main Category --</option>
                     {mainCategories.map((m) => (
                       <option key={m.id} value={m.id}>
-                        {m.name} {m.nameBn ? `(${m.nameBn})` : ''}
+                        {m.name}
                       </option>
                     ))}
                   </select>
@@ -727,34 +709,19 @@ export const CategoriesManager: React.FC<CategoriesManagerProps> = ({
                 </div>
               )}
 
-              {/* Title EN & BN */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-semibold text-slate-700 mb-1">
-                    {isSubCategory ? 'Sub-Category Name (EN)' : 'Category Name (EN)'} *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={name}
-                    onChange={(e) => handleNameChange(e.target.value)}
-                    placeholder="e.g. Travel & Duffel Bags"
-                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block font-semibold text-slate-700 mb-1">
-                    Alternate Name (Optional)
-                  </label>
-                  <input
-                    type="text"
-                    value={nameBn}
-                    onChange={(e) => setNameBn(e.target.value)}
-                    placeholder="e.g. Travel Duffels"
-                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-                  />
-                </div>
+              {/* Category Name */}
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">
+                  {isSubCategory ? 'Sub-Category Name' : 'Category Name'} *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={name}
+                  onChange={(e) => handleNameChange(e.target.value)}
+                  placeholder="e.g. Travel & Duffel Bags"
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                />
               </div>
 
               {/* Slug and Order */}

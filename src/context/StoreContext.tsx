@@ -41,7 +41,6 @@ interface ToastNotification {
   id: string;
   type: 'success' | 'info' | 'error';
   message: string;
-  messageBn?: string;
 }
 
 interface StoreContextType {
@@ -100,7 +99,7 @@ interface StoreContextType {
   updateCartQuantity: (productId: string, quantity: number, variantId?: string) => void;
   clearCart: () => void;
   toggleWishlist: (productId: string) => void;
-  applyCoupon: (code: string, userIdentifier?: string) => { success: boolean; message: string; messageBn: string };
+  applyCoupon: (code: string, userIdentifier?: string) => { success: boolean; message: string };
   isCouponUsedByUser: (code: string, userIdentifier?: string) => boolean;
   removeCoupon: () => void;
 
@@ -146,7 +145,7 @@ interface StoreContextType {
   updateSettings: (newSettings: Partial<StoreSettings>) => void;
   addAuditLog: (action: string, details: string, actor?: string) => void;
 
-  showToast: (message: string, type?: 'success' | 'info' | 'error', messageBn?: string) => void;
+  showToast: (message: string, type?: 'success' | 'info' | 'error') => void;
   dismissToast: () => void;
 }
 
@@ -448,9 +447,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     showToast(`Return request submitted for #${orderId}`, 'info');
   };
 
-  const showToast = (message: string, type: 'success' | 'info' | 'error' = 'success', messageBn?: string) => {
+  const showToast = (message: string, type: 'success' | 'info' | 'error' = 'success') => {
     const id = Math.random().toString(36).substring(2, 9);
-    setToast({ id, type, message, messageBn });
+    setToast({ id, type, message });
     setTimeout(() => {
       setToast((current) => (current?.id === id ? null : current));
     }, 3800);
@@ -590,7 +589,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return isFoundInOrders;
   };
 
-  const applyCoupon = (code: string, userIdentifier?: string) => {
+  const applyCoupon = (code: string, userIdentifier?: string): { success: boolean; message: string } => {
     const cleanCode = code.trim().toUpperCase();
     const found = coupons.find((c) => c.code === cleanCode && c.active);
 
@@ -1191,7 +1190,6 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       ...existing,
       id,
       name: `${existing.name} (Copy)`,
-      nameBn: `${existing.name} (Copy)`,
       sku: `${existing.sku}-CP${randomSkuSuffix}`,
       slug: `${existing.slug}-copy-${id}`,
       published: false,
@@ -1232,7 +1230,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           case 'restore':
             return { ...p, archived: false, published: true };
           case 'category':
-            return { ...p, category: value?.name || p.category, categoryBn: value?.nameBn || p.categoryBn };
+            return { ...p, category: value?.name || p.category };
           default:
             return p;
         }

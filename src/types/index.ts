@@ -1,4 +1,4 @@
-export type Language = 'en' | 'bn';
+export type Language = 'en';
 
 export interface ProductVariant {
   id: string;
@@ -23,17 +23,12 @@ export interface ProductReview {
 export interface Product {
   id: string;
   name: string;
-  nameBn: string;
   slug: string;
   sku: string;
   category: string;
-  categoryBn: string;
   subcategory?: string;
-  subcategoryBn?: string;
   description: string;
-  descriptionBn: string;
   shortDescription?: string;
-  shortDescriptionBn?: string;
   brand?: string;
   barcode?: string;
   productType?: 'physical' | 'digital' | 'service';
@@ -76,7 +71,6 @@ export interface Product {
 export interface Category {
   id: string;
   name: string;
-  nameBn: string;
   slug: string;
   description: string;
   image: string;
@@ -220,7 +214,6 @@ export interface Coupon {
   value: number;
   minSpend: number;
   description: string;
-  descriptionBn: string;
   expiresAt: string;
   usageCount: number;
   maxUsage?: number;
@@ -232,11 +225,8 @@ export interface Coupon {
 export interface CMSBanner {
   id: string;
   title: string;
-  titleBn: string;
   subtitle: string;
-  subtitleBn: string;
   buttonText: string;
-  buttonTextBn: string;
   link: string;
   imageUrl: string;
   active: boolean;
@@ -253,7 +243,6 @@ export interface AuditLog {
 export interface StoreSettings {
   storeName: string;
   tagline: string;
-  taglineBn: string;
   phone: string;
   email: string;
   address: string;
@@ -265,7 +254,6 @@ export interface StoreSettings {
   codFee: number;
   announcementActive: boolean;
   announcementText: string;
-  announcementTextBn: string;
   pathaoApiKeyConfigured: boolean;
   steadfastApiKeyConfigured: boolean;
   bkashMerchantConfigured: boolean;
@@ -280,9 +268,7 @@ export interface StoreSettings {
 export interface StaticPageContent {
   slug: string;
   title: string;
-  titleBn: string;
   content: string;
-  contentBn: string;
   lastUpdated: string;
   isPublished: boolean;
 }
@@ -290,25 +276,18 @@ export interface StaticPageContent {
 export interface StorefrontCMS {
   hero: {
     tagline: string;
-    taglineBn: string;
     headline: string;
-    headlineBn: string;
     description: string;
-    descriptionBn: string;
     primaryButtonText: string;
-    primaryButtonTextBn: string;
     secondaryButtonText: string;
-    secondaryButtonTextBn: string;
     imageUrl: string;
     highlightTitle: string;
-    highlightTitleBn: string;
     highlightSubtitle: string;
     highlightPrice: string;
   };
   announcement: {
     active: boolean;
     text: string;
-    textBn: string;
   };
   sectionVisibility: {
     hero: boolean;

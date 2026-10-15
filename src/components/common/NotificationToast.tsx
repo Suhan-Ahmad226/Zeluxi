@@ -3,7 +3,7 @@ import { useStore } from '../../context/StoreContext';
 import { CheckCircle2, AlertCircle, Info, X } from 'lucide-react';
 
 export const NotificationToast: React.FC = () => {
-  const { toast, dismissToast, language } = useStore();
+  const { toast, dismissToast } = useStore();
 
   if (!toast) return null;
 

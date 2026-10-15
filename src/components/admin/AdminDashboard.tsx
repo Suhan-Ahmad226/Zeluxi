@@ -352,7 +352,6 @@ export const AdminDashboard: React.FC = () => {
       value: Number(newCouponVal),
       minSpend: Number(newCouponMin),
       description: `${newCouponType === 'PERCENTAGE' ? `${newCouponVal}%` : `৳${newCouponVal}`} promotional discount`,
-      descriptionBn: 'Special promotion coupon',
       expiresAt: '2026-12-31',
       usageCount: 0,
       active: true,
@@ -396,7 +395,6 @@ export const AdminDashboard: React.FC = () => {
       const q = productSearch.toLowerCase();
       return (
         p.name.toLowerCase().includes(q) ||
-        (p.nameBn && p.nameBn.toLowerCase().includes(q)) ||
         p.sku.toLowerCase().includes(q) ||
         p.category.toLowerCase().includes(q)
       );
@@ -1868,7 +1866,6 @@ export const AdminDashboard: React.FC = () => {
                             />
                             <div className="min-w-0">
                               <p className="font-semibold text-slate-900 truncate max-w-xs">{p.name}</p>
-                              <p className="text-[11px] text-slate-400 truncate max-w-xs">{p.nameBn}</p>
                             </div>
                           </td>
                           <td className="p-3 font-mono text-slate-700 font-semibold">{p.sku}</td>

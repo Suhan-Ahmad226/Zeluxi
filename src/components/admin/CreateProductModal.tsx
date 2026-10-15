@@ -68,27 +68,12 @@ interface VideoUploadItem {
   file?: File;
 }
 
-const CATEGORY_SUBCATEGORIES: Record<string, { en: string[]; bn: string[] }> = {
-  'Full-Grain Leather': {
-    en: ['Weekender & Travel Bags', 'Briefcases & Messenger Bags', 'Wallets & Cardholders', 'Belts & Accessories', 'Footwear'],
-    bn: ['উইকেন্ডার ও ট্রাভেল ব্যাগ', 'ব্রিফকেস ও মেসেঞ্জার ব্যাগ', 'ওয়ালেট ও কার্ডহোল্ডার', 'বেল্ট ও অ্যাক্সেসরিজ', 'জুতো ও ফুটওয়্যার'],
-  },
-  'European Flax Linen': {
-    en: ['Resort & Band Collar Shirts', 'Relaxed Linen Trousers', 'Kimono Robes & Cardigans', 'Bedding & Cushions'],
-    bn: ['রিসোর্ট ও ব্যান্ড কলার শার্ট', 'রিল্যাক্সড লিনেন ট্রাউজার', 'কিমোনো রোব ও কারディガン', 'বেডিং ও কুশন কভার'],
-  },
-  'Mechanical Watches': {
-    en: ['Automatic Dress Chronometers', 'Field & Pilot Watches', 'Diver Watches 200M', 'Horology Straps'],
-    bn: ['অটোমেটিক ড্রেস ক্রোনোমিটার', 'ফিল্ড ও পাইলট ওয়াচ', 'ডাইভার ওয়াচ ২০০ মিটার', 'হোরোলজি চামড়ার স্ট্র্যাপ'],
-  },
-  'Desk & Living': {
-    en: ['Full-Grain Leather Desk Mats', 'Antiqued Brass Trays', 'Fountain Pen Cases', 'Handmade Scented Candles'],
-    bn: ['ফুল-গ্রেইন লেদার ডেস্ক ম্যাট', 'অ্যান্টিক ব্রাস ট্রে', 'ফাউন্টেন পেন কেস', 'হাতে তৈরি সুবাসিত মোমবাতি'],
-  },
-  'Artisan Menswear': {
-    en: ['Heavyweight Cotton Overshirts', 'Tailored Linen Suits', 'Artisan Supima Polos', 'Cashmere Scarves'],
-    bn: ['হেভিওয়েট কটন ওভারশার্ট', 'টেইলরড লিনেন স্যুট', 'আর্টিসান সুপিমা পোলো', 'কাশ্মীরি স্কার্ফ'],
-  },
+const CATEGORY_SUBCATEGORIES: Record<string, string[]> = {
+  'Full-Grain Leather': ['Weekender & Travel Bags', 'Briefcases & Messenger Bags', 'Wallets & Cardholders', 'Belts & Accessories', 'Footwear'],
+  'European Flax Linen': ['Resort & Band Collar Shirts', 'Relaxed Linen Trousers', 'Kimono Robes & Cardigans', 'Bedding & Cushions'],
+  'Mechanical Watches': ['Automatic Dress Chronometers', 'Field & Pilot Watches', 'Diver Watches 200M', 'Horology Straps'],
+  'Desk & Living': ['Full-Grain Leather Desk Mats', 'Antiqued Brass Trays', 'Fountain Pen Cases', 'Handmade Scented Candles'],
+  'Artisan Menswear': ['Heavyweight Cotton Overshirts', 'Tailored Linen Suits', 'Artisan Supima Polos', 'Cashmere Scarves'],
 };
 
 export const CreateProductModal: React.FC<CreateProductModalProps> = ({
@@ -104,7 +89,6 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
   const [isQuickAddCategoryOpen, setIsQuickAddCategoryOpen] = useState(false);
   const [quickAddType, setQuickAddType] = useState<'category' | 'subcategory'>('category');
   const [quickCategoryName, setQuickCategoryName] = useState('');
-  const [quickCategoryNameBn, setQuickCategoryNameBn] = useState('');
   const [quickCategoryImg, setQuickCategoryImg] = useState('');
   const [isCompressingQuickCatImg, setIsCompressingQuickCatImg] = useState(false);
   const quickCategoryFileInputRef = useRef<HTMLInputElement>(null);
@@ -143,22 +127,17 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
 
   // 2. Essential Product Information
   const [name, setName] = useState('');
-  const [nameBn, setNameBn] = useState('');
   const [slug, setSlug] = useState('');
   const [isSlugManuallyEdited, setIsSlugManuallyEdited] = useState(false);
   const [sku, setSku] = useState('');
   const [barcode, setBarcode] = useState('');
   const [category, setCategory] = useState('Full-Grain Leather');
-  const [categoryBn, setCategoryBn] = useState('ফুল-গ্রেইন চামড়ার পণ্য');
   const [subcategory, setSubcategory] = useState('Weekender & Travel Bags');
-  const [subcategoryBn, setSubcategoryBn] = useState('উইকেন্ডার ও ট্রাভেল ব্যাগ');
   const [brand, setBrand] = useState('Zelux Atelier');
   const [productType, setProductType] = useState<'physical' | 'digital' | 'service'>('physical');
   const [condition, setCondition] = useState<'new' | 'refurbished'>('new');
   const [shortDesc, setShortDesc] = useState('');
-  const [shortDescBn, setShortDescBn] = useState('');
   const [description, setDescription] = useState('');
-  const [descriptionBn, setDescriptionBn] = useState('');
   const [status, setStatus] = useState<'active' | 'draft' | 'inactive'>('active');
   const [isFeatured, setIsFeatured] = useState(false);
   const [isNewArrival, setIsNewArrival] = useState(true);
@@ -226,22 +205,17 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
 
     if (productToEdit) {
       setName(productToEdit.name || '');
-      setNameBn(productToEdit.nameBn || '');
       setSlug(productToEdit.slug || '');
       setIsSlugManuallyEdited(true);
       setSku(productToEdit.sku || '');
       setBarcode(productToEdit.barcode || '');
       setCategory(productToEdit.category || 'Full-Grain Leather');
-      setCategoryBn(productToEdit.categoryBn || 'ফুল-গ্রেইন চামড়ার পণ্য');
       setSubcategory(productToEdit.subcategory || '');
-      setSubcategoryBn(productToEdit.subcategoryBn || '');
       setBrand(productToEdit.brand || 'Zelux Atelier');
       setProductType(productToEdit.productType || 'physical');
       setCondition(productToEdit.condition || 'new');
       setShortDesc(productToEdit.shortDescription || '');
-      setShortDescBn(productToEdit.shortDescriptionBn || '');
       setDescription(productToEdit.description || '');
-      setDescriptionBn(productToEdit.descriptionBn || '');
       setStatus(productToEdit.published ? 'active' : 'draft');
       setIsFeatured(!!productToEdit.featured);
       setIsNewArrival(!!productToEdit.isNewArrival);
@@ -574,7 +548,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
   const validateForm = (): boolean => {
     const errors: Record<string, string> = {};
 
-    if (!name.trim()) errors.name = 'Product Title (English) is required.';
+    if (!name.trim()) errors.name = 'Product Title is required.';
     if (!sku.trim()) errors.sku = 'SKU Code is required.';
     if (!price || price <= 0) errors.price = 'Price must be greater than 0 BDT.';
     if (images.length === 0) errors.images = 'At least 1 product image is required.';
@@ -623,21 +597,16 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
 
       const newProductData: Omit<Product, 'id' | 'rating' | 'reviewCount'> = {
         name: name.trim(),
-        nameBn: nameBn.trim() || name.trim(),
         slug: slug.trim() || name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
         sku: sku.trim().toUpperCase(),
         barcode: barcode.trim() || undefined,
         category,
-        categoryBn: categoryBn || category,
         subcategory,
-        subcategoryBn: subcategoryBn || subcategory,
         brand: brand.trim() || 'Zelux Atelier',
         productType,
         condition,
         description: description.trim() || 'Artisan handcrafted product made in Bangladesh with premium materials.',
-        descriptionBn: descriptionBn.trim() || 'অভিজাত কারিগরি ও সেরা উপকরণে তৈরি প্রিমিয়াম পণ্য।',
         shortDescription: shortDesc.trim() || undefined,
-        shortDescriptionBn: shortDescBn.trim() || undefined,
         price: Number(price),
         compareAtPrice: compareAtPrice ? Number(compareAtPrice) : undefined,
         costPrice: costPrice ? Number(costPrice) : undefined,
@@ -700,7 +669,6 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
       if (addAnother) {
         // Reset form for next product
         setName('');
-        setNameBn('');
         setSlug('');
         setIsSlugManuallyEdited(false);
         setSku(`ZLX-${Math.floor(1000 + Math.random() * 9000)}`);
@@ -737,7 +705,6 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
 
   const handleResetForm = () => {
     setName('');
-    setNameBn('');
     setSlug('');
     setIsSlugManuallyEdited(false);
     setSku(`ZLX-${Math.floor(1000 + Math.random() * 9000)}`);
@@ -777,21 +744,12 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
         c.parentId === category)
   );
 
-  const presetSubs = (CATEGORY_SUBCATEGORIES[category]?.en || []).map((s, i) => ({
-    name: s,
-    nameBn: CATEGORY_SUBCATEGORIES[category]?.bn[i] || s,
-  }));
+  const presetSubs = CATEGORY_SUBCATEGORIES[category] || [];
 
-  const subcategoryList =
+  const subcategoryList: string[] =
     dynamicSubs.length > 0
-      ? {
-          en: dynamicSubs.map((s) => s.name),
-          bn: dynamicSubs.map((s) => s.nameBn || s.name),
-        }
-      : CATEGORY_SUBCATEGORIES[category] || {
-          en: presetSubs.map((s) => s.name),
-          bn: presetSubs.map((s) => s.nameBn),
-        };
+      ? dynamicSubs.map((s) => s.name)
+      : presetSubs;
 
   // Form Readiness & Completeness metrics
   const formChecks = [
@@ -1013,40 +971,25 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
                 <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-xs space-y-5 text-xs">
                   <div>
                     <h3 className="text-sm font-bold text-slate-900">Essential Product Information</h3>
-                    <p className="text-slate-500 text-[11px]">Bilingual identification, category mapping, and pricing architecture</p>
+                    <p className="text-slate-500 text-[11px]">Core product identification, category mapping, and pricing architecture</p>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="font-semibold text-slate-700 block mb-1">
-                        Product Title (English) <span className="text-rose-500">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        placeholder="e.g. Heritage Full-Grain Leather Weekender"
-                        className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
-                          formErrors.name
-                            ? 'border-rose-400 focus:ring-rose-200'
-                            : 'border-slate-300 focus:ring-indigo-100 focus:border-indigo-600'
-                        }`}
-                      />
-                      {formErrors.name && <p className="text-rose-500 text-[11px] mt-1">{formErrors.name}</p>}
-                    </div>
-
-                    <div>
-                      <label className="font-semibold text-slate-700 block mb-1">
-                        Product Title (Bengali / বাংলা)
-                      </label>
-                      <input
-                        type="text"
-                        value={nameBn}
-                        onChange={(e) => setNameBn(e.target.value)}
-                        placeholder="যেমন: হেরিটেজ ফুল-গ্রেইন লেদার উইকেন্ডার"
-                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-600"
-                      />
-                    </div>
+                  <div>
+                    <label className="font-semibold text-slate-700 block mb-1">
+                      Product Title <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="e.g. Heritage Full-Grain Leather Weekender"
+                      className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
+                        formErrors.name
+                          ? 'border-rose-400 focus:ring-rose-200'
+                          : 'border-slate-300 focus:ring-indigo-100 focus:border-indigo-600'
+                      }`}
+                    />
+                    {formErrors.name && <p className="text-rose-500 text-[11px] mt-1">{formErrors.name}</p>}
                   </div>
 
                   {/* Slug & SKU */}
@@ -1101,7 +1044,6 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
                           onClick={() => {
                             setQuickAddType('category');
                             setQuickCategoryName('');
-                            setQuickCategoryNameBn('');
                             setQuickCategoryImg('');
                             setIsQuickAddCategoryOpen(true);
                           }}
@@ -1109,7 +1051,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
                           title="Create a new primary category without leaving"
                         >
                           <Plus className="w-3 h-3 text-indigo-600" />
-                          <span>+ Add Category (ক্যাটাগরি)</span>
+                          <span>+ Add Category</span>
                         </button>
                       </div>
                       <select
@@ -1119,17 +1061,14 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
                           setCategory(catName);
                           const matched = categories.find((c) => c.name === catName || c.id === catName);
                           if (matched) {
-                            setCategoryBn(matched.nameBn || '');
                             const subs = categories.filter(
                               (s) => s.parentId && (s.parentId === matched.id || s.parentId === matched.name)
                             );
                             if (subs.length > 0) {
                               setSubcategory(subs[0].name);
-                              setSubcategoryBn(subs[0].nameBn || '');
                             } else {
-                              const defaultSub = CATEGORY_SUBCATEGORIES[catName]?.en[0] || '';
+                              const defaultSub = CATEGORY_SUBCATEGORIES[catName]?.[0] || '';
                               setSubcategory(defaultSub);
-                              setSubcategoryBn(CATEGORY_SUBCATEGORIES[catName]?.bn[0] || '');
                             }
                           }
                         }}
@@ -1137,7 +1076,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
                       >
                         {mainCategories.map((cat) => (
                           <option key={cat.id} value={cat.name}>
-                            {cat.name} {cat.nameBn ? `(${cat.nameBn})` : ''}
+                            {cat.name}
                           </option>
                         ))}
                       </select>
@@ -1155,7 +1094,6 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
                           onClick={() => {
                             setQuickAddType('subcategory');
                             setQuickCategoryName('');
-                            setQuickCategoryNameBn('');
                             setQuickCategoryImg('');
                             setIsQuickAddCategoryOpen(true);
                           }}
@@ -1163,25 +1101,18 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
                           title="Create a new sub-category under this category"
                         >
                           <Plus className="w-3 h-3 text-emerald-600" />
-                          <span>+ Add Sub-Category (সাব-ক্যাটাগরি)</span>
+                          <span>+ Add Sub-Category</span>
                         </button>
                       </div>
                       <select
                         value={subcategory}
-                        onChange={(e) => {
-                          const subName = e.target.value;
-                          setSubcategory(subName);
-                          const matchedSub = categories.find((s) => s.name === subName);
-                          if (matchedSub?.nameBn) {
-                            setSubcategoryBn(matchedSub.nameBn);
-                          }
-                        }}
+                        onChange={(e) => setSubcategory(e.target.value)}
                         className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-600 shadow-2xs"
                       >
                         <option value="">-- None / General --</option>
-                        {subcategoryList.en.map((sub, i) => (
+                        {subcategoryList.map((sub) => (
                           <option key={sub} value={sub}>
-                            {sub} {subcategoryList.bn?.[i] ? `(${subcategoryList.bn[i]})` : ''}
+                            {sub}
                           </option>
                         ))}
                       </select>
@@ -1372,51 +1303,27 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
                   </div>
 
                   {/* Descriptions */}
-                  <div className="space-y-3 pt-2">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <label className="font-semibold text-slate-700 block mb-1">Short Excerpt (English)</label>
-                        <textarea
-                          rows={2}
-                          value={shortDesc}
-                          onChange={(e) => setShortDesc(e.target.value)}
-                          placeholder="Brief 1-2 sentence description for quick views and search..."
-                          className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-indigo-600"
-                        />
-                      </div>
-                      <div>
-                        <label className="font-semibold text-slate-700 block mb-1">Short Excerpt (Bengali)</label>
-                        <textarea
-                          rows={2}
-                          value={shortDescBn}
-                          onChange={(e) => setShortDescBn(e.target.value)}
-                          placeholder="সংক্ষিপ্ত বিবরণী বাংলায়..."
-                          className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-indigo-600"
-                        />
-                      </div>
+                  <div className="space-y-4 pt-2">
+                    <div>
+                      <label className="font-semibold text-slate-700 block mb-1">Short Excerpt</label>
+                      <textarea
+                        rows={2}
+                        value={shortDesc}
+                        onChange={(e) => setShortDesc(e.target.value)}
+                        placeholder="Brief 1-2 sentence description for quick views and search..."
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-indigo-600"
+                      />
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <label className="font-semibold text-slate-700 block mb-1">Full Detailed Story (English)</label>
-                        <textarea
-                          rows={4}
-                          value={description}
-                          onChange={(e) => setDescription(e.target.value)}
-                          placeholder="Comprehensive details on craftsmanship, leather tanning process, durability, and usage..."
-                          className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-indigo-600"
-                        />
-                      </div>
-                      <div>
-                        <label className="font-semibold text-slate-700 block mb-1">Full Detailed Story (Bengali)</label>
-                        <textarea
-                          rows={4}
-                          value={descriptionBn}
-                          onChange={(e) => setDescriptionBn(e.target.value)}
-                          placeholder="বিস্তারিত বিবরণী বাংলায়..."
-                          className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-indigo-600"
-                        />
-                      </div>
+                    <div>
+                      <label className="font-semibold text-slate-700 block mb-1">Full Description</label>
+                      <textarea
+                        rows={5}
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                        placeholder="Comprehensive details on craftsmanship, materials, durability, and usage..."
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-indigo-600"
+                      />
                     </div>
 
                     <div>
@@ -2211,7 +2118,6 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
                         <h4 className="font-bold text-slate-900 text-sm line-clamp-1">
                           {name || 'Untitled Catalog Item'}
                         </h4>
-                        {nameBn && <p className="text-[11px] text-slate-400 line-clamp-1">{nameBn}</p>}
 
                         <div className="flex items-baseline gap-2 pt-1">
                           <span className="text-base font-bold text-slate-900">{formatPrice(price, language)}</span>
@@ -2408,7 +2314,6 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
                     if (quickAddType === 'category') {
                       const created = addCategory({
                         name: quickCategoryName.trim(),
-                        nameBn: quickCategoryNameBn.trim(),
                         slug,
                         description: '',
                         image: defaultCatImg,
@@ -2417,13 +2322,11 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
                         parentId: null,
                       });
                       setCategory(created.name);
-                      setCategoryBn(created.nameBn);
                       showToast(`Category "${created.name}" created and selected`, 'success');
                     } else {
                       const parent = categories.find((c) => c.name === category || c.id === category);
                       const created = addCategory({
                         name: quickCategoryName.trim(),
-                        nameBn: quickCategoryNameBn.trim(),
                         slug,
                         description: '',
                         image: defaultSubImg,
@@ -2432,7 +2335,6 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
                         parentId: parent?.id || null,
                       });
                       setSubcategory(created.name);
-                      setSubcategoryBn(created.nameBn);
                       showToast(`Sub-Category "${created.name}" created under ${category}`, 'success');
                     }
                     setIsQuickAddCategoryOpen(false);
