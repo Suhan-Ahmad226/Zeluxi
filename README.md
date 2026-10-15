@@ -1,139 +1,58 @@
-# ZELUX — Production-Grade Bangladesh Single-Store E-Commerce Platform
+# Zeluxi
 
-ZELUX is an atelier-grade, single-store e-commerce platform engineered specifically for the Bangladesh market. It combines quiet-luxury design aesthetics with robust commercial infrastructure, including BDT financial precision, Cash on Delivery (COD), Mobile Financial Services (bKash, Nagad, DBBL Rocket), SSLCommerz gateway architecture, and courier logistics dispatch (Pathao Hermes & Steadfast Networks).
+Zeluxi is a Bangladesh-focused single-store e-commerce frontend built with Vite, React, TypeScript, Tailwind CSS, and Supabase Auth.
 
----
+> **Launch status: not production-ready yet.** This repository currently contains a client-side storefront/admin prototype. The storefront state and admin operations still use browser storage; there is not yet a complete server-side commerce API connecting products, inventory, orders, payments, courier bookings, and tracking to a shared database.
 
-## 1. Architecture & Tech Stack
+## Current implementation
 
-| Layer | Technology |
-|---|---|
-| **Framework & UI** | Next.js 16 App Router / React 19 / Vite runtime |
-| **Language** | TypeScript strict mode |
-| **Styling & Icons** | Tailwind CSS 4, shadcn/ui primitives, Lucide React, Motion |
-| **Database & ORM** | PostgreSQL with Prisma (`prisma/schema.prisma`) |
-| **Authentication** | Supabase Auth (`src/lib/supabase.ts`) |
-| **Logistics Integration** | Pathao Hermes Logistics (`https://api-hermes.pathao.com`) & Steadfast Courier Network |
-| **Validation** | Zod schemas (`src/lib/validation/schemas.ts`) |
-| **Instant Alerts** | Telegram Dispatch Service (`src/lib/notifications/telegram.ts`) |
-| **Caching & Rate Limiting** | Redis Cache & Sliding Window Limiter (`src/lib/cache/redis.ts`) |
-| **Media Transformation** | Cloudinary Responsive Adapter (`src/lib/cloudinary/index.ts`) |
-| **Security** | XSS sanitization & timing-safe webhook verifier (`src/lib/security/index.ts`) |
-| **Testing** | Unit & validation test suites (`tests/unit/`) |
+- Vite + React SPA; Vercel serves the generated `dist` directory.
+- Supabase Auth client integration for email/password, email OTP, and Google/Facebook OAuth flows.
+- Client-side cart, product, coupon, order, and admin UI state.
+- Zod input validation and unit tests.
+- Courier and payment adapter interfaces, which must not be treated as live integrations until server-side provider implementations are configured and verified.
 
----
+## Security and integration boundaries
 
-## 2. Key Modules & Features
+- Demo accounts and seeded demo commerce records have been removed from the production-hardening branch.
+- Authentication requires a real Supabase session; cached profile data alone is not considered proof of login.
+- Admin role assignment must be performed through trusted Supabase `app_metadata`/server-side administration. Never promote users based on email text or user-editable metadata.
+- Customer-entered bKash/Nagad/Rocket transaction references are not payment proof. Online payment stays unverified until an authorized manual review or a real server-side gateway verification succeeds.
+- Pathao, Steadfast, and in-house courier adapters fail closed until real server-side booking, cancellation, and tracking APIs are implemented.
+- Telegram delivery is disabled in the browser. Bot tokens must be stored only as server-side secrets and notifications must go through an authenticated server endpoint.
+- The in-memory cache implementation is not a distributed Redis service or a production rate limiter.
 
-### Customer Storefront
-- **Dual-Tier Navigation:** Sticky desktop & mobile header with instant live catalog search, language switcher (English / বাংলা), wishlist counter, shopping bag slide-over drawer, and authenticated account portal.
-- **Curated Collections:** Vegetable-tanned full-grain leather goods, European organic linen shirts, mechanical timepieces, and studio desk essentials.
-- **Product Details & Comparison:** High-resolution zoom gallery, variant selector (Size/Color), live inventory stock indicator, size guide modal, side-by-side product compare drawer, customer star reviews, and interactive Q&A.
-- **Shopping Cart & Checkout:** Zod-validated 11-digit Bangladesh phone numbers (`013-019`), division-level shipping computation (Dhaka: ৳60, Outside Dhaka: ৳120, Free above ৳3,500), coupon engine (`WELCOME10`, `DHAKA100`, `EID2026`), and multiple payment methods (COD, bKash Direct, Nagad, Rocket, SSLCommerz).
+## Required before live launch
 
-### Courier Tracking & Transparency
-- **Public & Authenticated Order Tracking:** Live waybill tracking with Pathao/Steadfast consignment IDs and event milestones (`PENDING` → `CONFIRMED` → `PROCESSING` → `SHIPPED` → `OUT_FOR_DELIVERY` → `DELIVERED`).
-- **Printable Invoices:** 1-click printable receipt layout with Bangladesh VAT breakdown.
+1. Implement server-side API routes and persistent database CRUD. The Prisma schema alone does not persist the current React context state.
+2. Add server-side authentication and authorization for every admin mutation; enforce database RLS policies.
+3. Implement and sandbox-test real payment gateway initiation, callback/webhook signature verification, idempotency, refund handling, and reconciliation.
+4. Implement and sandbox-test Pathao/Steadfast OAuth/token handling, valid city/zone/store mappings, booking, cancellation, webhooks, and live tracking.
+5. Configure Supabase URL/public key, allowed redirect URLs, email OTP templates, expiry, resend/rate limits, and trusted admin provisioning.
+6. Configure verified store contact details, delivery fees, policies, product catalog, taxes, and legal pages.
+7. Add a committed npm lockfile and use `npm ci` for reproducible CI builds.
+8. Run CI, perform browser-based mobile/desktop QA, verify backups/monitoring, and test end-to-end order flows against provider sandboxes before enabling production credentials.
 
-### Centralized Admin Console (`/admin`)
-- **KPI Metrics:** Total Revenue, Total Orders, Average Order Value (AOV), Active Products, and Pending Shipments.
-- **Catalog & Stock Control:** Add, edit, adjust stock, manage variants, and publish/unpublish products.
-- **Order Lifecycle Operations:** Step-by-step stage advances, courier reassignments, and CSV order exports (`zelux_orders_YYYY-MM-DD.csv`).
-- **Promotions & Audit Trail:** Dynamic coupon builder and chronological administrative action log.
+## Local development
 
----
+Requirements: Node.js 20+ and npm.
 
-## 3. Local Development Setup
-
-### Prerequisites
-- Node.js 20+
-- PostgreSQL database instance
-- Git
-
-### Installation (Windows PowerShell)
-```powershell
-# 1. Clone repository and install dependencies
-git clone https://github.com/your-username/zelux.git
-cd zelux
-npm install
-
-# 2. Copy environment file
-Copy-Item .env.example .env.local
-
-# 3. Generate Prisma client & run database migrations
-npx prisma generate
-npx prisma migrate dev
-npx tsx prisma/seed.ts
-
-# 4. Start local development server
-npm run dev
-```
-
-### Installation (macOS / Linux)
 ```bash
-# 1. Install dependencies
 npm install
-
-# 2. Configure environment
 cp .env.example .env.local
-
-# 3. Generate Prisma client
-npx prisma generate
-npx prisma migrate dev
-npx tsx prisma/seed.ts
-
-# 4. Start dev server
 npm run dev
 ```
 
----
+Validation:
 
-## 4. External Services Setup
-
-1. **Supabase Authentication & 6-Digit Numeric Email OTP:**
-   - Full setup guide and exact dashboard email template changes documented in [`SUPABASE_SETUP.md`](./SUPABASE_SETUP.md).
-   - Configure Email provider and enable "Confirm email" under **Authentication** > **Providers**.
-   - Update **Confirm signup** email template with `{{ .Token }}` instead of `{{ .ConfirmationURL }}` (no clickable link).
-   - Dedicated `/verify-email` screen with 6-digit OTP input, paste support, and resend cooldown.
-   - Copy Project URL and Anon Public Key to `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
-2. **Pathao Hermes Courier Logistics:**
-   - Register merchant account at `merchant.pathao.com`.
-   - Generate API keys in Developer Settings (`CLIENT_ID` and `CLIENT_SECRET`).
-   - Fill `VITE_PATHAO_CLIENT_ID` and store credentials in `.env.local`.
-3. **Steadfast Logistics:**
-   - Register account at `steadfast.com.bd`.
-   - Copy API Key and Secret Key to `STEADFAST_API_KEY` and `STEADFAST_SECRET_KEY`.
-4. **Mobile Financial Services (MFS) & Payment Gateways:**
-   - Register merchant accounts with bKash, Nagad, and SSLCommerz.
-   - Test sandbox credentials before switching to live credentials.
-
----
-
-## 5. Automated Tests & Quality Gates
-
-Run all automated test suites:
-```bash
-npx tsx tests/unit/pricing.test.ts
-npx tsx tests/unit/validation.test.ts
-npx tsx tests/unit/orders.test.ts
-```
-
-Static checks and build verification:
 ```bash
 npm run lint
+npm test
 npm run build
 ```
 
----
+Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` for client authentication. Never place service-role keys, payment secrets, courier secrets, SMTP credentials, or Telegram bot tokens in `VITE_*` variables or browser code.
 
-## 6. Production Launch Checklist
+## Deployment note
 
-- [x] Strict TypeScript compilation passes with 0 errors (`npm run lint`).
-- [x] All unit test suites pass (Pricing, Validation, Order State Machine).
-- [x] Production bundle generates without warnings or bundle failures (`npm run build`).
-- [x] SEO robots.txt and sitemap.xml configured for `https://zelux.vercel.app`.
-- [x] Vercel routing and security headers configured (`vercel.json`).
-- [x] PWA manifest and icons active (`public/manifest.webmanifest`).
-- [x] Bangladeshi Taka (BDT) integer money precision verified.
-- [x] Cash on Delivery (COD) and MFS payment flows verified.
-- [x] Pathao & Steadfast logistics adapters implemented.
+A successful static build is not proof that orders, payments, admin access, courier booking, email, or tracking work in production. Do not switch live payments or courier dispatch on until the required server-side integrations and end-to-end checks above are complete.
