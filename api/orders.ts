@@ -1,4 +1,5 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
+type ApiRequest = { method?: string; headers: Record<string, string | string[] | undefined>; body?: unknown };
+type ApiResponse = { setHeader(name: string, value: string): void; status(code: number): ApiResponse; json(payload: unknown): void };
 import { createClient } from '@supabase/supabase-js';
 import { z } from 'zod';
 
@@ -22,7 +23,7 @@ const bodySchema = z.object({
   shippingFee: z.number().min(0).max(2000),
 }).strict();
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+export default async function handler(req: ApiRequest, res: ApiResponse) {
   res.setHeader('Cache-Control', 'no-store');
   res.setHeader('X-Content-Type-Options', 'nosniff');
   if (req.method !== 'POST') {
@@ -38,8 +39,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const authHeader = req.headers.authorization;
-  const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : '';
-  const idempotencyKey = req.headers['idempotency-key'];
+  const authorization = Array.isArray(authHeader) ? authHeader[0] : authHeader;
+  const token = authorization?.startsWith('Bearer ') ? authorization.slice(7) : '';
+  const rawIdempotencyKey = req.headers['idempotency-key'];
+  const idempotencyKey = Array.isArray(rawIdempotencyKey) ? rawIdempotencyKey[0] : rawIdempotencyKey;
   if (!token) return res.status(401).json({ error: 'Sign in is required.' });
   if (typeof idempotencyKey !== 'string' || idempotencyKey.length < 16 || idempotencyKey.length > 128) {
     return res.status(400).json({ error: 'A valid Idempotency-Key header is required.' });
