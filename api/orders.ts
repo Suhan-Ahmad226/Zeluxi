@@ -7,7 +7,7 @@ const addressSchema = z.object({
   fullName: z.string().trim().min(2).max(100),
   phone: z.string().trim().regex(/^(?:\+?88)?01[3-9]\d{8}$/),
   email: z.string().trim().email().max(254).optional().or(z.literal('')),
-  division: z.enum(['Dhaka','Chattogram','Rajshahi','Sylhet','Rajshahi','Khulna','Barishal','Rangpur','Mymensingh']).transform(v => v),
+  division: z.enum(['Dhaka','Chattogram','Rajshahi','Sylhet','Khulna','Barishal','Rangpur','Mymensingh']).transform(v => v),
   district: z.string().trim().min(1).max(100),
   thanaCity: z.string().trim().min(1).max(100),
   addressDetails: z.string().trim().min(5).max(1000),
