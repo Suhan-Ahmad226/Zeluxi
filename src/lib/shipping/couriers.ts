@@ -163,80 +163,30 @@ export class PathaoCourierProvider implements ICourierProvider {
       item_description: `Zelux E-Commerce Order #${request.orderId}`,
     };
 
-    console.log('[Pathao Hermes Aladdin Dispatch Booking Payload]', {
-      endpoint: `${this.baseUrl}/aladdin/api/v1/orders`,
-      payload: pathaoPayload,
-    });
-
-    // Generate reliable Pathao Consignment & Tracking codes
-    // In live production, this calls `fetch('${this.baseUrl}/aladdin/api/v1/orders')`
-    const consignmentSuffix = Date.now().toString().slice(-6);
-    const trackingSuffix = Math.floor(100000 + Math.random() * 900000);
-    const consignmentId = `PTH-CSG-${consignmentSuffix}`;
-    const trackingCode = `PTH-${trackingSuffix}`;
-
+    // Do not expose merchant credentials or fabricate consignment IDs in the
+    // browser. A trusted server integration must submit this payload to Pathao.
+    void pathaoPayload;
+    void deliveryFee;
+    void estimatedDelivery;
+    void hubLocation;
     return {
-      success: true,
+      success: false,
       courier: 'PATHAO',
-      consignmentId,
-      trackingCode,
-      deliveryFee,
-      estimatedDelivery,
-      hubLocation,
-      responsePayload: {
-        type: 'success',
-        code: 200,
-        message: 'Order created successfully in Pathao Express network',
-        data: {
-          consignment_id: consignmentId,
-          merchant_order_id: request.orderId,
-          order_status: 'Order_Created',
-          delivery_fee: deliveryFee,
-        },
-      },
+      consignmentId: '',
+      trackingCode: '',
+      deliveryFee: 0,
+      estimatedDelivery: '',
+      hubLocation: '',
+      errorMessage: 'Pathao booking is not connected to a trusted server API. No shipment was created.',
     };
   }
 
-  async cancelShipment(consignmentId: string): Promise<{ success: boolean; message: string }> {
-    return {
-      success: true,
-      message: `Pathao consignment ${consignmentId} successfully requested for cancellation.`,
-    };
+  async cancelShipment(_consignmentId: string): Promise<{ success: boolean; message: string }> {
+    return { success: false, message: 'Pathao cancellation requires the trusted server integration; no cancellation was sent.' };
   }
 
-  async getTracking(trackingCode: string) {
-    const now = new Date();
-    const formatTime = (hoursAgo: number) => {
-      const d = new Date(now.getTime() - hoursAgo * 3600000);
-      return `${d.toISOString().slice(0, 10)} ${String(d.getHours()).padStart(2, '0')}:${String(
-        d.getMinutes()
-      ).padStart(2, '0')}`;
-    };
-
-    return {
-      status: 'IN_TRANSIT',
-      currentLocation: 'Pathao Tejgaon Central Sorting Facility, Dhaka',
-      events: [
-        {
-          timestamp: formatTime(1),
-          location: 'Tejgaon Central Hub',
-          status: 'SORTED',
-          note: 'Shipment processed and bagged for destination transit.',
-        },
-        {
-          timestamp: formatTime(6),
-          location: 'Banani Flagship Hub',
-          status: 'PICKED_UP',
-          note: 'Parcel accepted from Zelux Warehouse.',
-        },
-        {
-          timestamp: formatTime(12),
-          location: 'Zelux Central Fulfillment Center',
-          status: 'CONSIGNMENT_CREATED',
-          note: `Waybill created under Tracking #${trackingCode}`,
-        },
-      ],
-    };
+  async getTracking(_trackingCode: string) {
+    throw new Error('Live Pathao tracking is unavailable until the trusted server integration is configured.');
   }
 }
 
@@ -247,56 +197,25 @@ export class SteadfastCourierProvider implements ICourierProvider {
   readonly code = 'STEADFAST' as const;
   readonly name = 'Steadfast Courier Network';
 
-  async createShipment(request: ShipmentRequest): Promise<ShipmentResult> {
-    const consignmentId = `STF-CSG-${Date.now().toString().slice(-6)}`;
-    const trackingCode = `STF-${Math.floor(100000 + Math.random() * 900000)}`;
-    const isDhaka = request.division.toLowerCase() === 'dhaka';
-
+  async createShipment(_request: ShipmentRequest): Promise<ShipmentResult> {
     return {
-      success: true,
+      success: false,
       courier: 'STEADFAST',
-      consignmentId,
-      trackingCode,
-      deliveryFee: isDhaka ? 60 : 120,
-      estimatedDelivery: isDhaka ? '24 - 48 Hours' : '3 - 4 Days',
-      hubLocation: 'Steadfast Motijheel Central Hub',
+      consignmentId: '',
+      trackingCode: '',
+      deliveryFee: 0,
+      estimatedDelivery: '',
+      hubLocation: '',
+      errorMessage: 'Steadfast booking is not connected to a trusted server API. No shipment was created.',
     };
   }
 
-  async cancelShipment(consignmentId: string): Promise<{ success: boolean; message: string }> {
-    return {
-      success: true,
-      message: `Steadfast consignment ${consignmentId} marked for return to sender.`,
-    };
+  async cancelShipment(_consignmentId: string): Promise<{ success: boolean; message: string }> {
+    return { success: false, message: 'Steadfast cancellation requires the trusted server integration; no cancellation was sent.' };
   }
 
-  async getTracking(trackingCode: string) {
-    const now = new Date();
-    const formatTime = (hoursAgo: number) => {
-      const d = new Date(now.getTime() - hoursAgo * 3600000);
-      return `${d.toISOString().slice(0, 10)} ${String(d.getHours()).padStart(2, '0')}:${String(
-        d.getMinutes()
-      ).padStart(2, '0')}`;
-    };
-
-    return {
-      status: 'OUT_FOR_DELIVERY',
-      currentLocation: 'Rider Assigned (Gulshan-Banani Sub-station)',
-      events: [
-        {
-          timestamp: formatTime(1),
-          location: 'Gulshan Delivery Depot',
-          status: 'OUT_FOR_DELIVERY',
-          note: 'Courier rider dispatched with cash collection receipt.',
-        },
-        {
-          timestamp: formatTime(14),
-          location: 'Dhaka Central Hub',
-          status: 'RECEIVED_AT_HUB',
-          note: 'Barcoded and verified against seller manifest.',
-        },
-      ],
-    };
+  async getTracking(_trackingCode: string) {
+    throw new Error('Live Steadfast tracking is unavailable until the trusted server integration is configured.');
   }
 }
 
@@ -307,8 +226,7 @@ const pathaoService = new PathaoCourierProvider();
 const steadfastService = new SteadfastCourierProvider();
 
 export const getCourierProvider = (provider: 'PATHAO' | 'STEADFAST' | 'IN_HOUSE'): ICourierProvider => {
-  if (provider === 'STEADFAST') {
-    return steadfastService;
-  }
-  return pathaoService;
+  if (provider === 'STEADFAST') return steadfastService;
+  if (provider === 'PATHAO') return pathaoService;
+  throw new Error('IN_HOUSE courier has no implementation configured.');
 };
