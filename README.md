@@ -4,6 +4,8 @@ Zeluxi is a Bangladesh-focused single-store e-commerce frontend built with Vite,
 
 > **Launch status: not production-ready yet.** This repository currently contains a client-side storefront/admin prototype. The storefront state and admin operations still use browser storage; there is not yet a complete server-side commerce API connecting products, inventory, orders, payments, courier bookings, and tracking to a shared database.
 
+> **Checkout is intentionally disabled on the hardening branch.** The current app cannot safely accept live orders because it has no trusted order API or persistent commerce database. The UI now explains this, and the context action rejects local-only order creation. Do not deploy this branch as a live-sales release; this gate must only be removed after the server-backed order flow and end-to-end tests pass.
+
 ## Current implementation
 
 - Vite + React SPA; Vercel serves the generated `dist` directory.
