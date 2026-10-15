@@ -265,18 +265,20 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
             <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
               Try adjusting your price range, stock filter, or selecting a different category.
             </p>
-            <button
-              onClick={() => {
-                setSelectedCategoryFilter(null);
-                setActiveFilterTab('all');
-                setPriceRange('all');
-                setInStockOnly(false);
-                setSearchQuery('');
-              }}
-              className="mt-4 px-4 py-2 bg-slate-900 text-white text-xs font-semibold rounded-lg hover:bg-slate-800 transition-colors"
-            >
-              Reset All Filters
-            </button>
+            {!featuredOnly && (
+              <button
+                onClick={() => {
+                  setSelectedCategoryFilter(null);
+                  setActiveFilterTab('all');
+                  setPriceRange('all');
+                  setInStockOnly(false);
+                  setSearchQuery('');
+                }}
+                className="mt-4 px-4 py-2 bg-slate-900 text-white text-xs font-semibold rounded-lg hover:bg-slate-800 transition-colors"
+              >
+                Reset All Filters
+              </button>
+            )}
           </div>
         ) : (
           /* Grid: 2-column mobile, 3-column tablet, 4-column desktop */
