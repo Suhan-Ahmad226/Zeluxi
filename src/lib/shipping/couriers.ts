@@ -78,26 +78,23 @@ export interface ICourierProvider {
 
 /**
  * Pathao Express Courier Implementation
- * Production-ready Pathao Merchant API Aladdin v1 integration with fallback simulator & safe idempotency
+ * Fail-closed adapter placeholder. Real API calls must be implemented server-side.
  */
 export class PathaoCourierProvider implements ICourierProvider {
   readonly code = 'PATHAO' as const;
   readonly name = 'Pathao Express Logistics (Hermes / Aladdin API)';
   // Credentials and live API calls must be implemented in a trusted server environment.
 
-  // In-flight booking lock map to prevent concurrent duplicate calls for the same order
-  private inFlightBookings = new Map<string, Promise<ShipmentResult>>();
-
   async createShipment(_request: ShipmentRequest): Promise<ShipmentResult> {
     return {
       success: false,
-      courier: 'STEADFAST',
+      courier: 'PATHAO',
       consignmentId: '',
       trackingCode: '',
       deliveryFee: 0,
       estimatedDelivery: '',
       hubLocation: '',
-      errorMessage: 'Live Steadfast booking is not implemented. Configure a secure server-side Steadfast API integration before booking real shipments.',
+      errorMessage: 'Live Pathao booking is not implemented. Configure a secure server-side Pathao API integration before booking real shipments.',
     };
   }
 
@@ -118,19 +115,16 @@ export class SteadfastCourierProvider implements ICourierProvider {
   readonly code = 'STEADFAST' as const;
   readonly name = 'Steadfast Courier Network';
 
-  async createShipment(request: ShipmentRequest): Promise<ShipmentResult> {
-    const consignmentId = `STF-CSG-${Date.now().toString().slice(-6)}`;
-    const trackingCode = `STF-${Math.floor(100000 + Math.random() * 900000)}`;
-    const isDhaka = request.division.toLowerCase() === 'dhaka';
-
+  async createShipment(_request: ShipmentRequest): Promise<ShipmentResult> {
     return {
-      success: true,
+      success: false,
       courier: 'STEADFAST',
-      consignmentId,
-      trackingCode,
-      deliveryFee: isDhaka ? 60 : 120,
-      estimatedDelivery: isDhaka ? '24 - 48 Hours' : '3 - 4 Days',
-      hubLocation: 'Steadfast Motijheel Central Hub',
+      consignmentId: '',
+      trackingCode: '',
+      deliveryFee: 0,
+      estimatedDelivery: '',
+      hubLocation: '',
+      errorMessage: 'Live Steadfast booking is not implemented. Configure a secure server-side Steadfast API integration before booking real shipments.',
     };
   }
 
