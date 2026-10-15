@@ -76,14 +76,6 @@ export const Footer: React.FC = () => {
                   About us
                 </button>
               </li>
-              <li>
-                <button
-                  onClick={() => setActiveView('admin')}
-                  className="hover:text-white transition-colors"
-                >
-                  Admin
-                </button>
-              </li>
             </ul>
           </div>
 

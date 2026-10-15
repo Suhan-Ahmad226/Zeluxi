@@ -10,6 +10,26 @@ export interface CustomerVerificationStatus {
 }
 
 /**
+ * Evaluates whether a user has validated administrator authority based strictly on
+ * trusted server-side Supabase app_metadata.
+ *
+ * Security Rules:
+ * 1. Must check user.app_metadata.role === 'ADMIN' (case-insensitive)
+ * 2. Never trust user_metadata (which can be edited by client/end-user)
+ * 3. Never trust email address matching (e.g. contains 'admin')
+ */
+export function isAdminUser(
+  user: {
+    app_metadata?: Record<string, any>;
+    user_metadata?: Record<string, any>;
+    email?: string | null;
+  } | null | undefined
+): boolean {
+  if (!user || !user.app_metadata) return false;
+  return String(user.app_metadata.role || '').toUpperCase() === 'ADMIN';
+}
+
+/**
  * Checks whether the current customer holds an active, verified Supabase identity.
  * Required before approving checkout and order placement.
  */

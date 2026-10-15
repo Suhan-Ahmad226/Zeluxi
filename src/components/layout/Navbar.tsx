@@ -344,18 +344,6 @@ export const Navbar: React.FC = () => {
               <Truck className="w-3.5 h-3.5" />
               <span>Track order</span>
             </button>
-
-            <span className="text-slate-300">|</span>
-
-            <button
-              onClick={() => handleNavClick('admin')}
-              className={`hover:text-indigo-600 transition-colors flex items-center gap-1 ${
-                activeView === 'admin' ? 'text-indigo-600 font-bold' : ''
-              }`}
-            >
-              <ShieldCheck className="w-3.5 h-3.5 text-indigo-500" />
-              <span>Admin</span>
-            </button>
           </div>
         </div>
       </div>

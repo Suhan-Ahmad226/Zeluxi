@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { supabase, isSupabaseConfigured, getAuthRedirectUrl } from '../lib/supabase';
+import { isAdminUser } from '../lib/auth/verifyCustomer';
 import { User as SupabaseUser, Session } from '@supabase/supabase-js';
 
 export interface UserProfile {
@@ -109,7 +110,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const avatar = meta.avatar_url || meta.picture || undefined;
 
     // Admin status must be assigned through trusted Supabase app_metadata, never user-editable metadata or email matching.
-    const isAdmin = String(user.app_metadata?.role || '').toUpperCase() === 'ADMIN';
+    const isAdmin = isAdminUser(user);
 
     let savedAddress = meta.address;
     let savedDivision = meta.division;
@@ -279,7 +280,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             full_name: name.trim(),
             displayName: name.trim(),
             phone: phone.trim(),
-            role: cleanEmail.includes('admin') ? 'admin' : 'customer',
+            role: 'customer',
           },
         },
       });
@@ -584,7 +585,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Update profile details (address, phone, name)
   const updateProfileDetails = async (details: Partial<UserProfile>) => {
     if (!userProfile) return;
-    const updated = { ...userProfile, ...details };
+    // Strip role and uid to prevent client-side privilege escalation
+    const { role: _ignoredRole, uid: _ignoredUid, isVerified: _ignoredVerified, ...allowedDetails } = details;
+    const updated = { ...userProfile, ...allowedDetails };
     setUserProfile(updated);
     localStorage.setItem('ZELUX_ACTIVE_PROFILE', JSON.stringify(updated));
 
@@ -617,7 +620,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     : null;
 
-  const isAdmin = userProfile?.role === 'admin';
+  // Strict administrator authority verification:
+  // Requires an active Supabase user whose verified app_metadata.role is 'ADMIN'
+  const isAdmin = Boolean(
+    supabaseUser &&
+    isAdminUser(supabaseUser) &&
+    userProfile?.role === 'admin'
+  );
   const isVerified = Boolean(
     userProfile?.isVerified ||
     supabaseUser?.email_confirmed_at ||
