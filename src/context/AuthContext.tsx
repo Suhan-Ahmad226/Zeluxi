@@ -16,10 +16,6 @@ export interface UserProfile {
   authProvider?: string;
 }
 
-interface StoredUserAccount extends UserProfile {
-  passwordHash?: string;
-}
-
 export type AuthModalMode =
   | 'signin'
   | 'signup'
@@ -66,38 +62,8 @@ interface AuthContextType {
   updatePassword: (newPassword: string) => Promise<void>;
   changePassword: (oldPassword: string, newPassword: string) => Promise<void>;
   logout: () => Promise<void>;
-  // 1-Click Fast Sandbox Testing Profiles
-  signInAsDemoCustomer: () => Promise<void>;
-  signInAsDemoAdmin: () => Promise<void>;
   updateProfileDetails: (details: Partial<UserProfile>) => Promise<void>;
 }
-
-export const DEMO_ACCOUNTS: StoredUserAccount[] = [
-  {
-    uid: 'demo-customer-tanvir',
-    email: 'tanvir@gmail.com',
-    displayName: 'Tanvir Hossain',
-    phone: '01712334455',
-    role: 'customer',
-    address: 'House 42, Road 113, Apt 5B, Gulshan 2, Dhaka City',
-    division: 'Dhaka',
-    createdAt: '2025-10-01',
-    isVerified: true,
-    authProvider: 'email',
-  },
-  {
-    uid: 'demo-admin-suhan',
-    email: 'admin@zelux.com.bd',
-    displayName: 'Administrator (Suhan Ahmad)',
-    phone: '01700112233',
-    role: 'admin',
-    address: 'Zelux Flagship Hub, Plot 8, Road 11, Banani, Dhaka',
-    division: 'Dhaka',
-    createdAt: '2025-01-01',
-    isVerified: true,
-    authProvider: 'email',
-  },
-];
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -107,9 +73,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [userProfile, setUserProfile] = useState<UserProfile | null>(() => {
     try {
       const saved = localStorage.getItem('ZELUX_ACTIVE_PROFILE');
-      return saved ? JSON.parse(saved) : DEMO_ACCOUNTS[0]; // Tanvir by default for seamless storefront demo
+      return saved ? JSON.parse(saved) : null;
     } catch {
-      return DEMO_ACCOUNTS[0];
+      return null;
     }
   });
 
@@ -148,11 +114,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const phone = meta.phone || user.phone || '';
     const avatar = meta.avatar_url || meta.picture || undefined;
 
-    // Determine admin role based on metadata or specific admin domain
-    const isAdmin =
-      meta.role === 'admin' ||
-      email.toLowerCase() === 'admin@zelux.com.bd' ||
-      email.toLowerCase() === 'suhanahmad226@gmail.com';
+    // Admin status must be assigned through trusted Supabase app_metadata, never user-editable metadata or email matching.
+    const isAdmin = user.app_metadata?.role === 'admin';
 
     let savedAddress = meta.address;
     let savedDivision = meta.division;
@@ -272,17 +235,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const cleanEmail = email.trim().toLowerCase();
 
-      // Check if it's a demo account
-      const demoMatch = DEMO_ACCOUNTS.find(
-        (acc) => acc.email.toLowerCase() === cleanEmail
-      );
-      if (demoMatch && (pass === 'customer123' || pass === 'admin123' || pass === '123456')) {
-        setUserProfile(demoMatch);
-        localStorage.setItem('ZELUX_ACTIVE_PROFILE', JSON.stringify(demoMatch));
-        setIsAuthModalOpen(false);
-        return;
-      }
-
       // Supabase Authenticate
       const { data, error } = await supabase.auth.signInWithPassword({
         email: cleanEmail,
@@ -301,13 +253,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           throw unconfirmedErr;
         }
 
-        // Fallback for offline/demo admin check
-        if (cleanEmail === 'admin@zelux.com.bd' || cleanEmail.includes('admin')) {
-          setUserProfile(DEMO_ACCOUNTS[1]);
-          localStorage.setItem('ZELUX_ACTIVE_PROFILE', JSON.stringify(DEMO_ACCOUNTS[1]));
-          setIsAuthModalOpen(false);
-          return;
-        }
         throw error;
       }
 
@@ -635,22 +580,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // 1-Click Demo Customer
-  const signInAsDemoCustomer = async () => {
-    const prof = DEMO_ACCOUNTS[0];
-    setUserProfile(prof);
-    localStorage.setItem('ZELUX_ACTIVE_PROFILE', JSON.stringify(prof));
-    setIsAuthModalOpen(false);
-  };
-
-  // 1-Click Demo Admin
-  const signInAsDemoAdmin = async () => {
-    const prof = DEMO_ACCOUNTS[1];
-    setUserProfile(prof);
-    localStorage.setItem('ZELUX_ACTIVE_PROFILE', JSON.stringify(prof));
-    setIsAuthModalOpen(false);
-  };
-
   // Logout
   const logout = async () => {
     try {
@@ -740,8 +669,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         verifyRecoveryOtp,
         updatePassword,
         changePassword,
-        signInAsDemoCustomer,
-        signInAsDemoAdmin,
         logout,
         updateProfileDetails,
       }}
