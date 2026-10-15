@@ -114,7 +114,6 @@ export const AdminDashboard: React.FC = () => {
     isAdmin,
     setIsAuthModalOpen,
     setAuthModalMode,
-    signInAsDemoAdmin,
     changePassword,
   } = useAuth();
 
@@ -412,18 +411,11 @@ export const AdminDashboard: React.FC = () => {
           <div>
             <h2 className="text-lg font-bold text-slate-900">Administrator Console Restricted</h2>
             <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
-              This portal is restricted to authorized store managers. Authenticate with your administrative credentials or use the 1-click demo login below.
+              This portal is restricted to authorized store managers. Sign in with an authorized administrator account.
             </p>
           </div>
 
           <div className="space-y-2.5 pt-2">
-            <button
-              onClick={signInAsDemoAdmin}
-              className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-semibold shadow-sm transition-colors"
-            >
-              <ShieldCheck className="w-4 h-4 text-emerald-400" />
-              <span>1-Click Demo Admin Login</span>
-            </button>
             <button
               onClick={() => {
                 setAuthModalMode('signin');
@@ -3034,7 +3026,7 @@ export const AdminDashboard: React.FC = () => {
                     </button>
                   </div>
                   <p className="text-[10px] text-slate-400 mt-1">
-                    Default demo administrator password: <span className="font-mono font-semibold">123456</span>
+                    Use your administrator account password.
                   </p>
                 </div>
 
