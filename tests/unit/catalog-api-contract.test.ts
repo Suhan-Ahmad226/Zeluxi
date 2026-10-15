@@ -34,3 +34,11 @@ test('catalog migration stores product metadata and indexes unique slugs', () =>
   assert.match(catalogMigration, /store_products_product_slug_unique/i);
   assert.match(catalogMigration, /where archived = false/i);
 });
+
+test('procurement cost is stored in a server-only column, not public product metadata', () => {
+  assert.match(catalogApi, /cost_price:\s*costPrice\s*\?\?\s*null/);
+  assert.match(catalogApi, /product_data:\s*publicProductData/);
+  assert.match(catalogMigration, /revoke select on public\.store_products from anon, authenticated/i);
+  assert.match(catalogMigration, /grant select \(id, name, price, stock, published, archived, image_url, product_data, updated_at\)/i);
+  assert.match(catalogMigration, /add column if not exists cost_price numeric/i);
+});
