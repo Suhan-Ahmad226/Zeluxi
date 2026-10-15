@@ -67,6 +67,12 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const requireSupabaseConfiguration = () => {
+  if (!isSupabaseConfigured()) {
+    throw new Error('Authentication is not configured. Please contact the store administrator.');
+  }
+};
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [supabaseUser, setSupabaseUser] = useState<SupabaseUser | null>(null);
   const [session, setSession] = useState<Session | null>(null);
@@ -233,6 +239,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Sign In with Email and Password
   const signInWithEmail = async (email: string, pass: string) => {
+    requireSupabaseConfiguration();
     setLoading(true);
     try {
       const cleanEmail = email.trim().toLowerCase();
@@ -274,6 +281,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Sign Up with Email, Password, Name, Phone
   // Dispatches 6-digit numeric OTP via Supabase Auth when email confirmation is active
   const signUpWithEmail = async (email: string, pass: string, name: string, phone: string) => {
+    requireSupabaseConfiguration();
     setLoading(true);
     try {
       const cleanEmail = email.trim().toLowerCase();
@@ -322,6 +330,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Verify the 6-digit numeric Signup OTP code using Supabase auth.verifyOtp({ email, token, type: 'signup' })
   const verifyEmailOtp = async (email: string, token: string): Promise<{ success: boolean }> => {
+    requireSupabaseConfiguration();
     setLoading(true);
     try {
       const cleanEmail = email.trim().toLowerCase();
@@ -373,6 +382,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Resend the 6-digit signup OTP token
   const resendVerificationOtp = async (email: string) => {
+    requireSupabaseConfiguration();
     setLoading(true);
     try {
       const cleanEmail = email.trim().toLowerCase();
@@ -402,6 +412,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Google OAuth
   const signInWithGoogle = async () => {
+    requireSupabaseConfiguration();
     setLoading(true);
     try {
       const redirectUrl = getAuthRedirectUrl('/');
@@ -423,6 +434,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Facebook OAuth
   const signInWithFacebook = async () => {
+    requireSupabaseConfiguration();
     setLoading(true);
     try {
       const redirectUrl = getAuthRedirectUrl('/');
@@ -441,6 +453,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Forgot Password / Request 6-digit Recovery Email OTP
   // Step A: Request OTP without redirecting to a clickable link
   const requestPasswordReset = async (email: string) => {
+    requireSupabaseConfiguration();
     setLoading(true);
     try {
       const cleanEmail = email.trim().toLowerCase();
@@ -469,6 +482,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Step B: Verify Recovery OTP using supabase.auth.verifyOtp({ email, token, type: 'recovery' })
   const verifyRecoveryOtp = async (email: string, token: string): Promise<{ success: boolean }> => {
+    requireSupabaseConfiguration();
     setLoading(true);
     try {
       const cleanEmail = email.trim().toLowerCase();
@@ -516,6 +530,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Step C: Set New Password after successful recovery OTP verification
   const updatePassword = async (newPassword: string) => {
+    requireSupabaseConfiguration();
     setLoading(true);
     try {
       if (!newPassword || newPassword.length < 6) {
@@ -543,40 +558,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Change Password for Logged In Customer or Admin
   const changePassword = async (oldPassword: string, newPassword: string) => {
+    requireSupabaseConfiguration();
     setLoading(true);
     try {
-      if (!newPassword || newPassword.length < 6) {
-        throw new Error('New password must be at least 6 characters long.');
+      if (!session || !supabaseUser?.email) {
+        throw new Error('Please sign in again before changing your password.');
+      }
+      if (!newPassword || newPassword.length < 8) {
+        throw new Error('New password must be at least 8 characters long.');
       }
 
-      if (isSupabaseConfigured() && session) {
-        if (currentUser?.email && oldPassword) {
-          const { error: signInErr } = await supabase.auth.signInWithPassword({
-            email: currentUser.email,
-            password: oldPassword,
-          });
-          if (signInErr) {
-            throw new Error('Current password is incorrect.');
-          }
-        }
+      const { error: signInErr } = await supabase.auth.signInWithPassword({
+        email: supabaseUser.email,
+        password: oldPassword,
+      });
+      if (signInErr) throw new Error('Current password is incorrect.');
 
-        const { error } = await supabase.auth.updateUser({
-          password: newPassword,
-        });
-
-        if (error) {
-          throw error;
-        }
-      } else {
-        // Sandbox / Demo / Local Storage account
-        await new Promise((r) => setTimeout(r, 600));
-        const storedPwdKey = `ZELUX_PWD_${userProfile?.email || 'user'}`;
-        const existingPwd = localStorage.getItem(storedPwdKey) || '123456';
-        if (oldPassword && oldPassword !== existingPwd && oldPassword !== '123456') {
-          throw new Error('Current password is incorrect. (Default demo password is: 123456)');
-        }
-        localStorage.setItem(storedPwdKey, newPassword);
-      }
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) throw error;
     } finally {
       setLoading(false);
     }
