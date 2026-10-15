@@ -132,7 +132,7 @@ export class SteadfastCourierProvider implements ICourierProvider {
     return { success: false, message: 'Live Steadfast cancellation is not configured. No cancellation was sent.' };
   }
 
-  async getTracking(_trackingCode: string) {
+  async getTracking(_trackingCode: string): Promise<{ status: string; currentLocation: string; events: TrackingEvent[] }> {
     throw new Error('Live Steadfast tracking is not configured. No live tracking data is available.');
   }
 
@@ -157,7 +157,7 @@ const inHouseService: ICourierProvider = {
   async cancelShipment(): Promise<{ success: boolean; message: string }> {
     return { success: false, message: 'In-house shipment cancellation is not configured.' };
   },
-  async getTracking() {
+  async getTracking(): Promise<{ status: string; currentLocation: string; events: TrackingEvent[] }> {
     throw new Error('In-house tracking is not configured.');
   },
 };

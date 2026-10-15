@@ -112,9 +112,8 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
           </div>
 
           {!featuredOnly && (
-          <>
-          {/* Quick Filter Buttons & Sort */}
-          <div className="flex flex-wrap items-center gap-3">
+            /* Quick Filter Buttons & Sort */
+            <div className="flex flex-wrap items-center gap-3">
             {/* Quick Segmented Tabs */}
             <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-lg overflow-x-auto max-w-full">
               <button
@@ -208,53 +207,55 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
               <span>In Stock</span>
             </button>
           </div>
-        </div>
-
-        {/* Categories Bar */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-3 mb-6 no-scrollbar">
-          <button
-            onClick={() => setSelectedCategoryFilter(null)}
-            className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors whitespace-nowrap ${
-              selectedCategoryFilter === null
-                ? 'bg-slate-900 text-white shadow-xs'
-                : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-            }`}
-          >
-            All Categories
-          </button>
-          {categories.filter((category) => category.isActive !== false).map((c) => (
-            <button
-              key={c.id}
-              onClick={() => setSelectedCategoryFilter(c.slug)}
-              className={`px-3.5 py-1.5 text-xs font-medium rounded-full transition-colors whitespace-nowrap ${
-                selectedCategoryFilter === c.slug
-                  ? 'bg-indigo-600 text-white shadow-xs'
-                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-              }`}
-            >
-              {c.name}
-            </button>
-          ))}
-        </div>
-
-        {/* Active search filter banner */}
-        {searchQuery && (
-          <div className="mb-6 flex items-center justify-between p-3 bg-indigo-50 border border-indigo-100 rounded-lg text-xs text-indigo-900">
-            <span>
-              Showing search results for: <strong>"{searchQuery}"</strong> ({filteredProducts.length} found)
-            </span>
-            <button
-              onClick={() => setSearchQuery('')}
-              className="text-indigo-600 hover:text-indigo-800 flex items-center gap-1 font-semibold"
-            >
-              <X className="w-3.5 h-3.5" />
-              <span>Clear search</span>
-            </button>
-          </div>
-        )}
-
-          </>
           )}
+        </div>
+
+        {!featuredOnly && (
+          <>
+            {/* Categories Bar */}
+            <div className="flex items-center gap-2 overflow-x-auto pb-3 mb-6 no-scrollbar">
+              <button
+                onClick={() => setSelectedCategoryFilter(null)}
+                className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors whitespace-nowrap ${
+                  selectedCategoryFilter === null
+                    ? 'bg-slate-900 text-white shadow-xs'
+                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                }`}
+              >
+                All Categories
+              </button>
+              {categories.filter((category) => category.isActive !== false).map((c) => (
+                <button
+                  key={c.id}
+                  onClick={() => setSelectedCategoryFilter(c.slug)}
+                  className={`px-3.5 py-1.5 text-xs font-medium rounded-full transition-colors whitespace-nowrap ${
+                    selectedCategoryFilter === c.slug
+                      ? 'bg-indigo-600 text-white shadow-xs'
+                      : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                  }`}
+                >
+                  {c.name}
+                </button>
+              ))}
+            </div>
+
+            {/* Active search filter banner */}
+            {searchQuery && (
+              <div className="mb-6 flex items-center justify-between p-3 bg-indigo-50 border border-indigo-100 rounded-lg text-xs text-indigo-900">
+                <span>
+                  Showing search results for: <strong>"{searchQuery}"</strong> ({filteredProducts.length} found)
+                </span>
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="text-indigo-600 hover:text-indigo-800 flex items-center gap-1 font-semibold"
+                >
+                  <X className="w-3.5 h-3.5" />
+                  <span>Clear search</span>
+                </button>
+              </div>
+            )}
+          </>
+        )}
 
         {/* Empty State */}
         {displayList.length === 0 ? (
