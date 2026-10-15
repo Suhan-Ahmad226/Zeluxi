@@ -1,7 +1,14 @@
 -- Persistent catalog metadata for the authenticated catalog API.
 -- Safe additive migration: existing checkout-critical columns remain canonical.
 alter table public.store_products
-  add column if not exists product_data jsonb not null default '{}'::jsonb;
+  add column if not exists product_data jsonb not null default '{}'::jsonb,
+  add column if not exists cost_price numeric(12,2) check (cost_price is null or cost_price >= 0);
+
+-- Restrict direct browser reads to non-sensitive columns. The public API explicitly
+-- selects its response fields; procurement cost remains server-only.
+revoke select on public.store_products from anon, authenticated;
+grant select (id, name, price, stock, published, archived, image_url, product_data, updated_at)
+  on public.store_products to anon, authenticated;
 
 create index if not exists store_products_published_updated_idx
   on public.store_products (published, updated_at desc)
