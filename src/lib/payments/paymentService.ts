@@ -34,7 +34,7 @@ export class PaymentService {
    * Validates and verifies transaction state
    */
   static async verifyPayment(request: PaymentInitiationRequest): Promise<PaymentValidationResult> {
-    const { idempotencyKey, orderId, amount, paymentMethod, transactionReference } = request;
+    const { idempotencyKey, orderId, amount, paymentMethod } = request;
 
     if (!idempotencyKey) {
       throw new Error('Security Error: Idempotency key is required to prevent double-charging.');
@@ -57,7 +57,7 @@ export class PaymentService {
     if (paymentMethod === 'COD') {
       return {
         success: true,
-        transactionId: `COD-${orderId}`,
+        transactionId: '',
         amount,
         paymentStatus: 'UNPAID',
         paymentMethod: 'COD',
