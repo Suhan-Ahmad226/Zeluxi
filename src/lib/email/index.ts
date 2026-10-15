@@ -1,7 +1,7 @@
 /**
  * Transactional Email Notification Adapter for Zelux
- * Generates branded HTML emails and dispatches notifications via SMTP/Resend/SendGrid.
- * Falls back safely to logger when external credentials are absent.
+ * Generates a branded HTML email template. Delivery is intentionally disabled until a real
+ * server-side SMTP/Resend/SendGrid adapter is implemented.
  */
 
 import { Order } from '../../types';
