@@ -30,6 +30,7 @@ Reviewed the GitHub `main` branch source files and prepared a separate `producti
 - Changed courier booking/cancellation/tracking adapters to fail closed instead of inventing successful bookings or live tracking.
 - Changed webhook verification to reject until a real server-side HMAC verifier is implemented.
 - Removed the Telegram bot token from browser code and disabled fake-success notification behavior.
+- Removed fake-success email dispatch behavior, added HTML escaping for email-template data, and documented that a real server-side email provider adapter is still required.
 - Replaced live Supabase integration tests with offline SDK smoke tests and added tests for fail-closed payment/courier behavior.
 - Hardened the Supabase profile SQL: new users always receive CUSTOMER role; client updates cannot modify role/email/id; admin policies use a security-definer role helper.
 - Removed the fake seed records and updated project documentation/CI workflow.
