@@ -1,0 +1,8 @@
+# Robots.txt for Zelux Bangladesh Single-Store E-Commerce
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /account
+Disallow: /checkout
+
+Sitemap: https://zelux.vercel.app/sitemap.xml

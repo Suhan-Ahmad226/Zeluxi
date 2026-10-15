@@ -1,0 +1,322 @@
+export type Language = 'en' | 'bn';
+
+export interface ProductVariant {
+  id: string;
+  name: string;
+  sku: string;
+  price: number;
+  stock: number;
+  barcode?: string;
+  imageUrl?: string;
+  attributes: Record<string, string>; // e.g. { size: 'L', color: 'Caramel' }
+}
+
+export interface ProductReview {
+  id: string;
+  userName: string;
+  rating: number;
+  comment: string;
+  date: string;
+  verifiedPurchase: boolean;
+}
+
+export interface Product {
+  id: string;
+  name: string;
+  nameBn: string;
+  slug: string;
+  sku: string;
+  category: string;
+  categoryBn: string;
+  subcategory?: string;
+  subcategoryBn?: string;
+  description: string;
+  descriptionBn: string;
+  shortDescription?: string;
+  shortDescriptionBn?: string;
+  brand?: string;
+  barcode?: string;
+  productType?: 'physical' | 'digital' | 'service';
+  condition?: 'new' | 'refurbished';
+  price: number;
+  compareAtPrice?: number;
+  costPrice?: number;
+  stock: number;
+  lowStockThreshold: number;
+  images: string[];
+  videoUrl?: string;
+  featured: boolean;
+  isNewArrival?: boolean;
+  isBestSeller?: boolean;
+  isFlashDeal?: boolean;
+  rating: number;
+  reviewCount: number;
+  variants: ProductVariant[];
+  specifications: Record<string, string>;
+  tags: string[];
+  published: boolean;
+  archived?: boolean;
+  weightKg?: number;
+  dimensions?: string;
+  shippingClass?: string;
+  taxClass?: string;
+  countryOfOrigin?: string;
+  warrantyPolicy?: string;
+  returnPolicy?: string;
+  seoTitle?: string;
+  seoDescription?: string;
+  seoKeywords?: string;
+  ogImageUrl?: string;
+  canonicalUrl?: string;
+  minOrderQuantity?: number;
+  maxOrderQuantity?: number;
+  taxRate?: number;
+}
+
+export interface Category {
+  id: string;
+  name: string;
+  nameBn: string;
+  slug: string;
+  description: string;
+  image: string;
+  itemCount: number;
+  order?: number;
+  isActive?: boolean;
+  parentId?: string | null;
+}
+
+export interface CartItem {
+  productId: string;
+  variantId?: string;
+  name: string;
+  price: number;
+  quantity: number;
+  image: string;
+  variantLabel?: string;
+  stock: number;
+}
+
+export type OrderStatus =
+  | 'PENDING'
+  | 'CONFIRMED'
+  | 'PROCESSING'
+  | 'READY_TO_SHIP'
+  | 'SHIPPED'
+  | 'OUT_FOR_DELIVERY'
+  | 'DELIVERED'
+  | 'CANCELLED'
+  | 'RETURN_REQUESTED'
+  | 'RETURNED'
+  | 'REFUNDED';
+
+export interface QuestionAnswer {
+  id: string;
+  productId: string;
+  userName: string;
+  question: string;
+  answer?: string;
+  answeredAt?: string;
+  createdAt: string;
+}
+
+export interface CustomerRecord {
+  id: string;
+  fullName: string;
+  phone: string;
+  email: string;
+  city: string;
+  division?: string;
+  address?: string;
+  totalOrders: number;
+  totalSpent: number;
+  joinedDate: string;
+  status?: 'ACTIVE' | 'SUSPENDED';
+  notes?: string;
+}
+
+export type PaymentMethod = 'COD' | 'BKASH' | 'NAGAD' | 'ROCKET' | 'SSLCOMMERZ';
+
+export type PaymentStatus = 'UNPAID' | 'PAID' | 'REFUNDED' | 'FAILED';
+
+export type CourierProvider = 'PATHAO' | 'STEADFAST' | 'IN_HOUSE';
+
+export interface ShippingAddress {
+  fullName: string;
+  phone: string;
+  email: string;
+  division: string;
+  district: string;
+  thanaCity: string;
+  addressDetails: string;
+  postalCode?: string;
+  notes?: string;
+}
+
+export interface OrderItem {
+  productId: string;
+  productName: string;
+  variantLabel?: string;
+  price: number;
+  quantity: number;
+  image: string;
+}
+
+export type CourierBookingStatus =
+  | 'NOT_BOOKED'
+  | 'BOOKING_IN_PROGRESS'
+  | 'BOOKED'
+  | 'BOOKING_FAILED';
+
+export interface CourierBookingAttempt {
+  attemptId: string;
+  timestamp: string;
+  courier: CourierProvider;
+  success: boolean;
+  consignmentId?: string;
+  trackingCode?: string;
+  statusCode?: number;
+  responsePayload?: any;
+  errorMessage?: string;
+}
+
+export interface Order {
+  id: string; // e.g. "AET-2601" or "ZLX-2601"
+  createdAt: string;
+  customer: ShippingAddress;
+  items: OrderItem[];
+  subtotal: number;
+  shippingFee: number;
+  discount: number;
+  grandTotal: number;
+  couponCode?: string;
+  status: OrderStatus;
+  paymentMethod: PaymentMethod;
+  paymentStatus: PaymentStatus;
+  transactionId?: string;
+  courier: {
+    provider: CourierProvider;
+    trackingCode: string;
+    consignmentId?: string;
+    estimatedDelivery: string;
+    bookingStatus?: CourierBookingStatus;
+    bookingError?: string;
+    bookedAt?: string;
+    lastSyncedAt?: string;
+    deliveryFee?: number;
+    hubLocation?: string;
+  };
+  bookingAttempts?: CourierBookingAttempt[];
+  statusHistory: {
+    status: OrderStatus;
+    timestamp: string;
+    note: string;
+  }[];
+}
+
+export interface Coupon {
+  code: string;
+  type: 'PERCENTAGE' | 'FIXED';
+  value: number;
+  minSpend: number;
+  description: string;
+  descriptionBn: string;
+  expiresAt: string;
+  usageCount: number;
+  maxUsage?: number;
+  active: boolean;
+  usedBy?: string[];
+  perUserLimit?: number;
+}
+
+export interface CMSBanner {
+  id: string;
+  title: string;
+  titleBn: string;
+  subtitle: string;
+  subtitleBn: string;
+  buttonText: string;
+  buttonTextBn: string;
+  link: string;
+  imageUrl: string;
+  active: boolean;
+}
+
+export interface AuditLog {
+  id: string;
+  timestamp: string;
+  actor: string;
+  action: string;
+  details: string;
+}
+
+export interface StoreSettings {
+  storeName: string;
+  tagline: string;
+  taglineBn: string;
+  phone: string;
+  email: string;
+  address: string;
+  currencySymbol: string;
+  freeShippingThreshold: number;
+  shippingDhaka: number;
+  shippingOutsideDhaka: number;
+  sameDayExpressDhaka: number;
+  codFee: number;
+  announcementActive: boolean;
+  announcementText: string;
+  announcementTextBn: string;
+  pathaoApiKeyConfigured: boolean;
+  steadfastApiKeyConfigured: boolean;
+  bkashMerchantConfigured: boolean;
+  seoTitle?: string;
+  seoDescription?: string;
+  seoKeywords?: string;
+  canonicalUrl?: string;
+  ogImageUrl?: string;
+  maintenanceMode?: boolean;
+}
+
+export interface StaticPageContent {
+  slug: string;
+  title: string;
+  titleBn: string;
+  content: string;
+  contentBn: string;
+  lastUpdated: string;
+  isPublished: boolean;
+}
+
+export interface StorefrontCMS {
+  hero: {
+    tagline: string;
+    taglineBn: string;
+    headline: string;
+    headlineBn: string;
+    description: string;
+    descriptionBn: string;
+    primaryButtonText: string;
+    primaryButtonTextBn: string;
+    secondaryButtonText: string;
+    secondaryButtonTextBn: string;
+    imageUrl: string;
+    highlightTitle: string;
+    highlightTitleBn: string;
+    highlightSubtitle: string;
+    highlightPrice: string;
+  };
+  announcement: {
+    active: boolean;
+    text: string;
+    textBn: string;
+  };
+  sectionVisibility: {
+    hero: boolean;
+    trustBadges: boolean;
+    categories: boolean;
+    featured: boolean;
+    deals: boolean;
+    allProducts: boolean;
+    recentlyViewed: boolean;
+  };
+}

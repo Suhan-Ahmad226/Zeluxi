@@ -1,0 +1,66 @@
+import { z } from 'zod';
+
+export const bdPhoneRegex = /^(?:\+?88)?01[3-9]\d{8}$/;
+
+export const shippingAddressSchema = z.object({
+  fullName: z.string().min(2, 'Full Name must be at least 2 characters'),
+  phone: z
+    .string()
+    .transform((val) => val.replace(/[\s-]/g, ''))
+    .refine((val) => bdPhoneRegex.test(val), {
+      message: 'Must be a valid 11-digit Bangladesh phone number (013-019)',
+    }),
+  email: z.string().email('Valid email address required').optional().or(z.literal('')),
+  division: z.enum([
+    'Dhaka',
+    'Chattogram',
+    'Sylhet',
+    'Rajshahi',
+    'Khulna',
+    'Barishal',
+    'Rangpur',
+    'Mymensingh',
+  ]),
+  district: z.string().min(1, 'District is required'),
+  thanaCity: z.string().min(1, 'Thana/Area is required'),
+  addressDetails: z.string().min(5, 'Detailed delivery address is required'),
+  postalCode: z.string().optional(),
+  notes: z.string().max(300, 'Notes cannot exceed 300 characters').optional(),
+});
+
+export const paymentMethodSchema = z.enum([
+  'COD',
+  'BKASH',
+  'NAGAD',
+  'ROCKET',
+  'SSLCOMMERZ',
+]);
+
+export const orderSubmissionSchema = z.object({
+  customer: shippingAddressSchema,
+  paymentMethod: paymentMethodSchema,
+  courierChoice: z.enum(['PATHAO', 'STEADFAST', 'IN_HOUSE']),
+  transactionId: z.string().optional(),
+  items: z
+    .array(
+      z.object({
+        productId: z.string(),
+        variantId: z.string().optional(),
+        quantity: z.number().int().positive(),
+        price: z.number().positive(),
+      })
+    )
+    .min(1, 'Cart must contain at least 1 item'),
+  appliedCouponCode: z.string().optional(),
+});
+
+export const productReviewSchema = z.object({
+  userName: z.string().min(2, 'Name is required'),
+  rating: z.number().int().min(1).max(5),
+  comment: z.string().min(10, 'Review comment must be at least 10 characters'),
+});
+
+export const couponValidationSchema = z.object({
+  code: z.string().min(3).max(20).toUpperCase(),
+  cartSubtotal: z.number().nonnegative(),
+});
