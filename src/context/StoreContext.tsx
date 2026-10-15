@@ -921,7 +921,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             return {
               ...o,
               status: targetOrderStatus,
-              paymentStatus: targetOrderStatus === 'DELIVERED' && o.paymentMethod === 'COD' ? 'PAID' : o.paymentStatus,
+              // Courier delivery status is not proof that COD money was collected.
+              paymentStatus: o.paymentStatus,
               courier: {
                 ...o.courier,
                 lastSyncedAt: timestampStr,
@@ -972,11 +973,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             ? { ...ord.courier, trackingCode }
             : ord.courier;
 
-          // If marked delivered and was COD, mark paid
-          const updatedPaymentStatus =
-            newStatus === 'DELIVERED' && ord.paymentMethod === 'COD'
-              ? 'PAID'
-              : ord.paymentStatus;
+          // Delivery status alone is not payment collection proof.
+          const updatedPaymentStatus = ord.paymentStatus;
 
           return {
             ...ord,
