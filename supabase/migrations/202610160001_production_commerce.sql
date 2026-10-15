@@ -59,12 +59,16 @@ revoke all on public.store_products, public.store_orders, public.store_order_ite
 grant select on public.store_products to anon, authenticated;
 grant select on public.store_orders, public.store_order_items to authenticated;
 
+drop function if exists public.create_customer_order(uuid, text, jsonb, jsonb, numeric);
+
 create or replace function public.create_customer_order(
   p_user_id uuid,
   p_idempotency_key text,
   p_customer jsonb,
   p_items jsonb,
-  p_shipping_fee numeric default 0
+  p_dhaka_fee numeric,
+  p_outside_dhaka_fee numeric,
+  p_free_shipping_threshold numeric
 ) returns jsonb
 language plpgsql
 security definer
@@ -77,7 +81,7 @@ declare
   v_item jsonb;
   v_product public.store_products%rowtype;
   v_qty integer;
-  v_id uuid;
+  v_shipping_fee numeric(12,2) := 0;
 begin
   if p_user_id is null or length(trim(p_idempotency_key)) < 16 or length(p_idempotency_key) > 128 then
     raise exception 'Invalid order identity or idempotency key' using errcode = '22023';
@@ -89,8 +93,11 @@ begin
   if found then
     return jsonb_build_object('orderId', v_existing.id, 'status', v_existing.status, 'grandTotal', v_existing.grand_total, 'replayed', true);
   end if;
-  if p_shipping_fee < 0 or p_shipping_fee > 2000 then
-    raise exception 'Invalid shipping fee' using errcode = '22023';
+  if p_dhaka_fee < 0 or p_dhaka_fee > 2000 or p_outside_dhaka_fee < 0 or p_outside_dhaka_fee > 2000 or p_free_shipping_threshold <= 0 then
+    raise exception 'Invalid shipping configuration' using errcode = '22023';
+  end if;
+  if coalesce(p_customer->>'division', '') not in ('Dhaka','Chattogram','Rajshahi','Sylhet','Khulna','Barishal','Rangpur','Mymensingh') then
+    raise exception 'Invalid delivery division' using errcode = '22023';
   end if;
 
   -- Lock products in a deterministic order to prevent overselling and reduce deadlocks.
@@ -110,8 +117,14 @@ begin
     v_subtotal := v_subtotal + v_product.price * v_qty;
   end loop;
 
+  v_shipping_fee := case
+    when v_subtotal >= p_free_shipping_threshold then 0
+    when p_customer->>'division' = 'Dhaka' then p_dhaka_fee
+    else p_outside_dhaka_fee
+  end;
+
   insert into public.store_orders(user_id, idempotency_key, payment_method, payment_status, customer, subtotal, shipping_fee, discount, grand_total)
-  values (p_user_id, p_idempotency_key, 'COD', 'UNPAID', p_customer, v_subtotal, p_shipping_fee, 0, v_subtotal + p_shipping_fee)
+  values (p_user_id, p_idempotency_key, 'COD', 'UNPAID', p_customer, v_subtotal, v_shipping_fee, 0, v_subtotal + v_shipping_fee)
   returning * into v_order;
 
   for v_item in select value from jsonb_array_elements(p_items) order by value->>'productId'
@@ -127,5 +140,5 @@ begin
 end;
 $$;
 
-revoke all on function public.create_customer_order(uuid, text, jsonb, jsonb, numeric) from public, anon, authenticated;
-grant execute on function public.create_customer_order(uuid, text, jsonb, jsonb, numeric) to service_role;
+revoke all on function public.create_customer_order(uuid, text, jsonb, jsonb, numeric, numeric, numeric) from public, anon, authenticated;
+grant execute on function public.create_customer_order(uuid, text, jsonb, jsonb, numeric, numeric, numeric) to service_role;
