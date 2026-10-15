@@ -2428,7 +2428,7 @@ export const AdminDashboard: React.FC = () => {
                       <p className="text-xs text-slate-500">Dhaka Metro & Express Same-Day Partner</p>
                     </div>
                     <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 text-xs font-bold rounded">
-                      Connected (Live)
+                      Not configured
                     </span>
                   </div>
                   <div className="space-y-1 text-xs text-slate-600">
@@ -2437,10 +2437,10 @@ export const AdminDashboard: React.FC = () => {
                     <p>Auto-generate consignment on: <strong>Order Confirmed</strong></p>
                   </div>
                   <button
-                    onClick={() => showToast('Pathao API connection verified (Ping: 42ms)', 'success')}
+                    onClick={() => showToast('Pathao integration is not configured. No API request was sent.', 'error')}
                     className="px-3 py-1.5 bg-slate-900 text-white text-xs font-semibold rounded-lg hover:bg-slate-800"
                   >
-                    Test Webhook Ping
+                    Check Integration Status
                   </button>
                 </div>
 
@@ -2452,16 +2452,16 @@ export const AdminDashboard: React.FC = () => {
                       <p className="text-xs text-slate-500">Nationwide 64 Districts Parcel Delivery</p>
                     </div>
                     <span className="px-2 py-0.5 bg-blue-100 text-blue-800 text-xs font-bold rounded">
-                      Connected (Live)
+                      Not configured
                     </span>
                   </div>
                   <div className="space-y-1 text-xs text-slate-600">
-                    <p>API Key: <strong className="font-mono">stf_live_••••••••••••9482</strong></p>
+                    <p>API Key: <strong className="font-mono">Not configured</strong></p>
                     <p>Coverage: <strong>All Thanas & Sub-districts</strong></p>
                     <p>COD Settlement: <strong>T+1 Banking Day</strong></p>
                   </div>
                   <button
-                    onClick={() => showToast('Steadfast API connection verified (Ping: 58ms)', 'success')}
+                    onClick={() => showToast('Steadfast integration is not configured. No API request was sent.', 'error')}
                     className="px-3 py-1.5 bg-slate-900 text-white text-xs font-semibold rounded-lg hover:bg-slate-800"
                   >
                     Test Webhook Ping
@@ -2486,7 +2486,7 @@ export const AdminDashboard: React.FC = () => {
                   {formatPrice(totalRevenue, language)}
                 </p>
                 <span className="text-[11px] text-emerald-600 font-semibold">
-                  Cleared to bank account
+                  Based on local order statuses
                 </span>
               </div>
 
