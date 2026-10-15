@@ -35,10 +35,11 @@ export class SecurityService {
   /**
    * Validates webhook signatures using secret key
    */
-  static verifyWebhookSignature(payload: string, signature: string, secret: string): boolean {
-    if (!signature || !secret) return false;
-    // Basic verification check with length matching
-    return this.timingSafeEqual(signature, signature);
+  static verifyWebhookSignature(_payload: string, _signature: string, _secret: string): boolean {
+    // Webhook verification must run on a trusted server using the provider's
+    // documented HMAC/signature scheme. This browser-side utility cannot safely
+    // verify provider webhooks; fail closed instead of accepting every signature.
+    return false;
   }
 
   /**
