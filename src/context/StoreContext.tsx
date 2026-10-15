@@ -151,7 +151,7 @@ interface StoreContextType {
 
 const StoreContext = createContext<StoreContextType | undefined>(undefined);
 
-const LOCAL_STORAGE_KEY = 'ZELUX_ECOMMERCE_STATE_V1';
+const LOCAL_STORAGE_KEY = 'ZELUX_ECOMMERCE_STATE_V2';
 
 export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // Load initial state from LocalStorage if available
