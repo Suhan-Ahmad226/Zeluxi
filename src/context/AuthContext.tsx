@@ -109,7 +109,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const avatar = meta.avatar_url || meta.picture || undefined;
 
     // Admin status must be assigned through trusted Supabase app_metadata, never user-editable metadata or email matching.
-    const isAdmin = user.app_metadata?.role === 'admin';
+    const isAdmin = String(user.app_metadata?.role || '').toUpperCase() === 'ADMIN';
 
     let savedAddress = meta.address;
     let savedDivision = meta.division;
@@ -621,8 +621,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const isVerified = Boolean(
     userProfile?.isVerified ||
     supabaseUser?.email_confirmed_at ||
-    supabaseUser?.confirmed_at ||
-    false
+    supabaseUser?.confirmed_at
   );
 
   return (
