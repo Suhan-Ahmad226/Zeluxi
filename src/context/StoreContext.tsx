@@ -1340,9 +1340,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const refundOrder = async (
     orderId: string,
-    amount: number,
-    reason: string,
-    adminActor: string = 'Admin Superuser'
+    _amount: number,
+    _reason: string,
+    _adminActor: string = 'Admin Superuser'
   ): Promise<{ success: boolean; message: string }> => {
     const target = orders.find((o) => o.id === orderId);
     if (!target) {
@@ -1351,44 +1351,16 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
 
     if (target.paymentStatus === 'REFUNDED') {
-      showToast('This order has already been fully refunded', 'info');
-      return { success: false, message: 'Order already refunded' };
+      showToast('This order is already marked as refunded', 'info');
+      return { success: false, message: 'Order already marked as refunded' };
     }
 
-    const now = new Date();
-    const timestampStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(
-      now.getDate()
-    ).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-
-    setOrders((prev) =>
-      prev.map((o) => {
-        if (o.id === orderId) {
-          return {
-            ...o,
-            status: 'REFUNDED' as OrderStatus,
-            paymentStatus: 'REFUNDED',
-            statusHistory: [
-              ...o.statusHistory,
-              {
-                status: 'REFUNDED',
-                timestamp: timestampStr,
-                note: `Refund issued for ৳${amount.toLocaleString()} BDT via ${o.paymentMethod}. Reason: ${reason} (Authorized by: ${adminActor})`,
-              },
-            ],
-          };
-        }
-        return o;
-      })
-    );
-
-    addAuditLog(
-      'ORDER_REFUNDED',
-      `Refund of ৳${amount.toLocaleString()} issued for order #${orderId} (${target.paymentMethod}). Reason: ${reason}`,
-      adminActor
-    );
-
-    showToast(`Refund of ৳${amount.toLocaleString()} processed for order #${orderId}`, 'success');
-    return { success: true, message: 'Refund successfully completed' };
+    // Fail closed: this frontend has no trusted payment provider refund API.
+    // Never mark an order as refunded or report success when no money was returned.
+    const message =
+      'Refund automation is not configured. No money was returned and the order status was not changed. Process the refund through the payment provider or bank, then reconcile it in a trusted backend.';
+    showToast(message, 'error');
+    return { success: false, message };
   };
 
   const adjustStock = (productId: string, newStock: number, reason: string) => {
