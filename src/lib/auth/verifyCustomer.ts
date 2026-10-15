@@ -15,13 +15,12 @@ export interface CustomerVerificationStatus {
  */
 export async function verifyCustomerOrderEligibility(): Promise<CustomerVerificationStatus> {
   if (!isSupabaseConfigured()) {
-    // Demo sandbox mode fallback
     return {
-      isVerified: true,
+      isVerified: false,
       user: null,
-      email: 'demo@zelux.com.bd',
-      reason: 'VALID',
-      message: 'Demo mode active',
+      email: null,
+      reason: 'INVALID_SESSION',
+      message: 'Authentication is not configured. Orders are disabled until Supabase is configured.',
     };
   }
 
@@ -52,7 +51,6 @@ export async function verifyCustomerOrderEligibility(): Promise<CustomerVerifica
     const isEmailConfirmed = Boolean(
       user.email_confirmed_at ||
       user.confirmed_at ||
-      user.user_metadata?.email_verified ||
       user.app_metadata?.provider === 'google' ||
       user.app_metadata?.provider === 'facebook'
     );
