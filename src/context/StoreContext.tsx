@@ -640,172 +640,18 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const createOrder = (
-    customer: ShippingAddress,
-    paymentMethod: PaymentMethod,
-    courierChoice: CourierProvider,
-    transactionId?: string
+    _customer: ShippingAddress,
+    _paymentMethod: PaymentMethod,
+    _courierChoice: CourierProvider,
+    _transactionId?: string
   ): Order => {
-    // RELEASE SAFETY GATE: this Vite SPA has no trusted order API or shared database.
-    // Never create a browser-only order, decrement local stock, or show a false success.
+    // RELEASE SAFETY GATE: a browser-only order is not a real, durable order.
+    // Do not decrement client-side inventory, persist a local order, or report success.
     throw new Error(
-      'Live order placement is not available yet. This storefront is waiting for its secure server-side order service.'
+      'Live order placement is unavailable until secure server-side order processing is deployed and verified.'
     );
-
-    const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-
-    const shippingInfo = calculateShipping(
-      customer.division,
-      subtotal,
-      settings.freeShippingThreshold,
-      settings.shippingDhaka,
-      settings.shippingOutsideDhaka
-    );
-
-    let discount = 0;
-    if (appliedCoupon) {
-      if (appliedCoupon.type === 'PERCENTAGE') {
-        discount = Math.round((subtotal * appliedCoupon.value) / 100);
-      } else {
-        discount = appliedCoupon.value;
-      }
-    }
-
-    const grandTotal = Math.max(0, subtotal + shippingInfo.fee - discount);
-
-    const orderId = `ZLX-${Math.floor(1000 + Math.random() * 9000)}`;
-    const now = new Date();
-    const timestampStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(
-      now.getDate()
-    ).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-
-    const newOrder: Order = {
-      id: orderId,
-      createdAt: timestampStr,
-      customer,
-      items: cart.map((item) => ({
-        productId: item.productId,
-        productName: item.name,
-        variantLabel: item.variantLabel,
-        price: item.price,
-        quantity: item.quantity,
-        image: item.image,
-      })),
-      subtotal,
-      shippingFee: shippingInfo.fee,
-      discount,
-      grandTotal,
-      couponCode: appliedCoupon ? appliedCoupon.code : undefined,
-      status: 'PENDING',
-      paymentMethod,
-      // Customer-submitted transaction references are not proof of payment. An authorized
-      // server-side gateway callback or a documented manual review must mark an order as PAID.
-      paymentStatus: 'UNPAID',
-      transactionId: transactionId || undefined,
-      courier: {
-        provider: courierChoice,
-        trackingCode: '',
-        consignmentId: '',
-        estimatedDelivery: shippingInfo.eta,
-        bookingStatus: 'NOT_BOOKED',
-      },
-      bookingAttempts: [],
-      statusHistory: [
-        {
-          status: 'PENDING',
-          timestamp: timestampStr,
-          note: paymentMethod === 'COD'
-            ? 'Order placed with Cash on Delivery (COD). Awaiting Admin verification & courier booking.'
-            : `Order placed with ${paymentMethod}. Reference ${transactionId ? 'submitted for manual verification' : 'not provided'}; payment remains unverified until an authorized review.`,
-        },
-      ],
-    };
-
-    // Update coupon usage and per-user tracking if coupon was used
-    if (appliedCoupon) {
-      const cleanCode = appliedCoupon.code;
-      const cleanPhone = customer.phone.replace(/[^0-9]/g, '');
-      const cleanEmail = customer.email.trim().toLowerCase();
-      const tags = [cleanPhone, cleanEmail].filter(Boolean);
-
-      setCoupons((prev) =>
-        prev.map((c) => {
-          if (c.code === cleanCode) {
-            const existingUsed = c.usedBy || [];
-            return {
-              ...c,
-              usageCount: (c.usageCount || 0) + 1,
-              usedBy: Array.from(new Set([...existingUsed, ...tags])),
-            };
-          }
-          return c;
-        })
-      );
-    }
-
-    // Deduct stock for products
-    setProducts((prev) =>
-      prev.map((prod) => {
-        const cartMatches = cart.filter((c) => c.productId === prod.id);
-        if (cartMatches.length === 0) return prod;
-
-        let updatedStock = prod.stock;
-        const updatedVariants = prod.variants.map((v) => {
-          const matchVar = cartMatches.find((c) => c.variantId === v.id);
-          if (matchVar) {
-            return { ...v, stock: Math.max(0, v.stock - matchVar.quantity) };
-          }
-          return v;
-        });
-
-        const totalDeducted = cartMatches.reduce((acc, c) => acc + c.quantity, 0);
-        updatedStock = Math.max(0, updatedStock - totalDeducted);
-
-        return {
-          ...prod,
-          stock: updatedStock,
-          variants: updatedVariants,
-        };
-      })
-    );
-
-    // Save order
-    setOrders((prev) => [newOrder, ...prev]);
-
-    // Record audit log
-    const logItem: AuditLog = {
-      id: `log-${Date.now()}`,
-      timestamp: timestampStr,
-      actor: `Customer (${customer.phone})`,
-      action: 'ORDER_CREATED',
-      details: `Order #${orderId} placed for ৳${grandTotal.toLocaleString()} (${paymentMethod})`,
-    };
-    setAuditLogs((prev) => [logItem, ...prev]);
-
-    // Clear cart and applied coupon
-    clearCart();
-    setLastCreatedOrder(newOrder);
-
-    // Dispatch Telegram Bot Alert asynchronously
-    sendTelegramOrderNotification({
-      orderId,
-      customerName: customer.fullName,
-      customerPhone: customer.phone,
-      division: customer.division,
-      addressDetails: customer.addressDetails,
-      itemCount: newOrder.items.length,
-      grandTotal,
-      paymentMethod,
-      courierProvider: courierChoice,
-    }).catch(() => {});
-
-    showToast(`Order #${orderId} successfully placed!`, 'success');
-    return newOrder;
   };
 
-  /**
-   * Production-grade idempotent Accept Order & Pathao Courier Booking
-   * Validates: stock, address, COD amount, status transition, courier config
-   */
   const acceptOrderAndBookCourier = async (
     orderId: string,
     adminActor: string = 'Admin Staff'
