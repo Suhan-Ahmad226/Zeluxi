@@ -16,10 +16,6 @@ export interface UserProfile {
   authProvider?: string;
 }
 
-interface StoredUserAccount extends UserProfile {
-  passwordHash?: string;
-}
-
 export type AuthModalMode =
   | 'signin'
   | 'signup'
@@ -66,52 +62,22 @@ interface AuthContextType {
   updatePassword: (newPassword: string) => Promise<void>;
   changePassword: (oldPassword: string, newPassword: string) => Promise<void>;
   logout: () => Promise<void>;
-  // 1-Click Fast Sandbox Testing Profiles
-  signInAsDemoCustomer: () => Promise<void>;
-  signInAsDemoAdmin: () => Promise<void>;
   updateProfileDetails: (details: Partial<UserProfile>) => Promise<void>;
 }
 
-export const DEMO_ACCOUNTS: StoredUserAccount[] = [
-  {
-    uid: 'demo-customer-tanvir',
-    email: 'tanvir@gmail.com',
-    displayName: 'Tanvir Hossain',
-    phone: '01712334455',
-    role: 'customer',
-    address: 'House 42, Road 113, Apt 5B, Gulshan 2, Dhaka City',
-    division: 'Dhaka',
-    createdAt: '2025-10-01',
-    isVerified: true,
-    authProvider: 'email',
-  },
-  {
-    uid: 'demo-admin-suhan',
-    email: 'admin@zelux.com.bd',
-    displayName: 'Administrator (Suhan Ahmad)',
-    phone: '01700112233',
-    role: 'admin',
-    address: 'Zelux Flagship Hub, Plot 8, Road 11, Banani, Dhaka',
-    division: 'Dhaka',
-    createdAt: '2025-01-01',
-    isVerified: true,
-    authProvider: 'email',
-  },
-];
-
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+const requireSupabaseConfiguration = () => {
+  if (!isSupabaseConfigured()) {
+    throw new Error('Authentication is not configured. Please contact the store administrator.');
+  }
+};
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [supabaseUser, setSupabaseUser] = useState<SupabaseUser | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(() => {
-    try {
-      const saved = localStorage.getItem('ZELUX_ACTIVE_PROFILE');
-      return saved ? JSON.parse(saved) : DEMO_ACCOUNTS[0]; // Tanvir by default for seamless storefront demo
-    } catch {
-      return DEMO_ACCOUNTS[0];
-    }
-  });
+  // A cached profile is display data, not proof of authentication. Start anonymous and hydrate only from a valid Supabase session.
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
 
   const [loading, setLoading] = useState<boolean>(true);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
@@ -149,10 +115,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const avatar = meta.avatar_url || meta.picture || undefined;
 
     // Determine admin role based on metadata or specific admin domain
-    const isAdmin =
-      meta.role === 'admin' ||
-      email.toLowerCase() === 'admin@zelux.com.bd' ||
-      email.toLowerCase() === 'suhanahmad226@gmail.com';
+    // Admin privileges must be assigned server-side in Supabase app_metadata.
+    // Never trust user-editable user_metadata or email addresses for authorization.
+    const isAdmin = user.app_metadata?.role === 'admin';
 
     let savedAddress = meta.address;
     let savedDivision = meta.division;
@@ -253,6 +218,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } else if (event === 'SIGNED_OUT') {
         setSupabaseUser(null);
         setSession(null);
+        setUserProfile(null);
+        localStorage.removeItem('ZELUX_ACTIVE_PROFILE');
       } else if (event === 'USER_UPDATED' && user) {
         const profile = mapSupabaseUserToProfile(user);
         setUserProfile(profile);
@@ -268,20 +235,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Sign In with Email and Password
   const signInWithEmail = async (email: string, pass: string) => {
+    requireSupabaseConfiguration();
     setLoading(true);
     try {
       const cleanEmail = email.trim().toLowerCase();
-
-      // Check if it's a demo account
-      const demoMatch = DEMO_ACCOUNTS.find(
-        (acc) => acc.email.toLowerCase() === cleanEmail
-      );
-      if (demoMatch && (pass === 'customer123' || pass === 'admin123' || pass === '123456')) {
-        setUserProfile(demoMatch);
-        localStorage.setItem('ZELUX_ACTIVE_PROFILE', JSON.stringify(demoMatch));
-        setIsAuthModalOpen(false);
-        return;
-      }
 
       // Supabase Authenticate
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -301,13 +258,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           throw unconfirmedErr;
         }
 
-        // Fallback for offline/demo admin check
-        if (cleanEmail === 'admin@zelux.com.bd' || cleanEmail.includes('admin')) {
-          setUserProfile(DEMO_ACCOUNTS[1]);
-          localStorage.setItem('ZELUX_ACTIVE_PROFILE', JSON.stringify(DEMO_ACCOUNTS[1]));
-          setIsAuthModalOpen(false);
-          return;
-        }
         throw error;
       }
 
@@ -327,6 +277,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Sign Up with Email, Password, Name, Phone
   // Dispatches 6-digit numeric OTP via Supabase Auth when email confirmation is active
   const signUpWithEmail = async (email: string, pass: string, name: string, phone: string) => {
+    requireSupabaseConfiguration();
     setLoading(true);
     try {
       const cleanEmail = email.trim().toLowerCase();
@@ -375,6 +326,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Verify the 6-digit numeric Signup OTP code using Supabase auth.verifyOtp({ email, token, type: 'signup' })
   const verifyEmailOtp = async (email: string, token: string): Promise<{ success: boolean }> => {
+    requireSupabaseConfiguration();
     setLoading(true);
     try {
       const cleanEmail = email.trim().toLowerCase();
@@ -426,6 +378,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Resend the 6-digit signup OTP token
   const resendVerificationOtp = async (email: string) => {
+    requireSupabaseConfiguration();
     setLoading(true);
     try {
       const cleanEmail = email.trim().toLowerCase();
@@ -455,6 +408,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Google OAuth
   const signInWithGoogle = async () => {
+    requireSupabaseConfiguration();
     setLoading(true);
     try {
       const redirectUrl = getAuthRedirectUrl('/');
@@ -476,6 +430,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Facebook OAuth
   const signInWithFacebook = async () => {
+    requireSupabaseConfiguration();
     setLoading(true);
     try {
       const redirectUrl = getAuthRedirectUrl('/');
@@ -494,6 +449,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Forgot Password / Request 6-digit Recovery Email OTP
   // Step A: Request OTP without redirecting to a clickable link
   const requestPasswordReset = async (email: string) => {
+    requireSupabaseConfiguration();
     setLoading(true);
     try {
       const cleanEmail = email.trim().toLowerCase();
@@ -522,6 +478,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Step B: Verify Recovery OTP using supabase.auth.verifyOtp({ email, token, type: 'recovery' })
   const verifyRecoveryOtp = async (email: string, token: string): Promise<{ success: boolean }> => {
+    requireSupabaseConfiguration();
     setLoading(true);
     try {
       const cleanEmail = email.trim().toLowerCase();
@@ -569,6 +526,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Step C: Set New Password after successful recovery OTP verification
   const updatePassword = async (newPassword: string) => {
+    requireSupabaseConfiguration();
     setLoading(true);
     try {
       if (!newPassword || newPassword.length < 6) {
@@ -596,59 +554,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Change Password for Logged In Customer or Admin
   const changePassword = async (oldPassword: string, newPassword: string) => {
+    requireSupabaseConfiguration();
     setLoading(true);
     try {
-      if (!newPassword || newPassword.length < 6) {
-        throw new Error('New password must be at least 6 characters long.');
+      if (!session || !supabaseUser?.email) {
+        throw new Error('Please sign in again before changing your password.');
+      }
+      if (!newPassword || newPassword.length < 8) {
+        throw new Error('New password must be at least 8 characters long.');
       }
 
-      if (isSupabaseConfigured() && session) {
-        if (currentUser?.email && oldPassword) {
-          const { error: signInErr } = await supabase.auth.signInWithPassword({
-            email: currentUser.email,
-            password: oldPassword,
-          });
-          if (signInErr) {
-            throw new Error('Current password is incorrect.');
-          }
-        }
+      const { error: signInErr } = await supabase.auth.signInWithPassword({
+        email: supabaseUser.email,
+        password: oldPassword,
+      });
+      if (signInErr) throw new Error('Current password is incorrect.');
 
-        const { error } = await supabase.auth.updateUser({
-          password: newPassword,
-        });
-
-        if (error) {
-          throw error;
-        }
-      } else {
-        // Sandbox / Demo / Local Storage account
-        await new Promise((r) => setTimeout(r, 600));
-        const storedPwdKey = `ZELUX_PWD_${userProfile?.email || 'user'}`;
-        const existingPwd = localStorage.getItem(storedPwdKey) || '123456';
-        if (oldPassword && oldPassword !== existingPwd && oldPassword !== '123456') {
-          throw new Error('Current password is incorrect. (Default demo password is: 123456)');
-        }
-        localStorage.setItem(storedPwdKey, newPassword);
-      }
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) throw error;
     } finally {
       setLoading(false);
     }
-  };
-
-  // 1-Click Demo Customer
-  const signInAsDemoCustomer = async () => {
-    const prof = DEMO_ACCOUNTS[0];
-    setUserProfile(prof);
-    localStorage.setItem('ZELUX_ACTIVE_PROFILE', JSON.stringify(prof));
-    setIsAuthModalOpen(false);
-  };
-
-  // 1-Click Demo Admin
-  const signInAsDemoAdmin = async () => {
-    const prof = DEMO_ACCOUNTS[1];
-    setUserProfile(prof);
-    localStorage.setItem('ZELUX_ACTIVE_PROFILE', JSON.stringify(prof));
-    setIsAuthModalOpen(false);
   };
 
   // Logout
@@ -666,30 +592,39 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Update profile details (address, phone, name)
   const updateProfileDetails = async (details: Partial<UserProfile>) => {
-    if (!userProfile) return;
-    const updated = { ...userProfile, ...details };
+    if (!userProfile || !supabaseUser || !session) {
+      throw new Error('A valid signed-in session is required to update your profile.');
+    }
+    requireSupabaseConfiguration();
+
+    // Only allow customer-editable profile fields. Identity, role, verification,
+    // provider, and account timestamps are server-controlled.
+    const updated: UserProfile = {
+      ...userProfile,
+      displayName: details.displayName?.trim() || userProfile.displayName,
+      phone: details.phone?.trim() ?? userProfile.phone,
+      address: details.address?.trim() ?? userProfile.address,
+      division: details.division?.trim() ?? userProfile.division,
+      avatarUrl: details.avatarUrl ?? userProfile.avatarUrl,
+    };
+
+    const { error } = await supabase.auth.updateUser({
+      data: {
+        full_name: updated.displayName,
+        displayName: updated.displayName,
+        phone: updated.phone,
+        address: updated.address,
+        division: updated.division,
+      },
+    });
+    if (error) throw error;
+
     setUserProfile(updated);
     localStorage.setItem('ZELUX_ACTIVE_PROFILE', JSON.stringify(updated));
-
-    if (supabaseUser) {
-      try {
-        localStorage.setItem(
-          `ZELUX_USER_META_${supabaseUser.id}`,
-          JSON.stringify({ address: updated.address, division: updated.division })
-        );
-        await supabase.auth.updateUser({
-          data: {
-            full_name: updated.displayName,
-            displayName: updated.displayName,
-            phone: updated.phone,
-            address: updated.address,
-            division: updated.division,
-          },
-        });
-      } catch (e) {
-        console.warn('Failed to update Supabase user metadata:', e);
-      }
-    }
+    localStorage.setItem(
+      `ZELUX_USER_META_${supabaseUser.id}`,
+      JSON.stringify({ address: updated.address, division: updated.division })
+    );
   };
 
   const currentUser = userProfile
@@ -740,8 +675,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         verifyRecoveryOtp,
         updatePassword,
         changePassword,
-        signInAsDemoCustomer,
-        signInAsDemoAdmin,
         logout,
         updateProfileDetails,
       }}

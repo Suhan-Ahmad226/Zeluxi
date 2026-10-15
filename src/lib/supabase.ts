@@ -1,12 +1,10 @@
 import { createClient } from '@supabase/supabase-js';
 
-export const SUPABASE_URL =
-  import.meta.env.VITE_SUPABASE_URL ||
-  'https://neegatxuhwjfobnwowrc.supabase.co';
+const configuredUrl = import.meta.env.VITE_SUPABASE_URL?.trim();
+const configuredAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY?.trim();
 
-export const SUPABASE_ANON_KEY =
-  import.meta.env.VITE_SUPABASE_ANON_KEY ||
-  'sb_publishable_hP9Dj95hGjQUQ4QniAsymw_3KS-Bb_y';
+export const SUPABASE_URL = configuredUrl || 'https://placeholder.supabase.co';
+export const SUPABASE_ANON_KEY = configuredAnonKey || 'missing-public-anon-key';
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
@@ -18,7 +16,7 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 });
 
 export const isSupabaseConfigured = (): boolean => {
-  return Boolean(SUPABASE_URL && SUPABASE_ANON_KEY && SUPABASE_ANON_KEY !== 'your_anon_key');
+  return Boolean(configuredUrl && configuredAnonKey);
 };
 
 /**

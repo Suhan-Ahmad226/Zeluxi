@@ -123,7 +123,7 @@ export const CheckoutModal: React.FC = () => {
     const candidateAddress = {
       fullName: fullName.trim(),
       phone: cleanPhone,
-      email: email.trim() || 'customer@zelux.com.bd',
+      email: email.trim() || activeUserEmail || '',
       division: division as any,
       district: district.trim() || division,
       thanaCity: thanaCity.trim() || division,
@@ -138,8 +138,8 @@ export const CheckoutModal: React.FC = () => {
       return;
     }
 
-    if ((paymentMethod === 'BKASH' || paymentMethod === 'NAGAD' || paymentMethod === 'ROCKET') && (!bkashTrxId.trim() || bkashTrxId.length < 5)) {
-      setFormError(`Please enter your ${paymentMethod} Transaction ID (TrxID).`);
+    if (paymentMethod !== 'COD') {
+      setFormError('Online payment is temporarily unavailable because no verified payment gateway is connected. Please choose Cash on Delivery.');
       return;
     }
 
@@ -173,7 +173,10 @@ export const CheckoutModal: React.FC = () => {
         return;
       }
     } catch (err: any) {
-      console.warn('Identity verification check fallback error:', err);
+      console.error('Identity verification failed closed:', err);
+      setIsProcessing(false);
+      setFormError('We could not verify your account right now. Please try again before placing your order.');
+      return;
     }
 
     const address: ShippingAddress = {

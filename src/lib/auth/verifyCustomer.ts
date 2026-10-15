@@ -15,13 +15,12 @@ export interface CustomerVerificationStatus {
  */
 export async function verifyCustomerOrderEligibility(): Promise<CustomerVerificationStatus> {
   if (!isSupabaseConfigured()) {
-    // Demo sandbox mode fallback
     return {
-      isVerified: true,
+      isVerified: false,
       user: null,
-      email: 'demo@zelux.com.bd',
-      reason: 'VALID',
-      message: 'Demo mode active',
+      email: null,
+      reason: 'INVALID_SESSION',
+      message: 'Authentication is temporarily unavailable. Please try again later.',
     };
   }
 

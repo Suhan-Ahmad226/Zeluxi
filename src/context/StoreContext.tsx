@@ -701,8 +701,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       couponCode: appliedCoupon ? appliedCoupon.code : undefined,
       status: 'PENDING',
       paymentMethod,
-      paymentStatus: paymentMethod === 'COD' ? 'UNPAID' : 'PAID',
-      transactionId: transactionId || (paymentMethod === 'BKASH' ? `BKS${Date.now().toString().slice(-8)}` : undefined),
+      // No online payment is considered paid without server-side gateway verification.
+      paymentStatus: 'UNPAID',
+      transactionId: transactionId?.trim() || undefined,
       courier: {
         provider: courierChoice,
         trackingCode: '',
@@ -1351,53 +1352,17 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     orderId: string,
     amount: number,
     reason: string,
-    adminActor: string = 'Admin Superuser'
+    adminActor: string = 'Admin'
   ): Promise<{ success: boolean; message: string }> => {
-    const target = orders.find((o) => o.id === orderId);
-    if (!target) {
-      showToast('Order not found', 'error');
-      return { success: false, message: 'Order not found' };
-    }
-
-    if (target.paymentStatus === 'REFUNDED') {
-      showToast('This order has already been fully refunded', 'info');
-      return { success: false, message: 'Order already refunded' };
-    }
-
-    const now = new Date();
-    const timestampStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(
-      now.getDate()
-    ).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-
-    setOrders((prev) =>
-      prev.map((o) => {
-        if (o.id === orderId) {
-          return {
-            ...o,
-            status: 'REFUNDED' as OrderStatus,
-            paymentStatus: 'REFUNDED',
-            statusHistory: [
-              ...o.statusHistory,
-              {
-                status: 'REFUNDED',
-                timestamp: timestampStr,
-                note: `Refund issued for ৳${amount.toLocaleString()} BDT via ${o.paymentMethod}. Reason: ${reason} (Authorized by: ${adminActor})`,
-              },
-            ],
-          };
-        }
-        return o;
-      })
-    );
-
-    addAuditLog(
-      'ORDER_REFUNDED',
-      `Refund of ৳${amount.toLocaleString()} issued for order #${orderId} (${target.paymentMethod}). Reason: ${reason}`,
-      adminActor
-    );
-
-    showToast(`Refund of ৳${amount.toLocaleString()} processed for order #${orderId}`, 'success');
-    return { success: true, message: 'Refund successfully completed' };
+    // This client-only application has no payment-provider refund API. Never
+    // mark an order refunded or claim money was returned without provider proof.
+    void orderId;
+    void amount;
+    void reason;
+    void adminActor;
+    const message = 'Refund processing is unavailable until a verified server-side payment gateway is configured. No refund was issued.';
+    showToast(message, 'error');
+    return { success: false, message };
   };
 
   const adjustStock = (productId: string, newStock: number, reason: string) => {
