@@ -44,11 +44,10 @@ export class PaymentService {
       throw new Error('Duplicate Request: This transaction has already been captured and processed.');
     }
 
-    processedIdempotencyKeys.add(idempotencyKey);
-
     const now = new Date().toISOString();
 
     if (paymentMethod === 'COD') {
+      processedIdempotencyKeys.add(idempotencyKey);
       return {
         success: true,
         transactionId: `COD-${orderId}`,
@@ -61,61 +60,12 @@ export class PaymentService {
       };
     }
 
-    if (paymentMethod === 'BKASH') {
-      const trx = transactionReference?.trim() || `BKS${Date.now().toString().slice(-8)}`;
-      return {
-        success: true,
-        transactionId: trx,
-        amount,
-        paymentStatus: 'PAID',
-        paymentMethod: 'BKASH',
-        gatewayFee: Math.round(amount * 0.015), // 1.5% bKash merchant rate
-        verifiedAt: now,
-        message: `bKash merchant settlement confirmed for TrxID: ${trx}`,
-      };
-    }
-
-    if (paymentMethod === 'NAGAD') {
-      const trx = transactionReference?.trim() || `NGD${Date.now().toString().slice(-8)}`;
-      return {
-        success: true,
-        transactionId: trx,
-        amount,
-        paymentStatus: 'PAID',
-        paymentMethod: 'NAGAD',
-        gatewayFee: Math.round(amount * 0.012), // 1.2% Nagad rate
-        verifiedAt: now,
-        message: `Nagad payment successfully authorized for TrxID: ${trx}`,
-      };
-    }
-
-    if (paymentMethod === 'ROCKET') {
-      const trx = transactionReference?.trim() || `RCK${Date.now().toString().slice(-8)}`;
-      return {
-        success: true,
-        transactionId: trx,
-        amount,
-        paymentStatus: 'PAID',
-        paymentMethod: 'ROCKET',
-        gatewayFee: Math.round(amount * 0.018),
-        verifiedAt: now,
-        message: `DBBL Rocket payment acknowledged for TrxID: ${trx}`,
-      };
-    }
-
-    if (paymentMethod === 'SSLCOMMERZ') {
-      const trx = `SSLCZ-${Date.now().toString().slice(-8)}`;
-      return {
-        success: true,
-        transactionId: trx,
-        amount,
-        paymentStatus: 'PAID',
-        paymentMethod: 'SSLCOMMERZ',
-        gatewayFee: Math.round(amount * 0.025), // 2.5% card gateway rate
-        verifiedAt: now,
-        message: `SSLCommerz 3D-Secure payment confirmed with Card/Banking Network.`,
-      };
-    }
+    // Online payment methods must never be marked PAID from a client-supplied
+    // transaction reference. Until server-side gateway initiation and callback
+    // signature verification are configured, fail closed.
+    throw new Error(
+      `Online payment provider "${paymentMethod}" is not configured for verified production payments. Please choose Cash on Delivery or contact support.`
+    );
 
     throw new Error(`Unsupported payment provider: ${paymentMethod}`);
   }
