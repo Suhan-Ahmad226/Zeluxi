@@ -1224,14 +1224,14 @@ export const AdminDashboard: React.FC = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-2">
                 <div className="flex items-center justify-between text-xs text-slate-500">
-                  <span>Total Settled Revenue</span>
+                  <span>Estimated Revenue</span>
                   <TrendingUp className="w-4 h-4 text-emerald-600" />
                 </div>
                 <p className="text-2xl font-extrabold text-slate-900 tabular-nums">
                   {formatPrice(totalRevenue, language)}
                 </p>
                 <span className="text-[11px] text-emerald-600 font-semibold">
-                  100% verified settlement
+                  Estimate based on local order statuses
                 </span>
               </div>
 
@@ -1267,10 +1267,10 @@ export const AdminDashboard: React.FC = () => {
                   <Truck className="w-4 h-4 text-emerald-600" />
                 </div>
                 <p className="text-2xl font-extrabold text-slate-900 tabular-nums">
-                  98.4%
+                  Not available
                 </p>
                 <span className="text-[11px] text-emerald-600 font-semibold">
-                  Pathao & Steadfast integration active
+                  Courier APIs are not configured
                 </span>
               </div>
             </div>
@@ -1280,7 +1280,7 @@ export const AdminDashboard: React.FC = () => {
               <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between">
                 <div>
                   <h3 className="text-sm font-bold text-slate-900">Recent Customer Orders</h3>
-                  <p className="text-xs text-slate-500">Live order stream with real-time status transitions</p>
+                  <p className="text-xs text-slate-500">Order records in this browser only; not a shared live order feed</p>
                 </div>
                 <button
                   onClick={() => setActiveTab('orders')}
@@ -1383,7 +1383,7 @@ export const AdminDashboard: React.FC = () => {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <h3 className="text-base font-bold text-slate-900">Customer Orders & Consignments</h3>
-                <p className="text-xs text-slate-500">Manage orders, assign courier dispatches, and trigger status webhooks</p>
+                <p className="text-xs text-slate-500">Review local order records; courier dispatch and status webhooks are not configured</p>
               </div>
 
               {/* Filters */}
@@ -1537,7 +1537,7 @@ export const AdminDashboard: React.FC = () => {
                             onClick={() => handleAdminSyncCourier(ord.id)}
                             disabled={processingOrderId === ord.id}
                             className="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-[11px] font-semibold inline-flex items-center gap-1"
-                            title="Sync live status from Pathao / Steadfast API"
+                            title="Courier status sync is unavailable until a provider API is configured"
                           >
                             <RefreshCw className={`w-3 h-3 ${processingOrderId === ord.id ? 'animate-spin' : ''}`} />
                             <span>Sync</span>
@@ -1562,7 +1562,7 @@ export const AdminDashboard: React.FC = () => {
                         )}
                         {ord.status === 'SHIPPED' && (
                           <button
-                            onClick={() => updateOrderStatus(ord.id, 'DELIVERED', 'Delivered & COD collected')}
+                            onClick={() => updateOrderStatus(ord.id, 'DELIVERED', 'Delivery status manually recorded; COD collection must be verified separately')}
                             className="px-2 py-1 bg-emerald-600 text-white rounded text-[11px] font-semibold hover:bg-emerald-700"
                           >
                             Mark Delivered
@@ -1572,7 +1572,7 @@ export const AdminDashboard: React.FC = () => {
                           <button
                             onClick={() => setRefundTargetOrder(ord)}
                             className="px-2 py-1 bg-rose-50 text-rose-700 border border-rose-200 rounded text-[11px] font-semibold hover:bg-rose-100 transition-colors"
-                            title="Initiate refund via gateway"
+                            title="Refund processing is not configured"
                           >
                             Refund
                           </button>
@@ -2416,7 +2416,7 @@ export const AdminDashboard: React.FC = () => {
             <div className="bg-white rounded-xl border border-slate-200 p-6 space-y-6">
               <div>
                 <h3 className="text-base font-bold text-slate-900">Courier Gateway Integrations</h3>
-                <p className="text-xs text-slate-500">Live API webhooks and automated consignment generation</p>
+                <p className="text-xs text-slate-500">Courier integrations are not configured; booking and tracking are unavailable</p>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -2428,19 +2428,19 @@ export const AdminDashboard: React.FC = () => {
                       <p className="text-xs text-slate-500">Dhaka Metro & Express Same-Day Partner</p>
                     </div>
                     <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 text-xs font-bold rounded">
-                      Connected (Live)
+                      Not configured
                     </span>
                   </div>
                   <div className="space-y-1 text-xs text-slate-600">
-                    <p>Merchant Store ID: <strong className="font-mono">PTH-M-BANANI-482</strong></p>
-                    <p>Pickup Hub: <strong>Banani Plot 18, Dhaka</strong></p>
-                    <p>Auto-generate consignment on: <strong>Order Confirmed</strong></p>
+                    <p>Merchant Store ID: <strong className="font-mono">Not configured</strong></p>
+                    <p>Pickup Hub: <strong>Not configured</strong></p>
+                    <p>Automated booking: <strong>Unavailable until API setup</strong></p>
                   </div>
                   <button
-                    onClick={() => showToast('Pathao API connection verified (Ping: 42ms)', 'success')}
+                    onClick={() => showToast('Pathao integration is not configured. No API request was sent.', 'error')}
                     className="px-3 py-1.5 bg-slate-900 text-white text-xs font-semibold rounded-lg hover:bg-slate-800"
                   >
-                    Test Webhook Ping
+                    Check Integration Status
                   </button>
                 </div>
 
@@ -2452,19 +2452,19 @@ export const AdminDashboard: React.FC = () => {
                       <p className="text-xs text-slate-500">Nationwide 64 Districts Parcel Delivery</p>
                     </div>
                     <span className="px-2 py-0.5 bg-blue-100 text-blue-800 text-xs font-bold rounded">
-                      Connected (Live)
+                      Not configured
                     </span>
                   </div>
                   <div className="space-y-1 text-xs text-slate-600">
-                    <p>API Key: <strong className="font-mono">stf_live_••••••••••••9482</strong></p>
-                    <p>Coverage: <strong>All Thanas & Sub-districts</strong></p>
-                    <p>COD Settlement: <strong>T+1 Banking Day</strong></p>
+                    <p>API Key: <strong className="font-mono">Not configured</strong></p>
+                    <p>Coverage: <strong>Not verified</strong></p>
+                    <p>COD Settlement: <strong>Check merchant agreement</strong></p>
                   </div>
                   <button
-                    onClick={() => showToast('Steadfast API connection verified (Ping: 58ms)', 'success')}
+                    onClick={() => showToast('Steadfast integration is not configured. No API request was sent.', 'error')}
                     className="px-3 py-1.5 bg-slate-900 text-white text-xs font-semibold rounded-lg hover:bg-slate-800"
                   >
-                    Test Webhook Ping
+                    Check Integration Status
                   </button>
                 </div>
               </div>
@@ -2479,14 +2479,14 @@ export const AdminDashboard: React.FC = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-2">
                 <div className="flex items-center justify-between text-xs text-slate-500">
-                  <span>Settled Revenue</span>
+                  <span>Estimated Revenue</span>
                   <CheckCircle2 className="w-4 h-4 text-emerald-600" />
                 </div>
                 <p className="text-2xl font-extrabold text-slate-900 tabular-nums">
                   {formatPrice(totalRevenue, language)}
                 </p>
                 <span className="text-[11px] text-emerald-600 font-semibold">
-                  Cleared to bank account
+                  Based on local order statuses
                 </span>
               </div>
 
@@ -2549,7 +2549,7 @@ export const AdminDashboard: React.FC = () => {
             <div className="bg-white rounded-xl border border-slate-200 p-6 space-y-4">
               <div>
                 <h3 className="text-base font-bold text-slate-900">Payment Gateways & Settlement Channels</h3>
-                <p className="text-xs text-slate-500">Live Bangladesh MFS and card payment integrations</p>
+                <p className="text-xs text-slate-500">Payment gateway APIs and server-side verification are not configured</p>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -2559,12 +2559,12 @@ export const AdminDashboard: React.FC = () => {
                       <span className="w-2.5 h-2.5 rounded-full bg-pink-500" />
                       bKash Merchant API
                     </span>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800">
-                      Active
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-700">
+                      Not configured
                     </span>
                   </div>
-                  <p className="text-xs text-slate-500">Checkout API v1.2.0-beta · Instant IPN Webhooks</p>
-                  <p className="text-[11px] text-slate-400">Settlement: Instant to Merchant Account</p>
+                  <p className="text-xs text-slate-500">Checkout initiation and signed webhook verification are unavailable</p>
+                  <p className="text-[11px] text-slate-400">Settlement: not verified</p>
                 </div>
 
                 <div className="p-4 border border-slate-200 rounded-xl space-y-2.5 bg-slate-50/50">
@@ -2573,12 +2573,12 @@ export const AdminDashboard: React.FC = () => {
                       <span className="w-2.5 h-2.5 rounded-full bg-orange-500" />
                       Nagad Gateway
                     </span>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800">
-                      Active
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-700">
+                      Not configured
                     </span>
                   </div>
-                  <p className="text-xs text-slate-500">Direct Merchant Gateway · RSA Signature Validation</p>
-                  <p className="text-[11px] text-slate-400">Settlement: T+0 Real-time</p>
+                  <p className="text-xs text-slate-500">Gateway integration and signature validation are unavailable</p>
+                  <p className="text-[11px] text-slate-400">Settlement: not verified</p>
                 </div>
 
                 <div className="p-4 border border-slate-200 rounded-xl space-y-2.5 bg-slate-50/50">
@@ -2587,12 +2587,12 @@ export const AdminDashboard: React.FC = () => {
                       <span className="w-2.5 h-2.5 rounded-full bg-blue-600" />
                       SSLCommerz & Cards
                     </span>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800">
-                      Active
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-700">
+                      Not configured
                     </span>
                   </div>
-                  <p className="text-xs text-slate-500">Visa / Mastercard / Amex / NexusPay</p>
-                  <p className="text-[11px] text-slate-400">Settlement: T+1 Banking Day</p>
+                  <p className="text-xs text-slate-500">Payment initiation and callback verification are unavailable</p>
+                  <p className="text-[11px] text-slate-400">Settlement: not verified</p>
                 </div>
               </div>
             </div>

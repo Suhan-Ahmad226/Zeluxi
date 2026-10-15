@@ -2,7 +2,7 @@
   "id": "/",
   "name": "Zelux — Bangladesh Single-Store E-Commerce",
   "short_name": "Zelux",
-  "description": "Production-ready Bangladesh single-store e-commerce platform with BDT pricing, COD, bKash, Nagad, Rocket, SSLCommerz, and Pathao & Steadfast logistics.",
+  "description": "Bangladesh-focused single-store shopping experience. Online payments and courier automation are not yet enabled.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
