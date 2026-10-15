@@ -1,7 +1,6 @@
 /**
- * Redis Cache & Rate Limiting Service for Zelux
- * Provides key-value caching, TTL invalidation, and sliding window rate limiting.
- * Falls back safely to an in-memory Map when external Redis credentials are unconfigured.
+ * In-memory cache placeholder for local UI use only.
+ * This module does not connect to Redis and is not a distributed production rate limiter.
  */
 
 interface CacheEntry<T> {
@@ -12,15 +11,9 @@ interface CacheEntry<T> {
 class CacheService {
   private inMemoryStore = new Map<string, CacheEntry<unknown>>();
   private rateLimitCounts = new Map<string, { count: number; resetAt: number }>();
-  private isRedisConfigured = Boolean(process.env.REDIS_URL);
-
   constructor() {
-    if (!this.isRedisConfigured) {
-      // In-memory fallback mode
-      // Periodic cleanup of expired keys every 60s
-      if (typeof setInterval !== 'undefined') {
-        setInterval(() => this.cleanupExpired(), 60000);
-      }
+    if (typeof setInterval !== 'undefined') {
+      setInterval(() => this.cleanupExpired(), 60000);
     }
   }
 
