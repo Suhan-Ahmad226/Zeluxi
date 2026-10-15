@@ -8,12 +8,12 @@ ZELUX is an atelier-grade, single-store e-commerce platform engineered specifica
 
 | Layer | Technology |
 |---|---|
-| **Framework & UI** | Next.js 16 App Router / React 19 / Vite runtime |
+| **Framework & UI** | React 19 / Vite SPA (not Next.js App Router) |
 | **Language** | TypeScript strict mode |
 | **Styling & Icons** | Tailwind CSS 4, shadcn/ui primitives, Lucide React, Motion |
-| **Database & ORM** | PostgreSQL with Prisma (`prisma/schema.prisma`) |
+| **Database & ORM** | Prisma/PostgreSQL schema present; production CRUD is not yet wired to the SPA |
 | **Authentication** | Supabase Auth (`src/lib/supabase.ts`) |
-| **Logistics Integration** | Pathao Hermes Logistics (`https://api-hermes.pathao.com`) & Steadfast Courier Network |
+| **Logistics Integration** | Adapter interfaces only; real server-side booking/tracking integration remains incomplete |
 | **Validation** | Zod schemas (`src/lib/validation/schemas.ts`) |
 | **Instant Alerts** | Telegram Dispatch Service (`src/lib/notifications/telegram.ts`) |
 | **Caching & Rate Limiting** | Redis Cache & Sliding Window Limiter (`src/lib/cache/redis.ts`) |
@@ -99,7 +99,7 @@ npm run dev
 2. **Pathao Hermes Courier Logistics:**
    - Register merchant account at `merchant.pathao.com`.
    - Generate API keys in Developer Settings (`CLIENT_ID` and `CLIENT_SECRET`).
-   - Fill `VITE_PATHAO_CLIENT_ID` and store credentials in `.env.local`.
+   - Keep credentials server-side only. Do not expose merchant secrets in `VITE_*` variables; this SPA currently does not perform real Pathao bookings.
 3. **Steadfast Logistics:**
    - Register account at `steadfast.com.bd`.
    - Copy API Key and Secret Key to `STEADFAST_API_KEY` and `STEADFAST_SECRET_KEY`.
@@ -126,14 +126,20 @@ npm run build
 
 ---
 
-## 6. Production Launch Checklist
+## 6. Production Readiness — Not Yet Approved for Live Orders
 
-- [x] Strict TypeScript compilation passes with 0 errors (`npm run lint`).
-- [x] All unit test suites pass (Pricing, Validation, Order State Machine).
-- [x] Production bundle generates without warnings or bundle failures (`npm run build`).
-- [x] SEO robots.txt and sitemap.xml configured for `https://zelux.vercel.app`.
-- [x] Vercel routing and security headers configured (`vercel.json`).
-- [x] PWA manifest and icons active (`public/manifest.webmanifest`).
-- [x] Bangladeshi Taka (BDT) integer money precision verified.
-- [x] Cash on Delivery (COD) and MFS payment flows verified.
-- [x] Pathao & Steadfast logistics adapters implemented.
+The repository is a frontend prototype with some real Supabase Auth calls and several integration interfaces. It is **not yet a complete production e-commerce backend**. Do not interpret the UI, schema, or adapter classes as proof that an external service is connected.
+
+### Verified blockers to resolve before launch
+- [ ] Replace `src/data/mockData.ts` sample catalog/orders/customers/coupons with real database-backed data.
+- [ ] Replace `StoreContext` LocalStorage-only catalog, inventory, customer, order, coupon, review, and CMS persistence with authenticated server APIs and PostgreSQL transactions.
+- [ ] Add server-side authorization for every admin operation; never rely on client-side `isAdmin` alone.
+- [ ] Configure Supabase URL/public key and test signup OTP, login, OAuth, logout, recovery OTP, and expired sessions against the production project.
+- [ ] Integrate and verify a real online payment gateway. Until then, only COD can be offered; client-entered TrxIDs are not payment proof.
+- [ ] Implement server-side Pathao/Steadfast booking, cancellation, webhook signature verification, idempotency, and live tracking using real merchant credentials.
+- [ ] Implement Telegram/email notifications through server-side endpoints and secrets.
+- [ ] Add a committed dependency lockfile, run the full CI suite, and complete end-to-end tests on a staging deployment.
+- [ ] Rotate any credentials that were ever committed to Git history, including the Telegram bot token.
+
+### Current safe behavior
+The hardening branch removes demo authentication bypasses and prevents several integrations from falsely reporting success when no real server-side provider call exists. This deliberately blocks unsupported payment, courier, and refund operations instead of fabricating success. It is a security step, not a claim that all production integrations are complete.
