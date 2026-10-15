@@ -645,6 +645,12 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     courierChoice: CourierProvider,
     transactionId?: string
   ): Order => {
+    // RELEASE SAFETY GATE: this Vite SPA has no trusted order API or shared database.
+    // Never create a browser-only order, decrement local stock, or show a false success.
+    throw new Error(
+      'Live order placement is not available yet. This storefront is waiting for its secure server-side order service.'
+    );
+
     const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
     const shippingInfo = calculateShipping(
