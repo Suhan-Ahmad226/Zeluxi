@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { PaymentService } from '../../src/lib/payments/paymentService';
 import { SecurityService } from '../../src/lib/security';
 import { getCourierProvider } from '../../src/lib/shipping/couriers';
+import { EmailService } from '../../src/lib/email';
 
 describe('Production safety: payment, webhook and courier adapters', () => {
   it('does not treat a customer-provided online payment reference as verified payment', async () => {
@@ -37,6 +38,12 @@ describe('Production safety: payment, webhook and courier adapters', () => {
 
   it('rejects webhook signatures until server-side HMAC verification exists', () => {
     assert.equal(SecurityService.verifyWebhookSignature('payload', 'arbitrary-signature', 'secret'), false);
+  });
+
+  it('does not report email delivery success without a real provider adapter', async () => {
+    const result = await EmailService.sendOrderNotification({} as any);
+    assert.equal(result.success, false);
+    assert.match(result.error || '', /not configured/i);
   });
 
   it('never invents successful courier bookings when live provider APIs are not configured', async () => {
