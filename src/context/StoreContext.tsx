@@ -149,7 +149,8 @@ interface StoreContextType {
 
 const StoreContext = createContext<StoreContextType | undefined>(undefined);
 
-const LOCAL_STORAGE_KEY = 'ZELUX_ECOMMERCE_STATE_V2';
+// New namespace intentionally ignores legacy browser-only commerce records during hardening.
+const LOCAL_STORAGE_KEY = 'ZELUX_ECOMMERCE_STATE_V3';
 
 export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // Load initial state from LocalStorage if available
