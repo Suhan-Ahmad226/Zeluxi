@@ -74,33 +74,16 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     if ([...merged.values()].some(qty => qty > 20)) return res.status(400).json({ error: 'Maximum quantity per product is 20.' });
     const items = [...merged].map(([productId, quantity]) => ({ productId, quantity }));
 
-    // Never trust a browser-supplied delivery fee or product price. Compute shipping on the server.
+    // The database transaction locks the current products, derives prices, and calculates shipping atomically.
     const admin = createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false, autoRefreshToken: false } });
-    const productIds = items.map(item => item.productId);
-    const { data: products, error: productsError } = await admin
-      .from('store_products')
-      .select('id,price,published,archived')
-      .in('id', productIds);
-    if (productsError || !products || products.length !== productIds.length) {
-      return res.status(409).json({ error: 'A product is unavailable. Please refresh your cart.' });
-    }
-    const productById = new Map(products.map(p => [p.id, p]));
-    let subtotal = 0;
-    for (const item of items) {
-      const product = productById.get(item.productId);
-      if (!product || !product.published || product.archived) return res.status(409).json({ error: 'A product is unavailable. Please refresh your cart.' });
-      subtotal += Number(product.price) * item.quantity;
-    }
-    const shippingFee = subtotal >= freeShippingThreshold
-      ? 0
-      : parsed.data.customer.division === 'Dhaka' ? dhakaFee : outsideDhakaFee;
-
     const { data, error } = await admin.rpc('create_customer_order', {
       p_user_id: authData.user.id,
       p_idempotency_key: idempotencyKey,
       p_customer: parsed.data.customer,
       p_items: items,
-      p_shipping_fee: shippingFee,
+      p_dhaka_fee: dhakaFee,
+      p_outside_dhaka_fee: outsideDhakaFee,
+      p_free_shipping_threshold: freeShippingThreshold,
     });
     if (error) {
       const safeMessage = /Insufficient stock|unavailable|Invalid quantity|Invalid order|Invalid customer|Invalid shipping/i.test(error.message)
