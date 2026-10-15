@@ -169,25 +169,30 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
       });
     }
     const product = parsed.data;
-    if (req.method === 'PATCH') {
-      const { data: existing, error: existingError } = await admin
-        .from('store_products').select('id').eq('id', product.id).maybeSingle();
-      if (existingError || !existing) return res.status(404).json({ error: 'Product not found.' });
-    }
+    const { data: existing, error: existingError } = await admin
+      .from('store_products').select('id').eq('id', product.id).maybeSingle();
+    if (existingError) return res.status(503).json({ error: 'Product state could not be checked.' });
+    if (req.method === 'POST' && existing) return res.status(409).json({ error: 'Product ID already exists.' });
+    if (req.method === 'PATCH' && !existing) return res.status(404).json({ error: 'Product not found.' });
 
+    const { costPrice, ...publicProductData } = product;
     const row = {
       id: product.id,
       name: product.name,
       price: product.price,
+      cost_price: costPrice ?? null,
       stock: product.stock,
       published: product.published,
       archived: product.archived ?? false,
       image_url: product.images[0] ?? null,
-      product_data: product,
+      // Never store procurement cost in the JSON exposed to public catalog reads.
+      product_data: publicProductData,
       updated_at: new Date().toISOString(),
     };
-    const { error } = await admin.from('store_products').upsert(row, { onConflict: 'id' });
-    if (error) return res.status(409).json({ error: 'Product could not be saved. Check SKU and database constraints.' });
+    const write = req.method === 'POST'
+      ? await admin.from('store_products').insert(row)
+      : await admin.from('store_products').update(row).eq('id', product.id);
+    if (write.error) return res.status(409).json({ error: 'Product could not be saved. Check SKU and database constraints.' });
     return res.status(req.method === 'POST' ? 201 : 200).json({ product });
   } catch {
     return res.status(500).json({ error: 'Catalog request failed unexpectedly.' });
