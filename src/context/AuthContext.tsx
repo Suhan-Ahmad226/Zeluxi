@@ -76,14 +76,8 @@ const requireSupabaseConfiguration = () => {
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [supabaseUser, setSupabaseUser] = useState<SupabaseUser | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(() => {
-    try {
-      const saved = localStorage.getItem('ZELUX_ACTIVE_PROFILE');
-      return saved ? JSON.parse(saved) : null;
-    } catch {
-      return null;
-    }
-  });
+  // A cached profile is display data, not proof of authentication. Start anonymous and hydrate only from a valid Supabase session.
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
 
   const [loading, setLoading] = useState<boolean>(true);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
@@ -224,6 +218,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } else if (event === 'SIGNED_OUT') {
         setSupabaseUser(null);
         setSession(null);
+        setUserProfile(null);
+        localStorage.removeItem('ZELUX_ACTIVE_PROFILE');
       } else if (event === 'USER_UPDATED' && user) {
         const profile = mapSupabaseUserToProfile(user);
         setUserProfile(profile);
