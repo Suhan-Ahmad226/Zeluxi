@@ -112,10 +112,17 @@ export const CheckoutModal: React.FC = () => {
   }
 
   const grandTotal = Math.max(0, subtotal + shippingInfo.fee - discount);
+  // Enable only after a trusted server-side order API and persistent database are deployed and verified.
+  const isLiveCheckoutEnabled = false;
 
   const handleSubmitOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
+
+    if (!isLiveCheckoutEnabled) {
+      setFormError('Checkout is temporarily unavailable while secure order processing is being completed. Your cart has not been submitted and no order has been created.');
+      return;
+    }
 
     // Zod Address Validation
     const cleanPhone = phone.trim().replace(/[^0-9]/g, '');
@@ -228,6 +235,12 @@ export const CheckoutModal: React.FC = () => {
 
         {/* Checkout Form */}
         <form onSubmit={handleSubmitOrder} className="overflow-y-auto p-6 space-y-5">
+          {!isLiveCheckoutEnabled && (
+            <div role="status" className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+              <span><strong>Checkout temporarily unavailable.</strong> Secure server-side order processing is not deployed yet. Do not submit payment or transaction references here.</span>
+            </div>
+          )}
           {formError && (
             <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 flex items-center gap-2">
               <AlertCircle className="w-4 h-4 shrink-0 text-red-600" />
@@ -710,14 +723,16 @@ export const CheckoutModal: React.FC = () => {
           <div className="pt-2">
             <button
               type="submit"
-              disabled={isProcessing}
+              disabled={isProcessing || !isLiveCheckoutEnabled}
               className="w-full flex items-center justify-center gap-2 py-3.5 px-4 bg-slate-950 hover:bg-slate-800 text-white text-sm font-semibold rounded-xl shadow-sm transition-colors active:scale-98 disabled:opacity-50"
             >
               <ShieldCheck className="w-4 h-4 text-emerald-400" />
               <span>
                 {isProcessing
                   ? 'Processing order...'
-                  : `Place order · ${formatPrice(grandTotal)}`}
+                  : !isLiveCheckoutEnabled
+                    ? 'Checkout unavailable'
+                    : `Place order · ${formatPrice(grandTotal)}`}
               </span>
             </button>
             <p className="text-[11px] text-center text-slate-400 mt-2">
