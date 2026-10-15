@@ -109,18 +109,25 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
         .eq('archived', false)
         .order('updated_at', { ascending: false });
       if (error) return res.status(503).json({ error: 'Unable to load catalog.' });
-      const products = (data || []).map((row) => ({
-        ...(row.product_data && typeof row.product_data === 'object' ? row.product_data : {}),
-        id: row.id,
-        name: row.name,
-        price: Number(row.price),
-        stock: row.stock,
-        published: row.published,
-        archived: row.archived,
-        images: Array.isArray((row.product_data as Record<string, unknown> | null)?.images)
-          ? (row.product_data as { images: unknown[] }).images
-          : row.image_url ? [row.image_url] : [],
-      }));
+      const products = (data || []).map((row) => {
+        const stored = row.product_data && typeof row.product_data === 'object'
+          ? row.product_data as Record<string, unknown>
+          : {};
+        // Never expose internal procurement cost data through the public catalog API.
+        const { costPrice: _costPrice, ...publicData } = stored;
+        return {
+          ...publicData,
+          id: row.id,
+          name: row.name,
+          price: Number(row.price),
+          stock: row.stock,
+          published: row.published,
+          archived: row.archived,
+          images: Array.isArray(stored.images)
+            ? stored.images
+            : row.image_url ? [row.image_url] : [],
+        };
+      });
       return res.status(200).json({ products });
     }
 
