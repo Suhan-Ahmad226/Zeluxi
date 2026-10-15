@@ -7,7 +7,7 @@ const addressSchema = z.object({
   fullName: z.string().trim().min(2).max(100),
   phone: z.string().trim().regex(/^(?:\+?88)?01[3-9]\d{8}$/),
   email: z.string().trim().email().max(254).optional().or(z.literal('')),
-  division: z.enum(['Dhaka','Chattogram','Rajshahi','Sylhet','Khulna','Barishal','Rangpur','Mymensingh']),
+  division: z.enum(['Dhaka','Chattogram','Rajshahi','Sylhet','Rajshahi','Khulna','Barishal','Rangpur','Mymensingh']).transform(v => v),
   district: z.string().trim().min(1).max(100),
   thanaCity: z.string().trim().min(1).max(100),
   addressDetails: z.string().trim().min(5).max(1000),
@@ -20,8 +20,14 @@ const bodySchema = z.object({
     productId: z.string().trim().min(1).max(100),
     quantity: z.number().int().min(1).max(20),
   })).min(1).max(50),
-  shippingFee: z.number().min(0).max(2000),
 }).strict();
+
+function readNonNegativeEnv(name: string): number | null {
+  const raw = process.env[name];
+  if (!raw || !raw.trim()) return null;
+  const value = Number(raw);
+  return Number.isFinite(value) && value >= 0 ? value : null;
+}
 
 export default async function handler(req: ApiRequest, res: ApiResponse) {
   res.setHeader('Cache-Control', 'no-store');
@@ -34,13 +40,16 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
   const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
   const anonKey = process.env.VITE_SUPABASE_ANON_KEY;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!supabaseUrl || !anonKey || !serviceRoleKey) {
+  const dhakaFee = readNonNegativeEnv('SHIPPING_DHAKA_FEE');
+  const outsideDhakaFee = readNonNegativeEnv('SHIPPING_OUTSIDE_DHAKA_FEE');
+  const freeShippingThreshold = readNonNegativeEnv('FREE_SHIPPING_THRESHOLD');
+  if (!supabaseUrl || !anonKey || !serviceRoleKey || dhakaFee === null || outsideDhakaFee === null || freeShippingThreshold === null || freeShippingThreshold <= 0) {
     return res.status(503).json({ error: 'Order service is not configured. No order was created.' });
   }
 
-  const authHeader = req.headers.authorization;
-  const authorization = Array.isArray(authHeader) ? authHeader[0] : authHeader;
-  const token = authorization?.startsWith('Bearer ') ? authorization.slice(7) : '';
+  const rawAuthHeader = req.headers.authorization;
+  const authHeader = Array.isArray(rawAuthHeader) ? rawAuthHeader[0] : rawAuthHeader;
+  const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : '';
   const rawIdempotencyKey = req.headers['idempotency-key'];
   const idempotencyKey = Array.isArray(rawIdempotencyKey) ? rawIdempotencyKey[0] : rawIdempotencyKey;
   if (!token) return res.status(401).json({ error: 'Sign in is required.' });
@@ -60,19 +69,38 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
       return res.status(400).json({ error: 'Invalid checkout data.', details: parsed.error.issues.map(i => ({ path: i.path, message: i.message })) });
     }
 
-    // Normalize duplicate product lines before calling the transactional database function.
     const merged = new Map<string, number>();
     for (const item of parsed.data.items) merged.set(item.productId, (merged.get(item.productId) || 0) + item.quantity);
     if ([...merged.values()].some(qty => qty > 20)) return res.status(400).json({ error: 'Maximum quantity per product is 20.' });
     const items = [...merged].map(([productId, quantity]) => ({ productId, quantity }));
 
+    // Never trust a browser-supplied delivery fee or product price. Compute shipping on the server.
     const admin = createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false, autoRefreshToken: false } });
+    const productIds = items.map(item => item.productId);
+    const { data: products, error: productsError } = await admin
+      .from('store_products')
+      .select('id,price,published,archived')
+      .in('id', productIds);
+    if (productsError || !products || products.length !== productIds.length) {
+      return res.status(409).json({ error: 'A product is unavailable. Please refresh your cart.' });
+    }
+    const productById = new Map(products.map(p => [p.id, p]));
+    let subtotal = 0;
+    for (const item of items) {
+      const product = productById.get(item.productId);
+      if (!product || !product.published || product.archived) return res.status(409).json({ error: 'A product is unavailable. Please refresh your cart.' });
+      subtotal += Number(product.price) * item.quantity;
+    }
+    const shippingFee = subtotal >= freeShippingThreshold
+      ? 0
+      : parsed.data.customer.division === 'Dhaka' ? dhakaFee : outsideDhakaFee;
+
     const { data, error } = await admin.rpc('create_customer_order', {
       p_user_id: authData.user.id,
       p_idempotency_key: idempotencyKey,
       p_customer: parsed.data.customer,
       p_items: items,
-      p_shipping_fee: parsed.data.shippingFee,
+      p_shipping_fee: shippingFee,
     });
     if (error) {
       const safeMessage = /Insufficient stock|unavailable|Invalid quantity|Invalid order|Invalid customer|Invalid shipping/i.test(error.message)
