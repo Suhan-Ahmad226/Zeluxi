@@ -1224,14 +1224,14 @@ export const AdminDashboard: React.FC = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-2">
                 <div className="flex items-center justify-between text-xs text-slate-500">
-                  <span>Total Settled Revenue</span>
+                  <span>Estimated Revenue</span>
                   <TrendingUp className="w-4 h-4 text-emerald-600" />
                 </div>
                 <p className="text-2xl font-extrabold text-slate-900 tabular-nums">
                   {formatPrice(totalRevenue, language)}
                 </p>
                 <span className="text-[11px] text-emerald-600 font-semibold">
-                  100% verified settlement
+                  Estimate based on local order statuses
                 </span>
               </div>
 
@@ -2479,7 +2479,7 @@ export const AdminDashboard: React.FC = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-2">
                 <div className="flex items-center justify-between text-xs text-slate-500">
-                  <span>Settled Revenue</span>
+                  <span>Estimated Revenue</span>
                   <CheckCircle2 className="w-4 h-4 text-emerald-600" />
                 </div>
                 <p className="text-2xl font-extrabold text-slate-900 tabular-nums">
