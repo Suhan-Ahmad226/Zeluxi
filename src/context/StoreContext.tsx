@@ -694,8 +694,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       couponCode: appliedCoupon ? appliedCoupon.code : undefined,
       status: 'PENDING',
       paymentMethod,
-      paymentStatus: paymentMethod === 'COD' ? 'UNPAID' : 'PAID',
-      transactionId: transactionId || (paymentMethod === 'BKASH' ? `BKS${Date.now().toString().slice(-8)}` : undefined),
+      // No online payment is considered paid without server-side gateway verification.
+      paymentStatus: 'UNPAID',
+      transactionId: transactionId?.trim() || undefined,
       courier: {
         provider: courierChoice,
         trackingCode: '',
