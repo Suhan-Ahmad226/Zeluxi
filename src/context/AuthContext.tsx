@@ -209,6 +209,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } else if (event === 'SIGNED_OUT') {
         setSupabaseUser(null);
         setSession(null);
+        setUserProfile(null);
+        localStorage.removeItem('ZELUX_ACTIVE_PROFILE');
       } else if (event === 'USER_UPDATED' && user) {
         const profile = mapSupabaseUserToProfile(user);
         setUserProfile(profile);
