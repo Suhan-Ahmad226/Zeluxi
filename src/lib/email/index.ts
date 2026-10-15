@@ -7,6 +7,13 @@
 import { Order } from '../../types';
 import { formatPrice } from '../../utils/formatters';
 
+const escapeHtml = (value: string): string => value
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+  .replace(/\"/g, '&quot;')
+  .replace(/'/g, '&#x27;');
+
 export interface EmailDispatchResult {
   success: boolean;
   messageId?: string;
@@ -24,8 +31,8 @@ export class EmailService {
         (item) => `
         <tr style="border-bottom: 1px solid #E2E8F0;">
           <td style="padding: 12px 0;">
-            <p style="margin: 0; font-weight: 600; color: #0F172A;">${item.productName}</p>
-            ${item.variantLabel ? `<p style="margin: 2px 0 0; font-size: 12px; color: #64748B;">${item.variantLabel}</p>` : ''}
+            <p style="margin: 0; font-weight: 600; color: #0F172A;">${escapeHtml(item.productName)}</p>
+            ${item.variantLabel ? `<p style="margin: 2px 0 0; font-size: 12px; color: #64748B;">${escapeHtml(item.variantLabel)}</p>` : ''}
           </td>
           <td style="padding: 12px 0; text-align: center; color: #475569;">x${item.quantity}</td>
           <td style="padding: 12px 0; text-align: right; font-weight: 600; color: #0F172A;">${formatPrice(item.price * item.quantity)}</td>
@@ -44,9 +51,9 @@ export class EmailService {
             <p style="color: #E0E7FF; margin: 6px 0 0; font-size: 13px;">Bangladesh Atelier & Lifestyle Goods</p>
           </div>
           <div style="padding: 24px;">
-            <h2 style="font-size: 18px; color: #0F172A; margin: 0 0 12px;">Thank you for your order, ${order.customer.fullName}!</h2>
+            <h2 style="font-size: 18px; color: #0F172A; margin: 0 0 12px;">Thank you for your order, ${escapeHtml(order.customer.fullName)}!</h2>
             <p style="font-size: 14px; color: #475569; margin: 0 0 20px;">
-              Your order <strong>#${order.id}</strong> has been received. We will confirm fulfillment details after the order is verified.
+              Your order <strong>#${escapeHtml(order.id)}</strong> has been received. We will confirm fulfillment details after the order is verified.
             </p>
             <table style="width: 100%; border-collapse: collapse; font-size: 14px; margin-bottom: 24px;">
               <thead>
@@ -64,7 +71,7 @@ export class EmailService {
                 <span style="font-weight: 600;">${formatPrice(order.subtotal)}</span>
               </div>
               <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
-                <span style="color: #64748B;">Delivery Fee (${order.customer.division}):</span>
+                <span style="color: #64748B;">Delivery Fee (${escapeHtml(order.customer.division)}):</span>
                 <span style="font-weight: 600;">${order.shippingFee === 0 ? 'FREE' : formatPrice(order.shippingFee)}</span>
               </div>
               ${order.discount ? `
@@ -95,7 +102,7 @@ export class EmailService {
     // notification that was not actually sent; real delivery belongs in a server-side service.
     return {
       success: false,
-      provider: process.env.SMTP_HOST || process.env.RESEND_API_KEY ? 'SMTP' : 'CONSOLE_LOG',
+      provider: 'CONSOLE_LOG',
       error: 'Email delivery is not configured. Add a server-side SMTP/Resend adapter before enabling order notifications.',
     };
   }
