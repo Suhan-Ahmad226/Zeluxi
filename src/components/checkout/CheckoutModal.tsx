@@ -123,7 +123,7 @@ export const CheckoutModal: React.FC = () => {
     const candidateAddress = {
       fullName: fullName.trim(),
       phone: cleanPhone,
-      email: email.trim() || 'customer@zelux.com.bd',
+      email: email.trim() || activeUserEmail || '',
       division: division as any,
       district: district.trim() || division,
       thanaCity: thanaCity.trim() || division,
@@ -173,7 +173,10 @@ export const CheckoutModal: React.FC = () => {
         return;
       }
     } catch (err: any) {
-      console.warn('Identity verification check fallback error:', err);
+      console.error('Identity verification failed; checkout has been blocked.', err);
+      setIsProcessing(false);
+      setFormError('We could not verify your account. Please try again after signing in.');
+      return;
     }
 
     const address: ShippingAddress = {
