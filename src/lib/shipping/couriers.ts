@@ -102,7 +102,7 @@ export class PathaoCourierProvider implements ICourierProvider {
     return { success: false, message: 'Live Pathao cancellation is not configured. No cancellation was sent.' };
   }
 
-  async getTracking(_trackingCode: string) {
+  async getTracking(_trackingCode: string): Promise<{ status: string; currentLocation: string; events: TrackingEvent[] }> {
     throw new Error('Live Pathao tracking is not configured. No live tracking data is available.');
   }
 
