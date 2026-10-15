@@ -33,8 +33,6 @@ import {
   INITIAL_PAGES,
   INITIAL_STOREFRONT_CMS,
 } from '../data/mockData';
-import { calculateShipping } from '../utils/formatters';
-import { sendTelegramOrderNotification } from '../lib/notifications/telegram';
 import { getCourierProvider } from '../lib/shipping/couriers';
 
 interface ToastNotification {
