@@ -2559,7 +2559,7 @@ export const AdminDashboard: React.FC = () => {
                       <span className="w-2.5 h-2.5 rounded-full bg-pink-500" />
                       bKash Merchant API
                     </span>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800">
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-700">
                       Not configured
                     </span>
                   </div>
@@ -2573,7 +2573,7 @@ export const AdminDashboard: React.FC = () => {
                       <span className="w-2.5 h-2.5 rounded-full bg-orange-500" />
                       Nagad Gateway
                     </span>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800">
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-700">
                       Not configured
                     </span>
                   </div>
@@ -2587,7 +2587,7 @@ export const AdminDashboard: React.FC = () => {
                       <span className="w-2.5 h-2.5 rounded-full bg-blue-600" />
                       SSLCommerz & Cards
                     </span>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800">
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-700">
                       Not configured
                     </span>
                   </div>
