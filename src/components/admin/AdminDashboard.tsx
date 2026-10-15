@@ -1383,7 +1383,7 @@ export const AdminDashboard: React.FC = () => {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <h3 className="text-base font-bold text-slate-900">Customer Orders & Consignments</h3>
-                <p className="text-xs text-slate-500">Manage orders, assign courier dispatches, and trigger status webhooks</p>
+                <p className="text-xs text-slate-500">Review local order records; courier dispatch and status webhooks are not configured</p>
               </div>
 
               {/* Filters */}
@@ -1562,7 +1562,7 @@ export const AdminDashboard: React.FC = () => {
                         )}
                         {ord.status === 'SHIPPED' && (
                           <button
-                            onClick={() => updateOrderStatus(ord.id, 'DELIVERED', 'Delivered & COD collected')}
+                            onClick={() => updateOrderStatus(ord.id, 'DELIVERED', 'Delivery status manually recorded; COD collection must be verified separately')}
                             className="px-2 py-1 bg-emerald-600 text-white rounded text-[11px] font-semibold hover:bg-emerald-700"
                           >
                             Mark Delivered
@@ -2574,7 +2574,7 @@ export const AdminDashboard: React.FC = () => {
                       Nagad Gateway
                     </span>
                     <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800">
-                      Active
+                      Not configured
                     </span>
                   </div>
                   <p className="text-xs text-slate-500">Gateway integration and signature validation are unavailable</p>
@@ -2588,7 +2588,7 @@ export const AdminDashboard: React.FC = () => {
                       SSLCommerz & Cards
                     </span>
                     <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800">
-                      Active
+                      Not configured
                     </span>
                   </div>
                   <p className="text-xs text-slate-500">Payment initiation and callback verification are unavailable</p>
