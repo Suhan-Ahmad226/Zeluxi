@@ -14,7 +14,7 @@ Zeluxi is a Bangladesh-focused single-store e-commerce frontend built with Vite,
 
 ## Security and integration boundaries
 
-- Demo accounts and seeded demo commerce records have been removed from the production-hardening branch.
+- Demo/mock catalog and order records must be reviewed and replaced with the real store catalog before launch; do not treat seeded values as live business records.
 - Authentication requires a real Supabase session; cached profile data alone is not considered proof of login.
 - Admin role assignment must be performed through trusted Supabase `app_metadata`/server-side administration. Never promote users based on email text or user-editable metadata.
 - Customer-entered bKash/Nagad/Rocket transaction references are not payment proof. Online payment stays unverified until an authorized manual review or a real server-side gateway verification succeeds.
