@@ -3,7 +3,14 @@ import { useStore } from '../../context/StoreContext';
 import { ArrowRight } from 'lucide-react';
 
 export const CategoryList: React.FC = () => {
-  const { categories, setSelectedCategoryFilter, setActiveView } = useStore();
+  const { categories, products, setSelectedCategoryFilter, setActiveView } = useStore();
+
+  const visibleCategories = categories.filter((category) => category.isActive !== false).sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  const getPublishedProductCount = (categoryId: string, categoryName: string, categorySlug: string) =>
+    products.filter((product) => product.published && !product.archived && (
+      product.category === categoryName || product.category === categoryId || product.category === categorySlug ||
+      product.subcategory === categoryName || product.subcategory === categoryId || product.subcategory === categorySlug
+    )).length;
 
   const handleSelect = (slug: string) => {
     setSelectedCategoryFilter(slug);
@@ -35,7 +42,7 @@ export const CategoryList: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
-          {categories.map((cat) => (
+          {visibleCategories.map((cat) => (
             <button
               key={cat.id}
               onClick={() => handleSelect(cat.slug)}
@@ -45,13 +52,14 @@ export const CategoryList: React.FC = () => {
                 <img
                   src={cat.image}
                   alt={cat.name}
+                  loading="lazy"
+                  decoding="async"
                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                  referrerPolicy="no-referrer"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
                 <div className="absolute bottom-3 left-3 right-3 text-white">
                   <span className="text-[11px] font-mono text-indigo-200">
-                    {cat.itemCount} Items
+                    {getPublishedProductCount(cat.id, cat.name, cat.slug)} Items
                   </span>
                   <h3 className="text-sm sm:text-base font-semibold text-white leading-tight">
                     {cat.name}

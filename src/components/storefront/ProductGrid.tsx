@@ -32,65 +32,54 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
   const [inStockOnly, setInStockOnly] = useState(false);
 
   const filteredProducts = useMemo(() => {
+    const categoryMatches = (product: (typeof products)[number]) => {
+      if (!selectedCategoryFilter || featuredOnly) return true;
+      const selected = categories.find((category) => category.slug === selectedCategoryFilter);
+      if (!selected) return true;
+      const matchingValues = new Set<string>([selected.id, selected.slug, selected.name]);
+      let foundDescendant = true;
+      while (foundDescendant) {
+        foundDescendant = false;
+        for (const category of categories) {
+          if (category.parentId && matchingValues.has(category.parentId) && !matchingValues.has(category.id)) {
+            matchingValues.add(category.id);
+            matchingValues.add(category.slug);
+            matchingValues.add(category.name);
+            foundDescendant = true;
+          }
+        }
+      }
+      return matchingValues.has(product.category) || matchingValues.has(product.subcategory || '');
+    };
     return products.filter((p) => {
-      if (!p.published) return false;
-      if (featuredOnly && !p.featured) return false;
-
-      // Filter Tab (New Arrivals, Best Sellers, Deals, Featured)
-      if (activeFilterTab === 'new-arrivals') {
-        if (!p.isNewArrival && p.stock <= 5) return false;
-      } else if (activeFilterTab === 'best-sellers') {
-        if (!p.isBestSeller && p.reviewCount < 30) return false;
-      } else if (activeFilterTab === 'deals') {
-        if (!p.isFlashDeal && (!p.compareAtPrice || p.compareAtPrice <= p.price)) return false;
-      } else if (activeFilterTab === 'featured') {
-        if (!p.featured) return false;
-      }
-
-      // Category filter
-      if (selectedCategoryFilter) {
-        const cat = categories.find((c) => c.slug === selectedCategoryFilter);
-        if (cat && p.category !== cat.name) return false;
-      }
-
-      // Stock filter
-      if (inStockOnly && p.stock <= 0) {
-        return false;
-      }
-
-      // Price bracket filter
+      if (!p.published || p.archived) return false;
+      if (featuredOnly) return p.featured;
+      if (activeFilterTab === 'new-arrivals' && !p.isNewArrival) return false;
+      if (activeFilterTab === 'best-sellers' && !p.isBestSeller) return false;
+      if (activeFilterTab === 'deals' && !p.isFlashDeal && (!p.compareAtPrice || p.compareAtPrice <= p.price)) return false;
+      if (activeFilterTab === 'featured' && !p.featured) return false;
+      if (!categoryMatches(p)) return false;
+      if (inStockOnly && p.stock <= 0) return false;
       if (priceRange === 'under-2000' && p.price >= 2000) return false;
       if (priceRange === '2000-5000' && (p.price < 2000 || p.price > 5000)) return false;
       if (priceRange === 'above-5000' && p.price <= 5000) return false;
-
-      // Search query filter
       if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase();
+        const q = searchQuery.trim().toLowerCase();
         const matchName = p.name.toLowerCase().includes(q);
         const matchSku = p.sku.toLowerCase().includes(q);
         const matchCat = p.category.toLowerCase().includes(q);
-        const matchTags = p.tags.some((t) => t.toLowerCase().includes(q));
-        if (!matchName && !matchSku && !matchCat && !matchTags) return false;
+        const matchSubcategory = (p.subcategory || '').toLowerCase().includes(q);
+        const matchTags = p.tags.some((tag) => tag.toLowerCase().includes(q));
+        if (!matchName && !matchSku && !matchCat && !matchSubcategory && !matchTags) return false;
       }
-
       return true;
     }).sort((a, b) => {
       if (sortBy === 'price-low') return a.price - b.price;
       if (sortBy === 'price-high') return b.price - a.price;
       if (sortBy === 'rating') return b.rating - a.rating;
-      return 0; // featured default
+      return 0;
     });
-  }, [
-    products,
-    categories,
-    selectedCategoryFilter,
-    activeFilterTab,
-    inStockOnly,
-    priceRange,
-    searchQuery,
-    featuredOnly,
-    sortBy,
-  ]);
+  }, [products, categories, selectedCategoryFilter, activeFilterTab, inStockOnly, priceRange, searchQuery, featuredOnly, sortBy]);
 
   const displayList = limit ? filteredProducts.slice(0, limit) : filteredProducts;
 
@@ -102,7 +91,7 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
           <div>
             <div className="flex items-center gap-2 mb-1">
               <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100">
-                {activeFilterTab === 'new-arrivals'
+                {featuredOnly ? 'Featured' : activeFilterTab === 'new-arrivals'
                   ? 'New arrivals'
                   : activeFilterTab === 'deals'
                   ? 'Deals'
@@ -122,6 +111,8 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
             </p>
           </div>
 
+          {!featuredOnly && (
+          <>
           {/* Quick Filter Buttons & Sort */}
           <div className="flex flex-wrap items-center gap-3">
             {/* Quick Segmented Tabs */}
@@ -231,7 +222,7 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
           >
             All Categories
           </button>
-          {categories.map((c) => (
+          {categories.filter((category) => category.isActive !== false).map((c) => (
             <button
               key={c.id}
               onClick={() => setSelectedCategoryFilter(c.slug)}
@@ -262,6 +253,9 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
           </div>
         )}
 
+          </>
+          )}
+
         {/* Empty State */}
         {displayList.length === 0 ? (
           <div className="text-center py-16 px-4 bg-slate-50 rounded-2xl border border-slate-200">
@@ -271,18 +265,20 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
             <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
               Try adjusting your price range, stock filter, or selecting a different category.
             </p>
-            <button
-              onClick={() => {
-                setSelectedCategoryFilter(null);
-                setActiveFilterTab('all');
-                setPriceRange('all');
-                setInStockOnly(false);
-                setSearchQuery('');
-              }}
-              className="mt-4 px-4 py-2 bg-slate-900 text-white text-xs font-semibold rounded-lg hover:bg-slate-800 transition-colors"
-            >
-              Reset All Filters
-            </button>
+            {!featuredOnly && (
+              <button
+                onClick={() => {
+                  setSelectedCategoryFilter(null);
+                  setActiveFilterTab('all');
+                  setPriceRange('all');
+                  setInStockOnly(false);
+                  setSearchQuery('');
+                }}
+                className="mt-4 px-4 py-2 bg-slate-900 text-white text-xs font-semibold rounded-lg hover:bg-slate-800 transition-colors"
+              >
+                Reset All Filters
+              </button>
+            )}
           </div>
         ) : (
           /* Grid: 2-column mobile, 3-column tablet, 4-column desktop */

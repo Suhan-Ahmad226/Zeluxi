@@ -11,6 +11,7 @@ interface ProductCardProps {
 export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const {
     addToCart,
+    addRecentlyViewed,
     wishlist,
     toggleWishlist,
     setSelectedProduct,
@@ -27,6 +28,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   };
 
   const handleCardClick = () => {
+    addRecentlyViewed(product.id);
     setSelectedProduct(product);
   };
 

@@ -254,7 +254,13 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   });
 
-  const [recentlyViewed, setRecentlyViewed] = useState<string[]>(['prod-001', 'prod-002']);
+  const [recentlyViewed, setRecentlyViewed] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem(`${LOCAL_STORAGE_KEY}_RECENTLY_VIEWED`);
+      const parsed: unknown = saved ? JSON.parse(saved) : [];
+      return Array.isArray(parsed) ? parsed.filter((id): id is string => typeof id === 'string').slice(0, 6) : [];
+    } catch { return []; }
+  });
   const [compareList, setCompareList] = useState<string[]>([]);
   const [isCompareOpen, setIsCompareOpen] = useState(false);
   const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false);
@@ -342,10 +348,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       localStorage.setItem(`${LOCAL_STORAGE_KEY}_LOGS`, JSON.stringify(auditLogs));
       localStorage.setItem(`${LOCAL_STORAGE_KEY}_REVIEWS`, JSON.stringify(reviews));
       localStorage.setItem(`${LOCAL_STORAGE_KEY}_QUESTIONS`, JSON.stringify(questions));
+      localStorage.setItem(`${LOCAL_STORAGE_KEY}_RECENTLY_VIEWED`, JSON.stringify(recentlyViewed));
     } catch (e) {
       console.warn('Storage sync failed', e);
     }
-  }, [products, categories, cart, wishlist, orders, coupons, customers, pages, storefrontCMS, settings, auditLogs, reviews, questions]);
+  }, [products, categories, cart, wishlist, orders, coupons, customers, pages, storefrontCMS, settings, auditLogs, reviews, questions, recentlyViewed]);
 
   const addRecentlyViewed = (productId: string) => {
     setRecentlyViewed((prev) => {

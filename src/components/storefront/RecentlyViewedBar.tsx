@@ -6,7 +6,8 @@ import { Eye } from 'lucide-react';
 export const RecentlyViewedBar: React.FC = () => {
   const { recentlyViewed, products, setSelectedProduct } = useStore();
 
-  const viewedProducts = products.filter((p) => recentlyViewed.includes(p.id));
+  const viewedProducts = recentlyViewed.map((id) => products.find((product) => product.id === id))
+    .filter((product): product is (typeof products)[number] => Boolean(product?.published && !product.archived));
 
   if (viewedProducts.length === 0) return null;
 
@@ -22,15 +23,19 @@ export const RecentlyViewedBar: React.FC = () => {
 
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
           {viewedProducts.map((p) => (
-            <div
+            <button
+              type="button"
               key={p.id}
               onClick={() => setSelectedProduct(p)}
-              className="group bg-white p-2.5 rounded-xl border border-slate-200 hover:border-slate-300 transition-all cursor-pointer flex flex-col justify-between"
+              className="group text-left bg-white p-2.5 rounded-xl border border-slate-200 hover:border-slate-300 transition-all cursor-pointer flex flex-col justify-between focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+              aria-label={`View ${p.name}`}
             >
               <div className="aspect-square rounded-lg overflow-hidden bg-slate-100 mb-2">
                 <img
                   src={p.images[0]}
                   alt={p.name}
+                  loading="lazy"
+                  decoding="async"
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                 />
               </div>
@@ -40,7 +45,7 @@ export const RecentlyViewedBar: React.FC = () => {
                   {formatPrice(p.price)}
                 </p>
               </div>
-            </div>
+            </button>
           ))}
         </div>
       </div>
