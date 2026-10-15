@@ -88,7 +88,6 @@ export const CheckoutModal: React.FC = () => {
     isVerified ||
     supabaseUser?.email_confirmed_at ||
     supabaseUser?.confirmed_at ||
-    supabaseUser?.user_metadata?.email_verified ||
     supabaseUser?.app_metadata?.provider === 'google' ||
     supabaseUser?.app_metadata?.provider === 'facebook'
   );
