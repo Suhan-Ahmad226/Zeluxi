@@ -2,9 +2,9 @@
 
 Zeluxi is a Bangladesh-focused single-store e-commerce frontend built with Vite, React, TypeScript, Tailwind CSS, and Supabase Auth.
 
-> **Launch status: not production-ready yet.** This repository currently contains a client-side storefront/admin prototype. The storefront state and admin operations still use browser storage; there is not yet a complete server-side commerce API connecting products, inventory, orders, payments, courier bookings, and tracking to a shared database.
+> **Launch status: not production-ready yet.** This repository currently contains a client-side storefront/admin prototype. The storefront state and admin operations still use browser storage; a first COD order API/database migration foundation now exists on the hardening branch, but the existing storefront/Admin are not wired to it and payment/courier services are not production integrations.
 
-> **Checkout is intentionally disabled on the hardening branch.** The current app cannot safely accept live orders because it has no trusted order API or persistent commerce database. The UI now explains this, and the context action rejects local-only order creation. Do not deploy this branch as a live-sales release; this gate must only be removed after the server-backed order flow and end-to-end tests pass.
+> **Checkout is intentionally disabled on the hardening branch.** The current app cannot safely accept live orders because the storefront/Admin still use browser storage and the new order API is not connected to a persistent, admin-managed live catalog. The UI now explains this, and the context action rejects local-only order creation. Do not deploy this branch as a live-sales release; this gate must only be removed after the server-backed order flow and end-to-end tests pass.
 
 ## Current implementation
 
@@ -26,12 +26,12 @@ Zeluxi is a Bangladesh-focused single-store e-commerce frontend built with Vite,
 
 ## Required before live launch
 
-1. Implement server-side API routes and persistent database CRUD. The Prisma schema alone does not persist the current React context state.
+1. Connect the storefront and Admin product/category/settings/order flows to persistent database CRUD; the current React context remains browser-storage-backed and the new order API is only a foundation.
 2. Add server-side authentication and authorization for every admin mutation; enforce database RLS policies.
 3. Implement and sandbox-test real payment gateway initiation, callback/webhook signature verification, idempotency, refund handling, and reconciliation.
 4. Implement and sandbox-test Pathao/Steadfast OAuth/token handling, valid city/zone/store mappings, booking, cancellation, webhooks, and live tracking.
 5. Configure Supabase URL/public key, allowed redirect URLs, email OTP templates, expiry, resend/rate limits, and trusted admin provisioning.
-6. Configure verified store contact details, delivery fees, policies, product catalog, taxes, and legal pages.
+6. Configure verified store contact details, server-side delivery-fee/free-shipping environment values, policies, product catalog, taxes, and legal pages.
 7. Add a committed npm lockfile and use `npm ci` for reproducible CI builds.
 8. Run CI, perform browser-based mobile/desktop QA, verify backups/monitoring, and test end-to-end order flows against provider sandboxes before enabling production credentials.
 
