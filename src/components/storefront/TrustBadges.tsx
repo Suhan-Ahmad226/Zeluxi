@@ -6,22 +6,22 @@ export const TrustBadges: React.FC = () => {
     {
       icon: ShieldCheck,
       title: 'Cash on Delivery',
-      desc: 'Nationwide 64 districts',
+      desc: 'Bangladesh delivery options',
     },
     {
       icon: Truck,
       title: 'Express Delivery',
-      desc: 'Pathao & Steadfast logistics',
+      desc: 'Courier options at checkout',
     },
     {
       icon: RefreshCw,
-      title: '7-Day Easy Return',
-      desc: 'Hassle-free exchange policy',
+      title: 'Return Policy',
+      desc: 'See terms before ordering',
     },
     {
       icon: Award,
-      title: '100% Authentic',
-      desc: 'Guaranteed premium quality',
+      title: 'Quality Focused',
+      desc: 'Curated everyday essentials',
     },
   ];
 
