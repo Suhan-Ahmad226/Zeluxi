@@ -78,19 +78,11 @@ export interface ICourierProvider {
 
 /**
  * Pathao Express Courier Implementation
- * Production-ready Pathao Merchant API Aladdin v1 integration with fallback simulator & safe idempotency
+ * Client-side adapter only. Real booking must be performed by a trusted server integration.
  */
 export class PathaoCourierProvider implements ICourierProvider {
   readonly code = 'PATHAO' as const;
   readonly name = 'Pathao Express Logistics (Hermes / Aladdin API)';
-  readonly baseUrl = (typeof process !== 'undefined' && process.env?.PATHAO_BASE_URL) ||
-    import.meta.env.VITE_PATHAO_BASE_URL ||
-    'https://api-hermes.pathao.com';
-  readonly clientId = (typeof process !== 'undefined' && process.env?.PATHAO_CLIENT_ID) ||
-    import.meta.env.VITE_PATHAO_CLIENT_ID ||
-    'YQdJQ69bOG';
-  readonly storeId = Number((typeof process !== 'undefined' && process.env?.PATHAO_STORE_ID) || 482);
-
   // In-flight booking lock map to prevent concurrent duplicate calls for the same order
   private inFlightBookings = new Map<string, Promise<ShipmentResult>>();
 
@@ -140,35 +132,8 @@ export class PathaoCourierProvider implements ICourierProvider {
       };
     }
 
-    const isDhaka = request.division.toLowerCase() === 'dhaka';
-    const deliveryFee = isDhaka ? 60 : 120;
-    const estimatedDelivery = isDhaka ? '24 - 48 Hours' : '48 - 72 Hours';
-    const hubLocation = isDhaka ? 'Pathao Banani Hub, Dhaka' : 'Pathao Regional Hub';
-
-    // Construct Pathao Aladdin v1 Order payload
-    const pathaoPayload: PathaoCreateOrderPayload = {
-      store_id: this.storeId,
-      merchant_order_id: request.orderId,
-      recipient_name: request.customerName,
-      recipient_phone: cleanPhone.startsWith('+88') ? cleanPhone.slice(3) : cleanPhone,
-      recipient_address: `${request.deliveryAddress}, ${request.thanaCity || ''}, ${request.district}`,
-      recipient_city: isDhaka ? 1 : 2, // 1: Dhaka, 2: Outside
-      recipient_zone: 1, // Zone ID
-      delivery_type: 48, // 48 Normal Delivery
-      item_type: 2, // Parcel
-      special_instruction: request.notes || 'Handle with care. Luxury goods.',
-      item_quantity: Math.max(1, request.itemCount),
-      item_weight: Math.min(10, Math.max(0.5, request.weightKg || 0.8)),
-      amount_to_collect: Math.max(0, request.codAmount),
-      item_description: `Zelux E-Commerce Order #${request.orderId}`,
-    };
-
-    // Do not expose merchant credentials or fabricate consignment IDs in the
-    // browser. A trusted server integration must submit this payload to Pathao.
-    void pathaoPayload;
-    void deliveryFee;
-    void estimatedDelivery;
-    void hubLocation;
+    // This frontend bundle must not contain courier credentials or claim a
+    // shipment exists without a real response from the courier API.
     return {
       success: false,
       courier: 'PATHAO',
@@ -177,7 +142,7 @@ export class PathaoCourierProvider implements ICourierProvider {
       deliveryFee: 0,
       estimatedDelivery: '',
       hubLocation: '',
-      errorMessage: 'Pathao booking is not connected to a trusted server API. No shipment was created.',
+      errorMessage: 'Pathao is not connected to a trusted server integration. No shipment was created.',
     };
   }
 
