@@ -16,36 +16,9 @@ export interface OrderAlertPayload {
   trackingCode?: string;
 }
 
-const TELEGRAM_BOT_TOKEN =
-  import.meta.env.VITE_TELEGRAM_BOT_TOKEN ||
-  '8835865306:AAHelX7S45IoLyF_JxAIICR3gYeVWxiNUfU';
-
-export async function sendTelegramOrderNotification(payload: OrderAlertPayload): Promise<boolean> {
-  if (!TELEGRAM_BOT_TOKEN) return false;
-
-  const messageText = `🛍️ *NEW LOFIMART ORDER RECEIVED*
-━━━━━━━━━━━━━━━━━━━━
-🆔 *Order ID:* \`${payload.orderId}\`
-👤 *Customer:* ${payload.customerName}
-📞 *Phone:* \`${payload.customerPhone}\`
-📍 *Delivery:* ${payload.addressDetails}, ${payload.division}
-📦 *Items:* ${payload.itemCount} items
-💰 *Total:* ৳${payload.grandTotal.toLocaleString()} BDT
-💳 *Payment:* ${payload.paymentMethod}
-🚚 *Courier:* ${payload.courierProvider} ${payload.trackingCode ? `(\`${payload.trackingCode}\`)` : ''}
-⏱️ *Time:* ${new Date().toLocaleString('en-US', { timeZone: 'Asia/Dhaka' })} BST
-━━━━━━━━━━━━━━━━━━━━
-🔗 [View in Lofimart Admin](https://lofimart.vercel.app)`;
-
-  try {
-    // Attempt webhook / channel broadcast if configured
-    console.log('[Lofimart Telegram Bot Alert Dispatched]', {
-      bot: '@lofimart_bot',
-      order: payload.orderId,
-    });
-    return true;
-  } catch (err) {
-    console.warn('[Telegram Notification Error]', err);
-    return false;
-  }
+export async function sendTelegramOrderNotification(_payload: OrderAlertPayload): Promise<boolean> {
+  // Telegram bot tokens must never be embedded in a browser bundle. This app has no authenticated
+  // server-side notification endpoint yet, so report unavailable rather than pretending delivery worked.
+  console.warn('[Telegram Notification] Disabled until a server-side notification endpoint is configured.');
+  return false;
 }
