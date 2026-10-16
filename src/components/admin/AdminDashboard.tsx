@@ -112,6 +112,7 @@ export const AdminDashboard: React.FC = () => {
   const {
     userProfile,
     isAdmin,
+    loading: authLoading,
     setIsAuthModalOpen,
     setAuthModalMode,
     changePassword,
@@ -231,8 +232,8 @@ export const AdminDashboard: React.FC = () => {
       await changePassword(adminCurrentPassword, adminNewPassword);
       addAuditLog(
         'ADMIN_PASSWORD_CHANGED',
-        `Admin credentials updated for ${userProfile?.email || 'admin@zelux.com.bd'}`,
-        userProfile?.displayName || 'Admin Superuser'
+        `Admin credentials updated for ${userProfile?.email || '—'}`,
+        userProfile?.displayName || 'Administrator'
       );
       setAdminPwdSuccess('Administrator password updated successfully.');
       setAdminCurrentPassword('');
@@ -400,6 +401,10 @@ export const AdminDashboard: React.FC = () => {
     }
     return true;
   });
+
+  if (authLoading) {
+    return <div className="min-h-screen flex items-center justify-center bg-slate-950 text-slate-200" role="status" aria-live="polite">Checking administrator access…</div>;
+  }
 
   if (!isAdmin) {
     return (
@@ -2959,11 +2964,11 @@ export const AdminDashboard: React.FC = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 text-xs border-t border-slate-800 text-slate-300">
                 <div>
                   <span className="text-[10px] text-slate-400 uppercase tracking-wider block">Admin User</span>
-                  <strong className="text-white">{userProfile?.displayName || 'Administrator (Suhan Ahmad)'}</strong>
+                  <strong className="text-white">{userProfile?.displayName || '—'}</strong>
                 </div>
                 <div>
                   <span className="text-[10px] text-slate-400 uppercase tracking-wider block">Email Address</span>
-                  <strong className="text-white font-mono">{userProfile?.email || 'admin@zelux.com.bd'}</strong>
+                  <strong className="text-white font-mono">{userProfile?.email || 'unknown administrator'}</strong>
                 </div>
               </div>
             </div>
