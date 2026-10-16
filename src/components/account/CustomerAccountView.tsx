@@ -425,7 +425,7 @@ export const CustomerAccountView: React.FC = () => {
                   <span className="text-xs text-slate-500 font-medium">'Active Coupons'</span>
                   <Tag className="w-4 h-4 text-emerald-600" />
                 </div>
-                <p className="text-2xl font-bold font-mono text-slate-900 mt-2">{coupons.length}</p>
+                <p className="text-2xl font-bold font-mono text-slate-900 mt-2">{coupons.filter((coupon) => coupon.active && (!coupon.expiresAt || Date.parse(coupon.expiresAt) >= Date.now())).length}</p>
                 <button
                   onClick={() => setActiveTab('coupons')}
                   className="text-[11px] text-emerald-600 font-semibold hover:underline mt-1 block"
