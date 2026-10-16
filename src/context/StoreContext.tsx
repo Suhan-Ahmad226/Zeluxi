@@ -589,9 +589,19 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
     if (sessionError || !session?.access_token || !session.user.email_confirmed_at) {
       throw new Error('Please sign in with a verified email before placing your order.');
     }
-    const idempotencyKey = typeof crypto !== 'undefined' && 'randomUUID' in crypto
-      ? crypto.randomUUID()
-      : `zlx-${Date.now()}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
+    const idempotencyStorageKey = 'zelux.checkout.idempotency.v1';
+    let idempotencyKey = '';
+    try {
+      idempotencyKey = window.sessionStorage.getItem(idempotencyStorageKey) || '';
+    } catch {
+      // Continue with an in-memory key when browser storage is unavailable.
+    }
+    if (!idempotencyKey) {
+      idempotencyKey = typeof crypto !== 'undefined' && 'randomUUID' in crypto
+        ? crypto.randomUUID()
+        : `zlx-${Date.now()}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
+      try { window.sessionStorage.setItem(idempotencyStorageKey, idempotencyKey); } catch {}
+    }
     const response = await fetch('/api/orders', {
       method: 'POST',
       headers: {
@@ -638,6 +648,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
       },
       statusHistory: [{ status: 'PENDING', timestamp: createdAt, note: 'Order placed successfully; awaiting admin confirmation.' }],
     };
+    try { window.sessionStorage.removeItem('zelux.checkout.idempotency.v1'); } catch {}
     setOrders((previous) => [order, ...previous]);
     setLastCreatedOrder(order);
     setCart([]);
