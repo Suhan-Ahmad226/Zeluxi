@@ -463,8 +463,16 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
   };
 
   const updateCartQuantity = (productId: string, quantity: number, variantId?: string) => {
+    if (!Number.isFinite(quantity)) {
+      showToast('Please choose a valid quantity.', 'error');
+      return;
+    }
     if (quantity <= 0) {
       removeFromCart(productId, variantId);
+      return;
+    }
+    if (!Number.isSafeInteger(quantity)) {
+      showToast('Quantity must be a whole number.', 'error');
       return;
     }
     setCart((prev) =>
