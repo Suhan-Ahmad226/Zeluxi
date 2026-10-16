@@ -46,6 +46,7 @@ interface ToastNotification {
 
 interface StoreContextType {
   products: Product[];
+  isCatalogLoading: boolean;
   categories: Category[];
   cart: CartItem[];
   wishlist: string[];
@@ -164,6 +165,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
   const router = useRouter();
   // Load initial state from LocalStorage if available
   const [products, setProducts] = useState<Product[]>(INITIAL_PRODUCTS);
+  const [isCatalogLoading, setIsCatalogLoading] = useState(true);
 
   const [categories, setCategories] = useState<Category[]>(INITIAL_CATEGORIES);
 
@@ -329,9 +331,13 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
       const orderPayload = await orderResponse.json().catch(() => null);
       if (!cancelled && Array.isArray(orderPayload?.orders)) setOrders(orderPayload.orders as Order[]);
     };
-    void loadCatalog().catch((error) => {
-      console.warn('Persistent catalog or admin orders could not be loaded.', error);
-    });
+    void loadCatalog()
+      .catch((error) => {
+        console.warn('Persistent catalog or admin orders could not be loaded.', error);
+      })
+      .finally(() => {
+        if (!cancelled) setIsCatalogLoading(false);
+      });
     return () => { cancelled = true; };
   }, []);
 
@@ -1435,6 +1441,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
     <StoreContext.Provider
       value={{
         products,
+        isCatalogLoading,
         categories,
         cart,
         wishlist,
