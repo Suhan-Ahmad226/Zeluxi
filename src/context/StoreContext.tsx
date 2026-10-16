@@ -158,104 +158,27 @@ type StoreView = 'store' | 'shop' | 'tracking' | 'account' | 'admin' | 'about' |
 export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: StoreView }> = ({ children, initialView = 'store' }) => {
   const router = useRouter();
   // Load initial state from LocalStorage if available
-  const [products, setProducts] = useState<Product[]>(() => {
-    try {
-      const saved = localStorage.getItem(`${LOCAL_STORAGE_KEY}_PRODUCTS`);
-      return saved ? JSON.parse(saved) : INITIAL_PRODUCTS;
-    } catch {
-      return INITIAL_PRODUCTS;
-    }
-  });
+  const [products, setProducts] = useState<Product[]>(INITIAL_PRODUCTS);
 
-  const [categories, setCategories] = useState<Category[]>(() => {
-    try {
-      const saved = localStorage.getItem(`${LOCAL_STORAGE_KEY}_CATEGORIES`);
-      return saved ? JSON.parse(saved) : INITIAL_CATEGORIES;
-    } catch {
-      return INITIAL_CATEGORIES;
-    }
-  });
+  const [categories, setCategories] = useState<Category[]>(INITIAL_CATEGORIES);
 
-  const [cart, setCart] = useState<CartItem[]>(() => {
-    try {
-      const saved = localStorage.getItem(`${LOCAL_STORAGE_KEY}_CART`);
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
+  const [cart, setCart] = useState<CartItem[]>([]);
 
-  const [wishlist, setWishlist] = useState<string[]>(() => {
-    try {
-      const saved = localStorage.getItem(`${LOCAL_STORAGE_KEY}_WISHLIST`);
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
+  const [wishlist, setWishlist] = useState<string[]>([]);
 
-  const [orders, setOrders] = useState<Order[]>(() => {
-    try {
-      const saved = localStorage.getItem(`${LOCAL_STORAGE_KEY}_ORDERS`);
-      return saved ? JSON.parse(saved) : INITIAL_ORDERS;
-    } catch {
-      return INITIAL_ORDERS;
-    }
-  });
+  const [orders, setOrders] = useState<Order[]>(INITIAL_ORDERS);
 
-  const [coupons, setCoupons] = useState<Coupon[]>(() => {
-    try {
-      const saved = localStorage.getItem(`${LOCAL_STORAGE_KEY}_COUPONS`);
-      return saved ? JSON.parse(saved) : INITIAL_COUPONS;
-    } catch {
-      return INITIAL_COUPONS;
-    }
-  });
+  const [coupons, setCoupons] = useState<Coupon[]>(INITIAL_COUPONS);
 
-  const [reviews, setReviews] = useState<ProductReview[]>(() => {
-    try {
-      const saved = localStorage.getItem(`${LOCAL_STORAGE_KEY}_REVIEWS`);
-      return saved ? JSON.parse(saved) : INITIAL_REVIEWS;
-    } catch {
-      return INITIAL_REVIEWS;
-    }
-  });
+  const [reviews, setReviews] = useState<ProductReview[]>(INITIAL_REVIEWS);
 
-  const [questions, setQuestions] = useState<QuestionAnswer[]>(() => {
-    try {
-      const saved = localStorage.getItem(`${LOCAL_STORAGE_KEY}_QUESTIONS`);
-      return saved ? JSON.parse(saved) : INITIAL_QUESTIONS;
-    } catch {
-      return INITIAL_QUESTIONS;
-    }
-  });
+  const [questions, setQuestions] = useState<QuestionAnswer[]>(INITIAL_QUESTIONS);
 
-  const [customers, setCustomers] = useState<CustomerRecord[]>(() => {
-    try {
-      const saved = localStorage.getItem(`${LOCAL_STORAGE_KEY}_CUSTOMERS`);
-      return saved ? JSON.parse(saved) : INITIAL_CUSTOMERS;
-    } catch {
-      return INITIAL_CUSTOMERS;
-    }
-  });
+  const [customers, setCustomers] = useState<CustomerRecord[]>(INITIAL_CUSTOMERS);
 
-  const [pages, setPages] = useState<StaticPageContent[]>(() => {
-    try {
-      const saved = localStorage.getItem(`${LOCAL_STORAGE_KEY}_PAGES`);
-      return saved ? JSON.parse(saved) : INITIAL_PAGES;
-    } catch {
-      return INITIAL_PAGES;
-    }
-  });
+  const [pages, setPages] = useState<StaticPageContent[]>(INITIAL_PAGES);
 
-  const [storefrontCMS, setStorefrontCMS] = useState<StorefrontCMS>(() => {
-    try {
-      const saved = localStorage.getItem(`${LOCAL_STORAGE_KEY}_STOREFRONT_CMS`);
-      return saved ? JSON.parse(saved) : INITIAL_STOREFRONT_CMS;
-    } catch {
-      return INITIAL_STOREFRONT_CMS;
-    }
-  });
+  const [storefrontCMS, setStorefrontCMS] = useState<StorefrontCMS>(INITIAL_STOREFRONT_CMS);
 
   const [recentlyViewed, setRecentlyViewed] = useState<string[]>([]);
   const [compareList, setCompareList] = useState<string[]>([]);
@@ -264,23 +187,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
 
   const [appliedCoupon, setAppliedCoupon] = useState<Coupon | null>(null);
 
-  const [settings, setSettings] = useState<StoreSettings>(() => {
-    try {
-      const saved = localStorage.getItem(`${LOCAL_STORAGE_KEY}_SETTINGS`);
-      return saved ? JSON.parse(saved) : INITIAL_SETTINGS;
-    } catch {
-      return INITIAL_SETTINGS;
-    }
-  });
+  const [settings, setSettings] = useState<StoreSettings>(INITIAL_SETTINGS);
 
-  const [auditLogs, setAuditLogs] = useState<AuditLog[]>(() => {
-    try {
-      const saved = localStorage.getItem(`${LOCAL_STORAGE_KEY}_LOGS`);
-      return saved ? JSON.parse(saved) : INITIAL_AUDIT_LOGS;
-    } catch {
-      return INITIAL_AUDIT_LOGS;
-    }
-  });
+  const [auditLogs, setAuditLogs] = useState<AuditLog[]>(INITIAL_AUDIT_LOGS);
 
   const [language, setLanguage] = useState<Language>('en');
   const [activeView, setActiveViewState] = useState<StoreView>(initialView);
@@ -303,8 +212,38 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
   const [activeStaticPage, setActiveStaticPage] = useState<'about' | 'support' | 'faq' | 'shipping' | 'refund' | 'privacy' | 'terms' | null>(null);
   const [toast, setToast] = useState<ToastNotification | null>(null);
 
+  // Browser persistence is restored after hydration to keep server and client markup deterministic.
+  const [hasHydratedStorage, setHasHydratedStorage] = useState(false);
+
+  useEffect(() => {
+    const restore = <T,>(key: string, fallback: T): T => {
+      try {
+        const saved = window.localStorage.getItem(`${LOCAL_STORAGE_KEY}_${key}`);
+        return saved ? (JSON.parse(saved) as T) : fallback;
+      } catch {
+        return fallback;
+      }
+    };
+
+    setProducts(restore('PRODUCTS', INITIAL_PRODUCTS));
+    setCategories(restore('CATEGORIES', INITIAL_CATEGORIES));
+    setCart(restore('CART', []));
+    setWishlist(restore('WISHLIST', []));
+    setOrders(restore('ORDERS', INITIAL_ORDERS));
+    setCoupons(restore('COUPONS', INITIAL_COUPONS));
+    setReviews(restore('REVIEWS', INITIAL_REVIEWS));
+    setQuestions(restore('QUESTIONS', INITIAL_QUESTIONS));
+    setCustomers(restore('CUSTOMERS', INITIAL_CUSTOMERS));
+    setPages(restore('PAGES', INITIAL_PAGES));
+    setStorefrontCMS(restore('STOREFRONT_CMS', INITIAL_STOREFRONT_CMS));
+    setSettings(restore('SETTINGS', INITIAL_SETTINGS));
+    setAuditLogs(restore('LOGS', INITIAL_AUDIT_LOGS));
+    setHasHydratedStorage(true);
+  }, []);
+
   // Sync to LocalStorage on updates
   useEffect(() => {
+    if (!hasHydratedStorage) return;
     try {
       localStorage.setItem(`${LOCAL_STORAGE_KEY}_PRODUCTS`, JSON.stringify(products));
       localStorage.setItem(`${LOCAL_STORAGE_KEY}_CATEGORIES`, JSON.stringify(categories));
@@ -322,7 +261,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
     } catch (e) {
       console.warn('Storage sync failed', e);
     }
-  }, [products, categories, cart, wishlist, orders, coupons, customers, pages, storefrontCMS, settings, auditLogs, reviews, questions]);
+  }, [hasHydratedStorage, products, categories, cart, wishlist, orders, coupons, customers, pages, storefrontCMS, settings, auditLogs, reviews, questions]);
 
   const addRecentlyViewed = (productId: string) => {
     setRecentlyViewed((prev) => {
