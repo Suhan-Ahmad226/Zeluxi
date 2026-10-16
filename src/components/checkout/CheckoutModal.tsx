@@ -55,8 +55,6 @@ export const CheckoutModal: React.FC = () => {
   const [notes, setNotes] = useState('');
 
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('COD');
-  const [bkashNumber, setBkashNumber] = useState('');
-  const [bkashTrxId, setBkashTrxId] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
@@ -390,225 +388,35 @@ export const CheckoutModal: React.FC = () => {
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">
               3. Payment method
             </h3>
-
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5">
-              {/* COD */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
               <button
                 type="button"
                 onClick={() => setPaymentMethod('COD')}
-                className={`p-2.5 rounded-xl border text-left flex flex-col justify-between transition-all ${
+                aria-pressed={paymentMethod === 'COD'}
+                className={`p-3 rounded-xl border text-left flex items-center gap-3 transition-all ${
                   paymentMethod === 'COD'
                     ? 'border-indigo-600 bg-indigo-50/60 ring-2 ring-indigo-100'
                     : 'border-slate-200 hover:border-slate-300'
                 }`}
               >
-                <div className="flex items-center justify-between mb-1.5">
-                  <Banknote className="w-4 h-4 text-emerald-600" />
-                  {paymentMethod === 'COD' && <CheckCircle2 className="w-3.5 h-3.5 text-indigo-600" />}
-                </div>
-                <div>
-                  <p className="text-xs font-bold text-slate-900 leading-snug">
-                    Cash on delivery
-                  </p>
-                  <p className="text-[10px] text-slate-500 mt-0.5">
-                    Pay upon delivery
-                  </p>
-                </div>
+                <Banknote className="w-5 h-5 text-emerald-600 shrink-0" />
+                <span className="flex-1">
+                  <span className="block text-xs font-bold text-slate-900">Cash on delivery</span>
+                  <span className="block text-[10px] text-slate-500 mt-0.5">Pay when your order arrives</span>
+                </span>
+                {paymentMethod === 'COD' && <CheckCircle2 className="w-4 h-4 text-indigo-600" />}
               </button>
-
-              {/* bKash */}
-              <button
-                type="button"
-                onClick={() => setPaymentMethod('BKASH')}
-                className={`p-2.5 rounded-xl border text-left flex flex-col justify-between transition-all ${
-                  paymentMethod === 'BKASH'
-                    ? 'border-indigo-600 bg-indigo-50/60 ring-2 ring-indigo-100'
-                    : 'border-slate-200 hover:border-slate-300'
-                }`}
-              >
-                <div className="flex items-center justify-between mb-1.5">
-                  <span className="font-bold text-[11px] text-pink-600 px-1 py-0.5 bg-pink-50 rounded">bKash</span>
-                  {paymentMethod === 'BKASH' && <CheckCircle2 className="w-3.5 h-3.5 text-indigo-600" />}
-                </div>
-                <div>
-                  <p className="text-xs font-bold text-slate-900 leading-snug">
-                    bKash
-                  </p>
-                  <p className="text-[10px] text-slate-500 mt-0.5">
-                    Mobile banking
-                  </p>
-                </div>
-              </button>
-
-              {/* Nagad */}
-              <button
-                type="button"
-                onClick={() => setPaymentMethod('NAGAD')}
-                className={`p-2.5 rounded-xl border text-left flex flex-col justify-between transition-all ${
-                  paymentMethod === 'NAGAD'
-                    ? 'border-indigo-600 bg-indigo-50/60 ring-2 ring-indigo-100'
-                    : 'border-slate-200 hover:border-slate-300'
-                }`}
-              >
-                <div className="flex items-center justify-between mb-1.5">
-                  <span className="font-bold text-[11px] text-amber-600 px-1 py-0.5 bg-amber-50 rounded">Nagad</span>
-                  {paymentMethod === 'NAGAD' && <CheckCircle2 className="w-3.5 h-3.5 text-indigo-600" />}
-                </div>
-                <div>
-                  <p className="text-xs font-bold text-slate-900 leading-snug">
-                    Nagad
-                  </p>
-                  <p className="text-[10px] text-slate-500 mt-0.5">
-                    Instant wallet
-                  </p>
-                </div>
-              </button>
-
-              {/* Rocket */}
-              <button
-                type="button"
-                onClick={() => setPaymentMethod('ROCKET')}
-                className={`p-2.5 rounded-xl border text-left flex flex-col justify-between transition-all ${
-                  paymentMethod === 'ROCKET'
-                    ? 'border-indigo-600 bg-indigo-50/60 ring-2 ring-indigo-100'
-                    : 'border-slate-200 hover:border-slate-300'
-                }`}
-              >
-                <div className="flex items-center justify-between mb-1.5">
-                  <span className="font-bold text-[11px] text-purple-600 px-1 py-0.5 bg-purple-50 rounded">Rocket</span>
-                  {paymentMethod === 'ROCKET' && <CheckCircle2 className="w-3.5 h-3.5 text-indigo-600" />}
-                </div>
-                <div>
-                  <p className="text-xs font-bold text-slate-900 leading-snug">
-                    Rocket
-                  </p>
-                  <p className="text-[10px] text-slate-500 mt-0.5">
-                    DBBL Rocket
-                  </p>
-                </div>
-              </button>
-
-              {/* SSLCommerz */}
-              <button
-                type="button"
-                onClick={() => setPaymentMethod('SSLCOMMERZ')}
-                className={`p-2.5 rounded-xl border text-left flex flex-col justify-between transition-all ${
-                  paymentMethod === 'SSLCOMMERZ'
-                    ? 'border-indigo-600 bg-indigo-50/60 ring-2 ring-indigo-100'
-                    : 'border-slate-200 hover:border-slate-300'
-                }`}
-              >
-                <div className="flex items-center justify-between mb-1.5">
-                  <CreditCard className="w-4 h-4 text-blue-600" />
-                  {paymentMethod === 'SSLCOMMERZ' && <CheckCircle2 className="w-3.5 h-3.5 text-indigo-600" />}
-                </div>
-                <div>
-                  <p className="text-xs font-bold text-slate-900 leading-snug">
-                    Cards & Net Banking
-                  </p>
-                  <p className="text-[10px] text-slate-500 mt-0.5">
-                    SSLCommerz
-                  </p>
-                </div>
-              </button>
+              <div className="p-3 rounded-xl border border-slate-200 bg-slate-50 flex items-center gap-3" aria-label="Online payments coming soon">
+                <CreditCard className="w-5 h-5 text-slate-400 shrink-0" />
+                <span>
+                  <span className="block text-xs font-bold text-slate-600">Online payments</span>
+                  <span className="block text-[10px] text-slate-500 mt-0.5">bKash, Nagad, Rocket & cards · Coming soon</span>
+                </span>
+              </div>
             </div>
-
-            {/* Payment instructions depending on choice */}
-            {paymentMethod === 'BKASH' && (
-              <div className="p-3.5 bg-pink-50/70 border border-pink-200 rounded-xl text-xs space-y-2 text-pink-900">
-                <p className="font-semibold">
-                  bKash Merchant Payment:
-                </p>
-                <p className="text-[11px] text-pink-800">
-                  Send Money or Merchant Payment to <strong>01700-112233</strong> or enter your transaction ID:
-                </p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
-                  <input
-                    type="text"
-                    value={bkashNumber}
-                    onChange={(e) => setBkashNumber(e.target.value)}
-                    placeholder="Sender bKash No (e.g. 017XXXXXXXX)"
-                    className="px-2.5 py-1.5 text-xs bg-white border border-pink-300 rounded-lg text-slate-900 focus:outline-none"
-                  />
-                  <input
-                    type="text"
-                    value={bkashTrxId}
-                    onChange={(e) => setBkashTrxId(e.target.value.toUpperCase())}
-                    placeholder="Transaction ID (e.g. BKS849204)"
-                    className="px-2.5 py-1.5 text-xs bg-white border border-pink-300 rounded-lg text-slate-900 font-mono uppercase focus:outline-none"
-                  />
-                </div>
-              </div>
-            )}
-
-            {paymentMethod === 'NAGAD' && (
-              <div className="p-3.5 bg-amber-50/70 border border-amber-200 rounded-xl text-xs space-y-2 text-amber-900">
-                <p className="font-semibold">
-                  Nagad Wallet Payment:
-                </p>
-                <p className="text-[11px] text-amber-800">
-                  Send Payment to Nagad Merchant <strong>01700-112233</strong> and input the TrxID below:
-                </p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
-                  <input
-                    type="text"
-                    value={bkashNumber}
-                    onChange={(e) => setBkashNumber(e.target.value)}
-                    placeholder="Sender Nagad No (e.g. 018XXXXXXXX)"
-                    className="px-2.5 py-1.5 text-xs bg-white border border-amber-300 rounded-lg text-slate-900 focus:outline-none"
-                  />
-                  <input
-                    type="text"
-                    value={bkashTrxId}
-                    onChange={(e) => setBkashTrxId(e.target.value.toUpperCase())}
-                    placeholder="Transaction ID (e.g. NGD928371)"
-                    className="px-2.5 py-1.5 text-xs bg-white border border-amber-300 rounded-lg text-slate-900 font-mono uppercase focus:outline-none"
-                  />
-                </div>
-              </div>
-            )}
-
-            {paymentMethod === 'ROCKET' && (
-              <div className="p-3.5 bg-purple-50/70 border border-purple-200 rounded-xl text-xs space-y-2 text-purple-900">
-                <p className="font-semibold">
-                  DBBL Rocket Payment:
-                </p>
-                <p className="text-[11px] text-purple-800">
-                  Send Payment to Rocket Biller / Merchant <strong>01700-112233-0</strong> and enter TrxID below:
-                </p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
-                  <input
-                    type="text"
-                    value={bkashNumber}
-                    onChange={(e) => setBkashNumber(e.target.value)}
-                    placeholder="Rocket 12-digit No"
-                    className="px-2.5 py-1.5 text-xs bg-white border border-purple-300 rounded-lg text-slate-900 focus:outline-none"
-                  />
-                  <input
-                    type="text"
-                    value={bkashTrxId}
-                    onChange={(e) => setBkashTrxId(e.target.value.toUpperCase())}
-                    placeholder="Transaction ID (e.g. RCK102948)"
-                    className="px-2.5 py-1.5 text-xs bg-white border border-purple-300 rounded-lg text-slate-900 font-mono uppercase focus:outline-none"
-                  />
-                </div>
-              </div>
-            )}
-
-            {paymentMethod === 'SSLCOMMERZ' && (
-              <div className="p-3.5 bg-blue-50/70 border border-blue-200 rounded-xl text-xs space-y-2 text-blue-900">
-                <div className="flex items-center justify-between">
-                  <p className="font-semibold flex items-center gap-1.5">
-                    <ShieldCheck className="w-4 h-4 text-blue-600" />
-                    <span>SSLCommerz Secured Payment Gateway</span>
-                  </p>
-                  <span className="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded font-mono font-bold">256-bit SSL</span>
-                </div>
-                <p className="text-[11px] text-blue-800">
-                  Upon clicking Confirm Order, you will be seamlessly authenticated through Visa, Mastercard, AMEX, or Bangladeshi Internet Banking (CityTouch, MTB, BRAC).
-                </p>
-              </div>
-            )}
+            <p className="text-[11px] text-slate-500">
+              Only Cash on Delivery is currently available. We will announce online payment options after secure gateway integration is complete.
+            </p>
           </div>
 
           {/* Section 4: Order Financial Summary */}
