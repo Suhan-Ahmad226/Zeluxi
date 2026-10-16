@@ -6,9 +6,15 @@ export const WhatsAppConcierge: React.FC = () => {
   const { settings, setActiveView } = useStore();
   const [isOpen, setIsOpen] = useState(false);
 
-  const whatsappUrl = `https://wa.me/8801700112233?text=${encodeURIComponent(
-    'Hello Zelux Concierge, I have an inquiry regarding a product / order.'
-  )}`;
+  const configuredPhone = (settings.phone || '').replace(/\D/g, '');
+  const whatsappNumber = configuredPhone.startsWith('0')
+    ? `88${configuredPhone}`
+    : configuredPhone;
+  const whatsappUrl = whatsappNumber
+    ? `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(
+        'Hello Zelux Concierge, I have an inquiry regarding a product / order.'
+      )}`
+    : '';
 
   return (
     <div className="fixed bottom-20 md:bottom-6 right-3 sm:right-6 z-40">
@@ -38,10 +44,12 @@ export const WhatsAppConcierge: React.FC = () => {
 
           <div className="space-y-2">
             <a
-              href={whatsappUrl}
+              href={whatsappUrl || undefined}
+              aria-disabled={!whatsappUrl}
+              className={`flex items-center justify-between p-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold shadow-sm transition-colors ${!whatsappUrl ? 'opacity-50 pointer-events-none' : ''}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center justify-between p-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold shadow-sm transition-colors"
+
             >
               <span className="flex items-center gap-2">
                 <MessageSquare className="w-4 h-4" />
