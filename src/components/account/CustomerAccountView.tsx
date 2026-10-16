@@ -89,21 +89,24 @@ export const CustomerAccountView: React.FC = () => {
 
   // Customer Profile State
   const [isEditingProfile, setIsEditingProfile] = useState(false);
-  const [profileName, setProfileName] = useState(() => {
-    return localStorage.getItem('ZELUX_PROFILE_NAME') || 'Tanvir Hossain';
-  });
-  const [profilePhone, setProfilePhone] = useState(() => {
-    return localStorage.getItem('ZELUX_PROFILE_PHONE') || '01712334455';
-  });
-  const [profileEmail, setProfileEmail] = useState(() => {
-    return localStorage.getItem('ZELUX_PROFILE_EMAIL') || 'tanvir.h@gmail.com';
-  });
-  const [profileAddress, setProfileAddress] = useState(() => {
-    return localStorage.getItem('ZELUX_PROFILE_ADDRESS') || 'House 42, Road 113, Apt 5B, Gulshan 2, Dhaka City, Dhaka-1212';
-  });
-  const [profileDivision, setProfileDivision] = useState(() => {
-    return localStorage.getItem('ZELUX_PROFILE_DIV') || 'Dhaka';
-  });
+  const [profileName, setProfileName] = useState('');
+  const [profilePhone, setProfilePhone] = useState('');
+  const [profileEmail, setProfileEmail] = useState('');
+  const [profileAddress, setProfileAddress] = useState('');
+  const [profileDivision, setProfileDivision] = useState('');
+
+  // Restore optional profile draft data only in the browser, after hydration.
+  useEffect(() => {
+    try {
+      setProfileName(localStorage.getItem('ZELUX_PROFILE_NAME') || '');
+      setProfilePhone(localStorage.getItem('ZELUX_PROFILE_PHONE') || '');
+      setProfileEmail(localStorage.getItem('ZELUX_PROFILE_EMAIL') || '');
+      setProfileAddress(localStorage.getItem('ZELUX_PROFILE_ADDRESS') || '');
+      setProfileDivision(localStorage.getItem('ZELUX_PROFILE_DIV') || '');
+    } catch {
+      // Browser storage can be unavailable; authenticated profile data remains usable.
+    }
+  }, []);
 
   useEffect(() => {
     if (userProfile) {
