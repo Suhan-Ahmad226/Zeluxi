@@ -246,15 +246,16 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
   useEffect(() => {
     let cancelled = false;
     const loadCatalog = async () => {
-      const response = await fetch('/api/products', { cache: 'no-store' });
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      const catalogHeaders = token ? { Authorization: `Bearer ${token}` } : {};
+      const response = await fetch('/api/products', { headers: catalogHeaders, cache: 'no-store' });
       if (response.ok) {
         const payload = await response.json().catch(() => null);
         if (!cancelled && Array.isArray(payload?.products)) setProducts(payload.products as Product[]);
       }
 
       // Admins receive durable orders from the protected API; ordinary customers are denied by the server.
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData.session?.access_token;
       if (!token) return;
       const orderResponse = await fetch('/api/orders', {
         headers: { Authorization: `Bearer ${token}` },
