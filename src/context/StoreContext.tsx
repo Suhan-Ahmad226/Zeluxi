@@ -1202,24 +1202,31 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
 
   const addCategory = (categoryData: Omit<Category, 'id' | 'itemCount'> & { id?: string; itemCount?: number }): Category => {
     const slug = categoryData.slug?.trim() || categoryData.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-    const id = categoryData.id || slug || `cat-${Date.now().toString().slice(-4)}`;
-    const newCategory: Category = {
+    const existing = categories.find((item) =>
+      (categoryData.id && item.id === categoryData.id) ||
+      item.slug.trim().toLowerCase() === slug.toLowerCase() ||
+      item.name.trim().toLowerCase() === categoryData.name.trim().toLowerCase()
+    );
+    const id = existing?.id || categoryData.id || slug || `cat-${Date.now()}`;
+    const category: Category = {
+      ...existing,
       ...categoryData,
       id,
       slug,
-      itemCount: categoryData.itemCount ?? 0,
-      isActive: categoryData.isActive ?? true,
-      order: categoryData.order ?? (categories.length + 1),
+      itemCount: categoryData.itemCount ?? existing?.itemCount ?? 0,
+      isActive: categoryData.isActive ?? existing?.isActive ?? true,
+      order: categoryData.order ?? existing?.order ?? (categories.length + 1),
     };
-    const nextCategories = [...categories, newCategory];
+    const nextCategories = existing
+      ? categories.map((item) => item.id === existing.id ? category : item)
+      : [...categories, category];
     void saveAdminContent('categories', nextCategories).then(() => {
       setCategories(nextCategories);
-      addAuditLog('CATEGORY_CREATED', `Created category "${newCategory.name}"`);
-      showToast(`Category "${newCategory.name}" saved`, 'success');
+      addAuditLog(existing ? 'CATEGORY_UPDATED' : 'CATEGORY_CREATED', `${existing ? 'Updated' : 'Created'} category "${category.name}"`);
+      showToast(`Category "${category.name}" saved`, 'success');
     }).catch((error) => showToast(error instanceof Error ? error.message : 'Category could not be saved.', 'error'));
-    return newCategory;
+    return category;
   };
-
   const updateCategory = (updated: Category) => {
     const nextCategories = categories.map((c) => (c.id === updated.id ? updated : c));
     void saveAdminContent('categories', nextCategories).then(() => {
@@ -1369,16 +1376,21 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
   const addCoupon = (coupon: Coupon) => {
     const enrichedCoupon: Coupon = {
       ...coupon,
+      code: coupon.code.trim().toUpperCase(),
       perUserLimit: coupon.perUserLimit ?? 1,
       usedBy: coupon.usedBy || [],
     };
-    const nextCoupons = [enrichedCoupon, ...coupons];
+    const existing = coupons.find((item) => item.code.trim().toUpperCase() === enrichedCoupon.code);
+    const nextCoupons = existing
+      ? coupons.map((item) => item.code.trim().toUpperCase() === enrichedCoupon.code
+        ? { ...item, ...enrichedCoupon, usedBy: item.usedBy || enrichedCoupon.usedBy }
+        : item)
+      : [enrichedCoupon, ...coupons];
     void saveAdminContent('coupons', nextCoupons).then(() => {
       setCoupons(nextCoupons);
-      showToast(`Coupon ${coupon.code} saved (1 use per customer limit active)`, 'success');
+      showToast(`Coupon ${enrichedCoupon.code} ${existing ? 'updated' : 'saved'}`, 'success');
     }).catch((error) => showToast(error instanceof Error ? error.message : 'Coupon could not be saved.', 'error'));
   };
-
   const toggleCouponActive = (code: string) => {
     const nextCoupons = coupons.map((c) => (c.code === code ? { ...c, active: !c.active } : c));
     void saveAdminContent('coupons', nextCoupons).then(() => {
