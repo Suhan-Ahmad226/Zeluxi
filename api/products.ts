@@ -205,6 +205,20 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     if (req.method === 'POST' && existing) return res.status(409).json({ error: 'Product ID already exists.' });
     if (req.method === 'PATCH' && !existing) return res.status(404).json({ error: 'Product not found.' });
 
+    // Enforce case-insensitive SKU uniqueness at the API boundary too. UI-only
+    // duplicate guards are insufficient when two tabs or admins save at once.
+    const { data: skuRows, error: skuError } = await admin
+      .from('store_products').select('id,sku');
+    if (skuError) return res.status(503).json({ error: 'Product SKU uniqueness could not be checked.' });
+    const normalizedSku = product.sku.trim().toLocaleLowerCase('en-US');
+    const skuConflict = (skuRows || []).some((row) =>
+      row.id !== product.id && String(row.sku || '').trim().toLocaleLowerCase('en-US') === normalizedSku
+    );
+    if (skuConflict) return res.status(409).json({ error: 'This SKU is already used by another product.' });
+    if (existingError) return res.status(503).json({ error: 'Product state could not be checked.' });
+    if (req.method === 'POST' && existing) return res.status(409).json({ error: 'Product ID already exists.' });
+    if (req.method === 'PATCH' && !existing) return res.status(404).json({ error: 'Product not found.' });
+
     const { costPrice, ...publicProductData } = product;
     const row = {
       id: product.id,
