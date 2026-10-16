@@ -121,6 +121,11 @@ export const CheckoutModal: React.FC = () => {
       return;
     }
 
+    if (appliedCoupon) {
+      setFormError('Coupon discounts are not yet supported by secure server-side checkout. Remove the coupon before placing your order.');
+      return;
+    }
+
     // Zod Address Validation
     const cleanPhone = phone.trim().replace(/[^0-9]/g, '');
     const candidateAddress = {
