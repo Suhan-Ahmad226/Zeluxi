@@ -141,11 +141,6 @@ export const CheckoutModal: React.FC = () => {
       return;
     }
 
-    if ((paymentMethod === 'BKASH' || paymentMethod === 'NAGAD' || paymentMethod === 'ROCKET') && (!bkashTrxId.trim() || bkashTrxId.length < 5)) {
-      setFormError(`Please enter your ${paymentMethod} Transaction ID (TrxID).`);
-      return;
-    }
-
     // Per-user coupon limit validation
     if (appliedCoupon) {
       const isUsedByPhone = isCouponUsedByUser(appliedCoupon.code, candidateAddress.phone);
