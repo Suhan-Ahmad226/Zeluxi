@@ -1016,7 +1016,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
       ...productData,
       id,
       slug,
-      rating: 5.0,
+      rating: 0,
       reviewCount: 0,
     };
     setProducts((prev) => [newProduct, ...prev]);
