@@ -78,12 +78,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
   const [authModalMode, setAuthModalMode] = useState<AuthModalMode>('signin');
   const [authNoticeEmail, setAuthNoticeEmail] = useState<string>('');
-  const [pendingVerifyEmail, setPendingVerifyEmailState] = useState<string>(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('ZELUX_PENDING_VERIFY_EMAIL') || '';
+  // Keep the first client render identical to the server render.
+  // Restore browser-only verification state after hydration.
+  const [pendingVerifyEmail, setPendingVerifyEmailState] = useState<string>('');
+
+  useEffect(() => {
+    try {
+      setPendingVerifyEmailState(window.localStorage.getItem('ZELUX_PENDING_VERIFY_EMAIL') || '');
+    } catch {
+      setPendingVerifyEmailState('');
     }
-    return '';
-  });
+  }, []);
   const [recoveryEmail, setRecoveryEmail] = useState<string>('');
   const [isRecoveryVerified, setIsRecoveryVerified] = useState<boolean>(false);
 
