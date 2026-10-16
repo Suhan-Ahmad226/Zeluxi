@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Product,
   Category,
@@ -152,7 +153,10 @@ const StoreContext = createContext<StoreContextType | undefined>(undefined);
 // New namespace intentionally ignores legacy browser-only commerce records during hardening.
 const LOCAL_STORAGE_KEY = 'ZELUX_ECOMMERCE_STATE_V3';
 
-export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+type StoreView = 'store' | 'shop' | 'tracking' | 'account' | 'admin' | 'about' | 'verify-email';
+
+export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: StoreView }> = ({ children, initialView = 'store' }) => {
+  const router = useRouter();
   // Load initial state from LocalStorage if available
   const [products, setProducts] = useState<Product[]>(() => {
     try {
@@ -279,41 +283,15 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   });
 
   const [language, setLanguage] = useState<Language>('en');
-  const [activeView, setActiveViewState] = useState<'store' | 'shop' | 'tracking' | 'account' | 'admin' | 'about' | 'verify-email'>(() => {
-    if (typeof window !== 'undefined') {
-      const pathname = window.location.pathname;
-      if (pathname === '/verify-email') return 'verify-email';
-      if (pathname === '/shop') return 'shop';
-      if (pathname === '/tracking') return 'tracking';
-      if (pathname === '/account') return 'account';
-      if (pathname === '/admin') return 'admin';
-    }
-    return 'store';
-  });
+  const [activeView, setActiveViewState] = useState<StoreView>(initialView);
 
-  const setActiveView = (view: 'store' | 'shop' | 'tracking' | 'account' | 'admin' | 'about' | 'verify-email') => {
+  const setActiveView = (view: StoreView) => {
     setActiveViewState(view);
-    if (typeof window !== 'undefined') {
-      const targetPath = view === 'store' ? '/' : `/${view}`;
-      if (window.location.pathname !== targetPath) {
-        window.history.pushState(null, '', targetPath);
-      }
+    const targetPath = view === 'store' ? '/' : `/${view}`;
+    if (typeof window !== 'undefined' && window.location.pathname !== targetPath) {
+      router.push(targetPath);
     }
   };
-
-  useEffect(() => {
-    const handlePopState = () => {
-      const pathname = window.location.pathname;
-      if (pathname === '/verify-email') setActiveViewState('verify-email');
-      else if (pathname === '/shop') setActiveViewState('shop');
-      else if (pathname === '/tracking') setActiveViewState('tracking');
-      else if (pathname === '/account') setActiveViewState('account');
-      else if (pathname === '/admin') setActiveViewState('admin');
-      else setActiveViewState('store');
-    };
-    window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
-  }, []);
   const [activeFilterTab, setActiveFilterTab] = useState<'all' | 'new-arrivals' | 'best-sellers' | 'deals' | 'featured'>('all');
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
