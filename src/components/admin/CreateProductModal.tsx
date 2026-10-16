@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useStore } from '../../context/StoreContext';
 import { formatPrice } from '../../utils/formatters';
 import { Product, ProductVariant } from '../../types';
+import { supabase } from '../../lib/supabase';
 import { compressImageFile } from '../../utils/imageCompressor';
 import {
   X,
@@ -111,17 +112,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
   const videoInputRef = useRef<HTMLInputElement>(null);
 
   // 1. Media State
-  const [images, setImages] = useState<ImageUploadItem[]>([
-    {
-      id: 'default-img-1',
-      url: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=800&q=80',
-      name: 'atelier_leather_primary.jpg',
-      size: 480000,
-      isPrimary: true,
-      dimensions: '1200 x 900',
-      uploadStatus: 'completed',
-    },
-  ]);
+  const [images, setImages] = useState<ImageUploadItem[]>([]);
   const [video, setVideo] = useState<VideoUploadItem | null>(null);
   const [externalImageUrl, setExternalImageUrl] = useState('');
 
@@ -568,7 +559,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
   };
 
   // Save Product Handler
-  const handleSaveProduct = (saveStatus: 'active' | 'draft', addAnother: boolean = false) => {
+  const handleSaveProduct = async (saveStatus: 'active' | 'draft', addAnother: boolean = false) => {
     if (!validateForm()) return;
 
     setIsSubmitting(true);
@@ -636,6 +627,32 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
         ogImageUrl: sortedImages[0]?.url,
       };
 
+      const { data: sessionResult, error: sessionError } = await supabase.auth.getSession();
+      const accessToken = sessionResult.session?.access_token;
+      if (sessionError || !accessToken) {
+        throw new Error('Please sign in with an administrator account before saving products.');
+      }
+      const productId = productToEdit?.id || `zlx-${typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : Date.now().toString(36)}`;
+      const productPayload: Product = {
+        ...newProductData,
+        id: productId,
+        rating: productToEdit?.rating ?? 0,
+        reviewCount: productToEdit?.reviewCount ?? 0,
+      };
+      const apiResponse = await fetch('/api/products', {
+        method: productToEdit ? 'PATCH' : 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify(productPayload),
+        cache: 'no-store',
+      });
+      const apiResult = await apiResponse.json().catch(() => ({}));
+      if (!apiResponse.ok) {
+        throw new Error(typeof apiResult.error === 'string' ? apiResult.error : 'Product could not be saved to the catalog database.');
+      }
+
       if (productToEdit) {
         const updatedProduct: Product = {
           ...productToEdit,
@@ -652,7 +669,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
         return;
       }
 
-      const created = addProduct(newProductData);
+      const created = addProduct({ ...newProductData, id: productId });
       setHasUnsavedChanges(false);
 
       if (onProductCreated) {
@@ -674,22 +691,14 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
         setSku(`ZLX-${Math.floor(1000 + Math.random() * 9000)}`);
         setDescription('');
         setShortDesc('');
-        setImages([
-          {
-            id: `default-img-${Date.now()}`,
-            url: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=800&q=80',
-            name: 'primary_seed.jpg',
-            size: 450000,
-            isPrimary: true,
-          },
-        ]);
+        setImages([]);
         setVideo(null);
         setActiveTab('general');
       } else {
         onClose();
       }
     } catch (err) {
-      showToast('Error saving product. Please try again.', 'error');
+      showToast(err instanceof Error ? err.message : 'Error saving product. Please try again.', 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -714,15 +723,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
     setStock(25);
     setDescription('');
     setShortDesc('');
-    setImages([
-      {
-        id: 'default-img-1',
-        url: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=800&q=80',
-        name: 'atelier_leather_primary.jpg',
-        size: 480000,
-        isPrimary: true,
-      },
-    ]);
+    setImages([]);
     setVideo(null);
     setFormErrors({});
     setHasUnsavedChanges(false);
