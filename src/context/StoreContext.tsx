@@ -996,7 +996,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
     showToast(`Order #${orderId} status updated to ${newStatus}`, 'success');
   };
 
-  const addProduct = (productData: Omit<Product, 'id' | 'rating' | 'reviewCount'> & { slug?: string }): Product => {
+  const addProduct = (productData: Omit<Product, 'id' | 'rating' | 'reviewCount'> & { id?: string; slug?: string }): Product => {
     const id = productData.id || `prod-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const slug = productData.slug?.trim() || productData.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
     const newProduct: Product = {
