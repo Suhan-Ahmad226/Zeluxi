@@ -295,10 +295,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
         const content = contentPayload?.content;
         if (!cancelled && content && typeof content === 'object') {
           if (content.storefront_cms) setStorefrontCMS(content.storefront_cms as StorefrontCMS);
-          if (token && Array.isArray(content.categories)) setCategories(content.categories as Category[]);
-          if (token && Array.isArray(content.pages)) setPages(content.pages as StaticPageContent[]);
+          if (Array.isArray(content.categories)) setCategories(content.categories as Category[]);
+          if (Array.isArray(content.pages)) setPages(content.pages as StaticPageContent[]);
+          if (content.settings && typeof content.settings === 'object') setSettings(content.settings as StoreSettings);
           if (token && Array.isArray(content.coupons)) setCoupons(content.coupons as Coupon[]);
-          if (token && content.settings && typeof content.settings === 'object') setSettings(content.settings as StoreSettings);
         }
       }
 
