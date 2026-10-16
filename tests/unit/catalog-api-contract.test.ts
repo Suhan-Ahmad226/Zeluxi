@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 
 const catalogApi = readFileSync(new URL('../../api/products.ts', import.meta.url), 'utf8');
 const catalogMigration = readFileSync(
-  new URL('../../supabase/migrations/202610160002_persistent_catalog.sql', import.meta.url),
+  new URL('../../supabase/migrations/20261016000200_persistent_catalog.sql', import.meta.url),
   'utf8'
 );
 
