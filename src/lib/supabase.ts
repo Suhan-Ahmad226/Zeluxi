@@ -1,39 +1,38 @@
+'use client';
+
 import { createClient } from '@supabase/supabase-js';
 
-export const SUPABASE_URL =
-  (typeof import.meta !== 'undefined' && import.meta.env?.VITE_SUPABASE_URL) ||
-  (typeof process !== 'undefined' && process.env?.VITE_SUPABASE_URL) ||
-  '';
+export const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+export const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
-export const SUPABASE_ANON_KEY =
-  (typeof import.meta !== 'undefined' && import.meta.env?.VITE_SUPABASE_ANON_KEY) ||
-  (typeof process !== 'undefined' && process.env?.VITE_SUPABASE_ANON_KEY) ||
-  '';
-
-// Use inert placeholders only to prevent module initialization from crashing when deployment
-// configuration is missing. isSupabaseConfigured() must be checked before auth operations.
+// Only the public anonymous key belongs in this browser client. Service-role keys must
+// never use a NEXT_PUBLIC_ prefix and must never be imported by client components.
 export const supabase = createClient(
   SUPABASE_URL || 'https://configuration-required.invalid',
-  SUPABASE_ANON_KEY || 'configuration-required', {
-  auth: {
-    persistSession: true,
-    autoRefreshToken: true,
-    detectSessionInUrl: true,
-    storage: typeof window !== 'undefined' ? window.localStorage : undefined,
+  SUPABASE_ANON_KEY || 'configuration-required',
+  {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true,
+      storage: typeof window !== 'undefined' ? window.localStorage : undefined,
+    },
   },
-});
+);
 
-export const isSupabaseConfigured = (): boolean => {
-  return Boolean(SUPABASE_URL && SUPABASE_ANON_KEY && SUPABASE_URL.startsWith('https://') && SUPABASE_ANON_KEY !== 'configuration-required');
-};
+export const isSupabaseConfigured = (): boolean =>
+  Boolean(
+    SUPABASE_URL &&
+    SUPABASE_ANON_KEY &&
+    SUPABASE_URL.startsWith('https://') &&
+    SUPABASE_ANON_KEY !== 'configuration-required',
+  );
 
-/**
- * Helper to compute the dynamic site origin / redirect URL for OAuth and email verification
- */
 export const getAuthRedirectUrl = (subpath = ''): string => {
+  const path = subpath.startsWith('/') ? subpath : '/' + subpath;
   if (typeof window !== 'undefined' && window.location.origin) {
-    const origin = window.location.origin;
-    return `${origin}${subpath.startsWith('/') ? subpath : `/${subpath}`}`;
+    return window.location.origin + path;
   }
-  return `http://localhost:3000${subpath.startsWith('/') ? subpath : `/${subpath}`}`;
+  const origin = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+  return new URL(path, origin).toString();
 };

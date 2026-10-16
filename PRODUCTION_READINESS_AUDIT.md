@@ -6,7 +6,7 @@ Reviewed the GitHub `main` branch source files and prepared a separate `producti
 
 ## Confirmed blockers on the inspected source
 
-- The app is a Vite + React SPA, not a Next.js server application. The current `StoreContext` persists business state in browser localStorage; no shared server-side CRUD path is wired for products, inventory, orders, customers, coupons, reviews, or admin settings.
+- The app is a Next.js App Router application, not a Next.js server application. The current `StoreContext` persists business state in browser localStorage; no shared server-side CRUD path is wired for products, inventory, orders, customers, coupons, reviews, or admin settings.
 - Demo customer/admin login and a failed-login fallback that granted a demo admin profile existed in `AuthContext`.
 - Auth state could be initialized from cached profile data without proving a valid Supabase session.
 - The Supabase project URL/public key were hardcoded in the client module, and configuration detection therefore could not reliably detect missing deployment variables.
