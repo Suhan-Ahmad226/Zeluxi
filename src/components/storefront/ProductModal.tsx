@@ -112,7 +112,7 @@ export const ProductModal: React.FC = () => {
       userName: reviewName.trim(),
       rating: reviewRating,
       comment: reviewComment.trim(),
-      verifiedPurchase: true,
+      verifiedPurchase: false,
     });
 
     setReviewName('');
