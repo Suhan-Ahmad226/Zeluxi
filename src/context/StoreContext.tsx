@@ -36,7 +36,7 @@ import {
 } from '../data/initialState';
 import { getCourierProvider } from '../lib/shipping/couriers';
 import { supabase } from '../lib/supabase';
-import { persistProductImageUrls, removeProductImageUrls } from '../lib/productImageStorage';
+import { persistProductImageUrls } from '../lib/productImageStorage';
 
 interface ToastNotification {
   id: string;
@@ -150,7 +150,7 @@ interface StoreContextType {
   dismissToast: () => void;
 }
 
-const StoreContext = createContext<StoreContextType | undefined>(undefined);\n\n// Reuse the same in-flight create when a Save action fires more than once.\nconst pendingProductCreates = new Map<string, Product>();
+const StoreContext = createContext<StoreContextType | undefined>(undefined);
 
 // New namespace intentionally ignores legacy browser-only commerce records during hardening.
 const LOCAL_STORAGE_KEY = 'ZELUX_ECOMMERCE_STATE_V3';
@@ -1048,24 +1048,15 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
   };
 
   const addProduct = (productData: Omit<Product, 'id' | 'rating' | 'reviewCount'> & { id?: string; slug?: string }): Product => {
-    const normalizedSku = productData.sku.trim().toLowerCase();
-    const pending = pendingProductCreates.get(normalizedSku);
-    if (pending) {
-      showToast('This product is already being saved. Please wait.', 'info');
-      return pending;
-    }
-    const existingSku = products.find((item) => item.sku.trim().toLowerCase() === normalizedSku);
-    if (existingSku) {
-      showToast(`SKU "${productData.sku}" already exists. Edit the existing product instead.`, 'error');
-      return existingSku;
-    }
-
-    const id = productData.id || (typeof crypto !== 'undefined' && 'randomUUID' in crypto
-      ? `prod-${crypto.randomUUID()}`
-      : `prod-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
+    const id = productData.id || `prod-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const slug = productData.slug?.trim() || productData.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-    const newProduct: Product = { ...productData, id, slug, rating: 0, reviewCount: 0 };
-    pendingProductCreates.set(normalizedSku, newProduct);
+    const newProduct: Product = {
+      ...productData,
+      id,
+      slug,
+      rating: 0,
+      reviewCount: 0,
+    };
     setProducts((prev) => [newProduct, ...prev]);
     void saveProductToDatabase(newProduct, 'POST').then((saved) => {
       setProducts((prev) => prev.map((p) => p.id === saved.id ? saved : p));
@@ -1073,8 +1064,6 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
     }).catch((error) => {
       setProducts((prev) => prev.filter((p) => p.id !== newProduct.id));
       showToast(error instanceof Error ? error.message : 'Product could not be saved.', 'error');
-    }).finally(() => {
-      if (pendingProductCreates.get(normalizedSku)?.id === newProduct.id) pendingProductCreates.delete(normalizedSku);
     });
     return newProduct;
   };
@@ -1187,31 +1176,24 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
 
   const addCategory = (categoryData: Omit<Category, 'id' | 'itemCount'> & { id?: string; itemCount?: number }): Category => {
     const slug = categoryData.slug?.trim() || categoryData.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-    const existing = categories.find((item) =>
-      (categoryData.id && item.id === categoryData.id) ||
-      item.slug.trim().toLowerCase() === slug.toLowerCase() ||
-      item.name.trim().toLowerCase() === categoryData.name.trim().toLowerCase()
-    );
-    const id = existing?.id || categoryData.id || slug || `cat-${Date.now()}`;
-    const category: Category = {
-      ...existing,
+    const id = categoryData.id || slug || `cat-${Date.now().toString().slice(-4)}`;
+    const newCategory: Category = {
       ...categoryData,
       id,
       slug,
-      itemCount: categoryData.itemCount ?? existing?.itemCount ?? 0,
-      isActive: categoryData.isActive ?? existing?.isActive ?? true,
-      order: categoryData.order ?? existing?.order ?? (categories.length + 1),
+      itemCount: categoryData.itemCount ?? 0,
+      isActive: categoryData.isActive ?? true,
+      order: categoryData.order ?? (categories.length + 1),
     };
-    const nextCategories = existing
-      ? categories.map((item) => item.id === existing.id ? category : item)
-      : [...categories, category];
+    const nextCategories = [...categories, newCategory];
     void saveAdminContent('categories', nextCategories).then(() => {
       setCategories(nextCategories);
-      addAuditLog(existing ? 'CATEGORY_UPDATED' : 'CATEGORY_CREATED', `${existing ? 'Updated' : 'Created'} category "${category.name}"`);
-      showToast(`Category "${category.name}" saved`, 'success');
+      addAuditLog('CATEGORY_CREATED', `Created category "${newCategory.name}"`);
+      showToast(`Category "${newCategory.name}" saved`, 'success');
     }).catch((error) => showToast(error instanceof Error ? error.message : 'Category could not be saved.', 'error'));
-    return category;
+    return newCategory;
   };
+
   const updateCategory = (updated: Category) => {
     const nextCategories = categories.map((c) => (c.id === updated.id ? updated : c));
     void saveAdminContent('categories', nextCategories).then(() => {
@@ -1361,21 +1343,16 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
   const addCoupon = (coupon: Coupon) => {
     const enrichedCoupon: Coupon = {
       ...coupon,
-      code: coupon.code.trim().toUpperCase(),
       perUserLimit: coupon.perUserLimit ?? 1,
       usedBy: coupon.usedBy || [],
     };
-    const existing = coupons.find((item) => item.code.trim().toUpperCase() === enrichedCoupon.code);
-    const nextCoupons = existing
-      ? coupons.map((item) => item.code.trim().toUpperCase() === enrichedCoupon.code
-        ? { ...item, ...enrichedCoupon, usedBy: item.usedBy || enrichedCoupon.usedBy }
-        : item)
-      : [enrichedCoupon, ...coupons];
+    const nextCoupons = [enrichedCoupon, ...coupons];
     void saveAdminContent('coupons', nextCoupons).then(() => {
       setCoupons(nextCoupons);
-      showToast(`Coupon ${enrichedCoupon.code} ${existing ? 'updated' : 'saved'}`, 'success');
+      showToast(`Coupon ${coupon.code} saved (1 use per customer limit active)`, 'success');
     }).catch((error) => showToast(error instanceof Error ? error.message : 'Coupon could not be saved.', 'error'));
   };
+
   const toggleCouponActive = (code: string) => {
     const nextCoupons = coupons.map((c) => (c.code === code ? { ...c, active: !c.active } : c));
     void saveAdminContent('coupons', nextCoupons).then(() => {
