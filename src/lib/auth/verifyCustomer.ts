@@ -68,12 +68,9 @@ export async function verifyCustomerOrderEligibility(): Promise<CustomerVerifica
       };
     }
 
-    const isEmailConfirmed = Boolean(
-      user.email_confirmed_at ||
-      user.confirmed_at ||
-      user.app_metadata?.provider === 'google' ||
-      user.app_metadata?.provider === 'facebook'
-    );
+    // OAuth provider metadata is not itself proof that this specific email is verified.
+    // Trust only Supabase's confirmation timestamps returned for the authenticated user.
+    const isEmailConfirmed = Boolean(user.email_confirmed_at || user.confirmed_at);
 
     if (!isEmailConfirmed) {
       return {
