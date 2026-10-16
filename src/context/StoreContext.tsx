@@ -217,7 +217,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
   const [hasHydratedStorage, setHasHydratedStorage] = useState(false);
 
   useEffect(() => {
-    const restore = <T,>(key: string, fallback: T): T => {
+    // Only shopper-owned convenience data may be restored from this browser.
+    // Never trust localStorage for products, orders, customers, coupons, settings,
+    // CMS content, reviews, or audit logs: old builds stored demo/business records here.
+    const restorePreference = <T,>(key: string, fallback: T): T => {
       try {
         const saved = window.localStorage.getItem(`${LOCAL_STORAGE_KEY}_${key}`);
         return saved ? (JSON.parse(saved) as T) : fallback;
@@ -226,19 +229,17 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
       }
     };
 
-    setProducts(restore('PRODUCTS', INITIAL_PRODUCTS));
-    setCategories(restore('CATEGORIES', INITIAL_CATEGORIES));
-    setCart(restore('CART', []));
-    setWishlist(restore('WISHLIST', []));
-    setOrders(restore('ORDERS', INITIAL_ORDERS));
-    setCoupons(restore('COUPONS', INITIAL_COUPONS));
-    setReviews(restore('REVIEWS', INITIAL_REVIEWS));
-    setQuestions(restore('QUESTIONS', INITIAL_QUESTIONS));
-    setCustomers(restore('CUSTOMERS', INITIAL_CUSTOMERS));
-    setPages(restore('PAGES', INITIAL_PAGES));
-    setStorefrontCMS(restore('STOREFRONT_CMS', INITIAL_STOREFRONT_CMS));
-    setSettings(restore('SETTINGS', INITIAL_SETTINGS));
-    setAuditLogs(restore('LOGS', INITIAL_AUDIT_LOGS));
+    setCart(restorePreference('CART', []));
+    setWishlist(restorePreference('WISHLIST', []));
+
+    // Purge previously cached business records so stale demo data cannot reappear.
+    for (const key of [
+      'PRODUCTS', 'CATEGORIES', 'ORDERS', 'COUPONS', 'CUSTOMERS', 'PAGES',
+      'STOREFRONT_CMS', 'SETTINGS', 'LOGS', 'REVIEWS', 'QUESTIONS',
+    ]) {
+      try { window.localStorage.removeItem(`${LOCAL_STORAGE_KEY}_${key}`); } catch {}
+    }
+    try { window.localStorage.removeItem(LOCAL_STORAGE_KEY); } catch {}
     setHasHydratedStorage(true);
   }, []);
 
@@ -275,19 +276,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
   useEffect(() => {
     if (!hasHydratedStorage) return;
     try {
-      localStorage.setItem(`${LOCAL_STORAGE_KEY}_PRODUCTS`, JSON.stringify(products));
-      localStorage.setItem(`${LOCAL_STORAGE_KEY}_CATEGORIES`, JSON.stringify(categories));
+      // Browser storage is limited to shopper convenience preferences only.
+      // Commerce/admin data must come from authenticated server APIs and the database.
       localStorage.setItem(`${LOCAL_STORAGE_KEY}_CART`, JSON.stringify(cart));
       localStorage.setItem(`${LOCAL_STORAGE_KEY}_WISHLIST`, JSON.stringify(wishlist));
-      localStorage.setItem(`${LOCAL_STORAGE_KEY}_ORDERS`, JSON.stringify(orders));
-      localStorage.setItem(`${LOCAL_STORAGE_KEY}_COUPONS`, JSON.stringify(coupons));
-      localStorage.setItem(`${LOCAL_STORAGE_KEY}_CUSTOMERS`, JSON.stringify(customers));
-      localStorage.setItem(`${LOCAL_STORAGE_KEY}_PAGES`, JSON.stringify(pages));
-      localStorage.setItem(`${LOCAL_STORAGE_KEY}_STOREFRONT_CMS`, JSON.stringify(storefrontCMS));
-      localStorage.setItem(`${LOCAL_STORAGE_KEY}_SETTINGS`, JSON.stringify(settings));
-      localStorage.setItem(`${LOCAL_STORAGE_KEY}_LOGS`, JSON.stringify(auditLogs));
-      localStorage.setItem(`${LOCAL_STORAGE_KEY}_REVIEWS`, JSON.stringify(reviews));
-      localStorage.setItem(`${LOCAL_STORAGE_KEY}_QUESTIONS`, JSON.stringify(questions));
     } catch (e) {
       console.warn('Storage sync failed', e);
     }

@@ -56,6 +56,7 @@ export const CustomerAccountView: React.FC = () => {
 
   const {
     userProfile,
+    loading: authLoading,
     setIsAuthModalOpen,
     setAuthModalMode,
     logout,
@@ -119,6 +120,23 @@ export const CustomerAccountView: React.FC = () => {
   }, [userProfile]);
 
   const [copiedCoupon, setCopiedCoupon] = useState<string | null>(null);
+
+  if (authLoading) {
+    return <div className="min-h-[60vh] flex items-center justify-center bg-white text-slate-600" role="status" aria-live="polite">Checking your account…</div>;
+  }
+
+  if (!userProfile) {
+    return (
+      <section className="min-h-[60vh] flex items-center justify-center bg-white px-4 py-16">
+        <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-slate-50 p-8 text-center">
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-indigo-100 text-indigo-700"><Lock className="h-6 w-6" /></div>
+          <h1 className="text-xl font-bold text-slate-900">Sign in to your account</h1>
+          <p className="mt-2 text-sm text-slate-600">Your profile, order history, and account settings are available after you sign in.</p>
+          <button type="button" onClick={() => { setAuthModalMode('signin'); setIsAuthModalOpen(true); }} className="mt-6 inline-flex min-h-11 items-center justify-center rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white hover:bg-indigo-700">Sign in securely</button>
+        </div>
+      </section>
+    );
+  }
 
   const wishlistedProducts = products.filter((p) => wishlist.includes(p.id));
 
@@ -211,7 +229,7 @@ export const CustomerAccountView: React.FC = () => {
         <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6 flex flex-col sm:flex-row items-center sm:items-start justify-between gap-4">
           <div className="flex items-center gap-4 text-center sm:text-left">
             <div className="w-16 h-16 rounded-full bg-indigo-600 text-white flex items-center justify-center text-xl font-bold font-mono">
-              {profileName.charAt(0) || 'T'}
+              {profileName.charAt(0) || userProfile.displayName.charAt(0) || 'U'}
             </div>
             <div>
               <div className="flex items-center gap-2">
@@ -221,7 +239,7 @@ export const CustomerAccountView: React.FC = () => {
                 </span>
               </div>
               <p className="text-xs text-slate-500">{profilePhone} · {profileEmail}</p>
-              <p className="text-xs text-slate-400 mt-1">Dhaka, Bangladesh · Member since Oct 2025</p>
+              <p className="text-xs text-slate-400 mt-1">{userProfile.division || 'Bangladesh'} · Member since {userProfile.createdAt || '—'}</p>
             </div>
           </div>
 
