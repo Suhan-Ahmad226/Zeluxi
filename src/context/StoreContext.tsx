@@ -1136,13 +1136,16 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
     const existing = products.find((p) => p.id === productId);
     if (!existing) return null;
 
-    const id = `prod-${Date.now().toString().slice(-4)}`;
-    const randomSkuSuffix = Math.floor(100 + Math.random() * 900);
+    const uniqueSuffix = typeof crypto !== 'undefined' && 'randomUUID' in crypto
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+    const id = `prod-${uniqueSuffix}`;
+    const skuSuffix = uniqueSuffix.replace(/[^a-z0-9]/gi, '').slice(-10).toUpperCase();
     const duplicated: Product = {
       ...existing,
       id,
       name: `${existing.name} (Copy)`,
-      sku: `${existing.sku}-CP${randomSkuSuffix}`,
+      sku: `${existing.sku}-CP${skuSuffix}`,
       slug: `${existing.slug}-copy-${id}`,
       published: false,
       rating: 0,
