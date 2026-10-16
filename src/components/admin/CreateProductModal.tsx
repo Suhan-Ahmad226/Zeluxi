@@ -161,30 +161,9 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
 
   // 5. Variants
   const [enableVariants, setEnableVariants] = useState(false);
-  const [variants, setVariants] = useState<ProductVariant[]>([
-    {
-      id: 'v-1',
-      name: 'Caramel Tan / Medium',
-      sku: 'ZLX-VAR-01',
-      price: 3450,
-      stock: 15,
-      barcode: '8901234567890',
-      imageUrl: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=800&q=80',
-      attributes: { Color: 'Caramel Tan', Size: 'M' },
-    },
-    {
-      id: 'v-2',
-      name: 'Espresso Black / Large',
-      sku: 'ZLX-VAR-02',
-      price: 3850,
-      stock: 10,
-      barcode: '8901234567891',
-      imageUrl: '',
-      attributes: { Color: 'Espresso Black', Size: 'L' },
-    },
-  ]);
-  const [bulkPriceInput, setBulkPriceInput] = useState<number>(3450);
-  const [bulkStockInput, setBulkStockInput] = useState<number>(15);
+  const [variants, setVariants] = useState<ProductVariant[]>([]);
+  const [bulkPriceInput, setBulkPriceInput] = useState<number>(0);
+  const [bulkStockInput, setBulkStockInput] = useState<number>(0);
 
   // 6. SEO & Social Meta
   const [seoTitle, setSeoTitle] = useState('');
@@ -719,10 +698,10 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
     setSlug('');
     setIsSlugManuallyEdited(false);
     setSku(`ZLX-${Math.floor(1000 + Math.random() * 9000)}`);
-    setPrice(3450);
-    setCompareAtPrice(4200);
-    setCostPrice(1800);
-    setStock(25);
+    setPrice(0);
+    setCompareAtPrice(0);
+    setCostPrice(0);
+    setStock(0);
     setDescription('');
     setShortDesc('');
     setImages([]);
