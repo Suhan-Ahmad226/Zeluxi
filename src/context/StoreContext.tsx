@@ -36,6 +36,7 @@ import {
 } from '../data/initialState';
 import { getCourierProvider } from '../lib/shipping/couriers';
 import { supabase } from '../lib/supabase';
+import { persistProductImageUrls } from '../lib/productImageStorage';
 
 interface ToastNotification {
   id: string;
@@ -1112,13 +1113,19 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
       sku: `${existing.sku}-CP${randomSkuSuffix}`,
       slug: `${existing.slug}-copy-${id}`,
       published: false,
-      rating: 5.0,
+      rating: 0,
       reviewCount: 0,
     };
 
     setProducts((prev) => [duplicated, ...prev]);
-    addAuditLog('PRODUCT_DUPLICATED', `Duplicated "${existing.name}" as "${duplicated.name}" (SKU: ${duplicated.sku})`);
-    showToast(`Product duplicated as draft: "${duplicated.name}"`, 'success');
+    void saveProductToDatabase(duplicated, 'POST').then((saved) => {
+      setProducts((prev) => prev.map((p) => p.id === saved.id ? saved : p));
+      addAuditLog('PRODUCT_DUPLICATED', `Duplicated "${existing.name}" as "${saved.name}" (SKU: ${saved.sku})`);
+      showToast(`Product duplicated and saved as draft: "${saved.name}"`, 'success');
+    }).catch((error) => {
+      setProducts((prev) => prev.filter((p) => p.id !== duplicated.id));
+      showToast(error instanceof Error ? error.message : 'Product copy could not be saved.', 'error');
+    });
     return duplicated;
   };
 
@@ -1128,36 +1135,43 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
     value?: any
   ) => {
     if (productIds.length === 0) return;
+    void (async () => {
+      const selected = products.filter((p) => productIds.includes(p.id));
+      if (action === 'delete') {
+        for (const product of selected) {
+          const { data, error } = await supabase.auth.getSession();
+          const token = data.session?.access_token;
+          if (error || !token) throw new Error('Sign in as an administrator before archiving products.');
+          const response = await fetch(`/api/products?id=${encodeURIComponent(product.id)}`, {
+            method: 'DELETE', headers: { Authorization: `Bearer ${token}` }, cache: 'no-store',
+          });
+          const payload = await response.json().catch(() => ({}));
+          if (!response.ok) throw new Error(typeof payload.error === 'string' ? payload.error : `Could not archive ${product.name}.`);
+        }
+        setProducts((prev) => prev.filter((p) => !productIds.includes(p.id)));
+        addAuditLog('BULK_ARCHIVE_PRODUCTS', `Archived ${selected.length} products`);
+        showToast(`Archived ${selected.length} products`, 'success');
+        return;
+      }
 
-    if (action === 'delete') {
-      setProducts((prev) => prev.filter((p) => !productIds.includes(p.id)));
-      addAuditLog('BULK_DELETE_PRODUCTS', `Deleted ${productIds.length} products`);
-      showToast(`Removed ${productIds.length} products`, 'info');
-      return;
-    }
-
-    setProducts((prev) =>
-      prev.map((p) => {
+      const nextProducts = products.map((p) => {
         if (!productIds.includes(p.id)) return p;
         switch (action) {
-          case 'publish':
-            return { ...p, published: true, archived: false };
-          case 'unpublish':
-            return { ...p, published: false };
-          case 'archive':
-            return { ...p, archived: true, published: false };
-          case 'restore':
-            return { ...p, archived: false, published: true };
-          case 'category':
-            return { ...p, category: value?.name || p.category };
-          default:
-            return p;
+          case 'publish': return { ...p, published: true, archived: false };
+          case 'unpublish': return { ...p, published: false };
+          case 'archive': return { ...p, archived: true, published: false };
+          case 'restore': return { ...p, archived: false, published: true };
+          case 'category': return { ...p, category: value?.name || p.category };
+          default: return p;
         }
-      })
-    );
-
-    addAuditLog('BULK_UPDATE_PRODUCTS', `Bulk action "${action}" applied to ${productIds.length} products`);
-    showToast(`Updated ${productIds.length} products (${action})`, 'success');
+      });
+      for (const product of nextProducts.filter((p) => productIds.includes(p.id))) {
+        await saveProductToDatabase(product, 'PATCH');
+      }
+      setProducts(nextProducts);
+      addAuditLog('BULK_UPDATE_PRODUCTS', `Bulk action "${action}" applied to ${productIds.length} products`);
+      showToast(`Saved ${productIds.length} products (${action})`, 'success');
+    })().catch((error) => showToast(error instanceof Error ? error.message : 'Bulk product changes could not be saved.', 'error'));
   };
 
   const addCategory = (categoryData: Omit<Category, 'id' | 'itemCount'> & { id?: string; itemCount?: number }): Category => {
@@ -1245,11 +1259,17 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
       announcement: { ...storefrontCMS.announcement, ...(cmsUpdate.announcement || {}) },
       sectionVisibility: { ...storefrontCMS.sectionVisibility, ...(cmsUpdate.sectionVisibility || {}) },
     };
-    void saveAdminContent('storefront_cms', merged).then(() => {
+    void (async () => {
+      const imageUrl = merged.hero.imageUrl;
+      if (imageUrl.startsWith('data:')) {
+        const [hostedUrl] = await persistProductImageUrls([imageUrl], 'storefront');
+        merged.hero.imageUrl = hostedUrl;
+      }
+      await saveAdminContent('storefront_cms', merged);
       setStorefrontCMS(merged);
       addAuditLog('STOREFRONT_CMS_UPDATED', 'Updated homepage layout and storefront appearance settings');
       showToast('Storefront appearance saved to database', 'success');
-    }).catch((error) => showToast(error instanceof Error ? error.message : 'Storefront changes could not be saved.', 'error'));
+    })().catch((error) => showToast(error instanceof Error ? error.message : 'Storefront changes could not be saved.', 'error'));
   };
 
   const updateCustomer = (customer: CustomerRecord) => {
@@ -1300,23 +1320,24 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
   };
 
   const adjustStock = (productId: string, newStock: number, reason: string) => {
-    setProducts((prev) =>
-      prev.map((p) => {
-        if (p.id === productId) {
-          return { ...p, stock: newStock };
-        }
-        return p;
-      })
-    );
-    const logItem: AuditLog = {
-      id: `log-${Date.now()}`,
-      timestamp: new Date().toISOString().slice(0, 16).replace('T', ' '),
-      actor: 'Admin (Inventory)',
-      action: 'STOCK_ADJUSTMENT',
-      details: `Stock updated for product ID ${productId} to ${newStock}. Reason: ${reason}`,
-    };
-    setAuditLogs((prev) => [logItem, ...prev]);
-    showToast('Stock inventory updated', 'success');
+    const product = products.find((item) => item.id === productId);
+    if (!product) {
+      showToast('Product not found', 'error');
+      return;
+    }
+    const updated = { ...product, stock: newStock };
+    void saveProductToDatabase(updated, 'PATCH').then((saved) => {
+      setProducts((prev) => prev.map((p) => p.id === productId ? saved : p));
+      const logItem: AuditLog = {
+        id: `log-${Date.now()}`,
+        timestamp: new Date().toISOString().slice(0, 16).replace('T', ' '),
+        actor: 'Admin (Inventory)',
+        action: 'STOCK_ADJUSTMENT',
+        details: `Stock updated for product ID ${productId} to ${newStock}. Reason: ${reason}`,
+      };
+      setAuditLogs((prev) => [logItem, ...prev]);
+      showToast('Stock inventory saved', 'success');
+    }).catch((error) => showToast(error instanceof Error ? error.message : 'Stock adjustment could not be saved.', 'error'));
   };
 
   const addCoupon = (coupon: Coupon) => {
@@ -1325,14 +1346,19 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
       perUserLimit: coupon.perUserLimit ?? 1,
       usedBy: coupon.usedBy || [],
     };
-    setCoupons((prev) => [enrichedCoupon, ...prev]);
-    showToast(`Coupon ${coupon.code} created (1 use per customer limit active)`, 'success');
+    const nextCoupons = [enrichedCoupon, ...coupons];
+    void saveAdminContent('coupons', nextCoupons).then(() => {
+      setCoupons(nextCoupons);
+      showToast(`Coupon ${coupon.code} saved (1 use per customer limit active)`, 'success');
+    }).catch((error) => showToast(error instanceof Error ? error.message : 'Coupon could not be saved.', 'error'));
   };
 
   const toggleCouponActive = (code: string) => {
-    setCoupons((prev) =>
-      prev.map((c) => (c.code === code ? { ...c, active: !c.active } : c))
-    );
+    const nextCoupons = coupons.map((c) => (c.code === code ? { ...c, active: !c.active } : c));
+    void saveAdminContent('coupons', nextCoupons).then(() => {
+      setCoupons(nextCoupons);
+      showToast('Coupon status saved', 'success');
+    }).catch((error) => showToast(error instanceof Error ? error.message : 'Coupon status could not be saved.', 'error'));
   };
 
   const updateSettings = (newSettings: Partial<StoreSettings>) => {
