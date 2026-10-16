@@ -7,45 +7,29 @@ import { supabase } from './supabase';
  * Existing hosted URLs are preserved to avoid needless duplicate uploads.
  */
 export async function persistProductImageUrls(imageUrls: string[], productId: string): Promise<string[]> {
-  const result: string[] = [];
-  const uploaded: string[] = [];
-  try {
-    for (const [index, imageUrl] of imageUrls.entries()) {
-      if (!imageUrl.startsWith('data:')) {
-        result.push(imageUrl);
-        continue;
-      }
+  return Promise.all(imageUrls.map(async (imageUrl, index) => {
+    if (!imageUrl.startsWith('data:')) return imageUrl;
 
-      const response = await fetch(imageUrl);
-      if (!response.ok) throw new Error('A selected image could not be read.');
-      const blob = await response.blob();
-      if (!['image/jpeg', 'image/png', 'image/webp'].includes(blob.type)) {
-        throw new Error('Images must be JPG, PNG, or WebP.');
-      }
-      if (blob.size > 5 * 1024 * 1024) throw new Error('Each image must be 5 MB or smaller.');
-
-      const extension = blob.type === 'image/png' ? 'png' : blob.type === 'image/webp' ? 'webp' : 'jpg';
-      const randomSuffix = typeof crypto !== 'undefined' && 'randomUUID' in crypto
-        ? crypto.randomUUID()
-        : Math.random().toString(36).slice(2);
-      const path = `${productId}/${Date.now()}-${index}-${randomSuffix}.${extension}`;
-      const { error } = await supabase.storage.from('zelux-products').upload(path, blob, {
-        contentType: blob.type,
-        cacheControl: '31536000',
-        upsert: false,
-      });
-      if (error) throw new Error('Image storage is not ready. Apply the Supabase storage migration and try again.');
-
-      const publicUrl = supabase.storage.from('zelux-products').getPublicUrl(path).data.publicUrl;
-      result.push(publicUrl);
-      uploaded.push(publicUrl);
+    const response = await fetch(imageUrl);
+    if (!response.ok) throw new Error('A selected image could not be read.');
+    const blob = await response.blob();
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(blob.type)) {
+      throw new Error('Images must be JPG, PNG, or WebP.');
     }
-    return result;
-  } catch (error) {
-    // If a later image fails, remove earlier uploads from this incomplete attempt.
-    await removeProductImageUrls(uploaded, productId);
-    throw error;
-  }
+    if (blob.size > 5 * 1024 * 1024) throw new Error('Each image must be 5 MB or smaller.');
+
+    const extension = blob.type === 'image/png' ? 'png' : blob.type === 'image/webp' ? 'webp' : 'jpg';
+    const path = `${productId}/${Date.now()}-${index}-${crypto.randomUUID?.() || Math.random().toString(36).slice(2)}.${extension}`;
+    const { error } = await supabase.storage.from('zelux-products').upload(path, blob, {
+      contentType: blob.type,
+      cacheControl: '31536000',
+      upsert: false,
+    });
+    if (error) {
+      throw new Error('Image storage is not ready. Apply the Supabase storage migration and try again.');
+    }
+    return supabase.storage.from('zelux-products').getPublicUrl(path).data.publicUrl;
+  }));
 }
 
 /**
