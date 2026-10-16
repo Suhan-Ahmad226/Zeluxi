@@ -247,14 +247,25 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
     let cancelled = false;
     const loadCatalog = async () => {
       const response = await fetch('/api/products', { cache: 'no-store' });
-      if (!response.ok) return;
-      const payload = await response.json().catch(() => null);
-      if (!cancelled && Array.isArray(payload?.products)) {
-        setProducts(payload.products as Product[]);
+      if (response.ok) {
+        const payload = await response.json().catch(() => null);
+        if (!cancelled && Array.isArray(payload?.products)) setProducts(payload.products as Product[]);
       }
+
+      // Admins receive durable orders from the protected API; ordinary customers are denied by the server.
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      if (!token) return;
+      const orderResponse = await fetch('/api/orders', {
+        headers: { Authorization: `Bearer ${token}` },
+        cache: 'no-store',
+      });
+      if (!orderResponse.ok) return;
+      const orderPayload = await orderResponse.json().catch(() => null);
+      if (!cancelled && Array.isArray(orderPayload?.orders)) setOrders(orderPayload.orders as Order[]);
     };
     void loadCatalog().catch((error) => {
-      console.warn('Persistent catalog could not be loaded; keeping local fallback state.', error);
+      console.warn('Persistent catalog or admin orders could not be loaded.', error);
     });
     return () => { cancelled = true; };
   }, []);
@@ -964,47 +975,37 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
     note: string,
     trackingCode?: string
   ) => {
-    const now = new Date();
-    const timestampStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(
-      now.getDate()
-    ).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-
-    setOrders((prev) =>
-      prev.map((ord) => {
-        if (ord.id === orderId) {
-          const updatedHistory = [
-            ...ord.statusHistory,
-            { status: newStatus, timestamp: timestampStr, note },
-          ];
-          const updatedCourier = trackingCode
-            ? { ...ord.courier, trackingCode }
-            : ord.courier;
-
-          // Delivery status alone is not payment collection proof.
-          const updatedPaymentStatus = ord.paymentStatus;
-
-          return {
-            ...ord,
-            status: newStatus,
-            courier: updatedCourier,
-            paymentStatus: updatedPaymentStatus,
-            statusHistory: updatedHistory,
-          };
-        }
-        return ord;
-      })
-    );
-
-    const logItem: AuditLog = {
-      id: `log-${Date.now()}`,
-      timestamp: timestampStr,
-      actor: 'Admin Dashboard',
-      action: 'STATUS_CHANGED',
-      details: `Order #${orderId} transitioned to ${newStatus}. Note: ${note}`,
-    };
-    setAuditLogs((prev) => [logItem, ...prev]);
-
-    showToast(`Order #${orderId} status updated to ${newStatus}`, 'success');
+    void (async () => {
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      if (sessionError || !token) throw new Error('Sign in as an administrator before updating orders.');
+      const response = await fetch('/api/orders', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ orderId, status: newStatus }),
+        cache: 'no-store',
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(typeof payload.error === 'string' ? payload.error : 'Order status could not be saved.');
+      const timestampStr = new Date().toISOString();
+      setOrders((prev) => prev.map((ord) => ord.id === orderId ? {
+        ...ord,
+        status: newStatus,
+        courier: trackingCode ? { ...ord.courier, trackingCode } : ord.courier,
+        statusHistory: [...ord.statusHistory, { status: newStatus, timestamp: timestampStr, note }],
+      } : ord));
+      const logItem: AuditLog = {
+        id: `log-${Date.now()}`,
+        timestamp: timestampStr,
+        actor: 'Admin Dashboard',
+        action: 'STATUS_CHANGED',
+        details: `Order #${orderId} transitioned to ${newStatus}. Note: ${note}`,
+      };
+      setAuditLogs((prev) => [logItem, ...prev]);
+      showToast(`Order #${orderId} status updated to ${newStatus}`, 'success');
+    })().catch((error) => {
+      showToast(error instanceof Error ? error.message : 'Order status could not be saved.', 'error');
+    });
   };
 
   const addProduct = (productData: Omit<Product, 'id' | 'rating' | 'reviewCount'> & { id?: string; slug?: string }): Product => {
