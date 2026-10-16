@@ -3,6 +3,7 @@ import { useStore } from '../../context/StoreContext';
 import { formatPrice } from '../../utils/formatters';
 import { Product, ProductVariant } from '../../types';
 import { supabase } from '../../lib/supabase';
+import { persistProductImageUrls } from '../../lib/productImageStorage';
 import { compressImageFile } from '../../utils/imageCompressor';
 import {
   X,
@@ -633,6 +634,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
         throw new Error('Please sign in with an administrator account before saving products.');
       }
       const productId = productToEdit?.id || `zlx-${typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : Date.now().toString(36)}`;
+      newProductData.images = await persistProductImageUrls(newProductData.images, productId);
       const productPayload: Product = {
         ...newProductData,
         id: productId,
