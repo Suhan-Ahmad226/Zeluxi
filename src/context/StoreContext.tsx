@@ -216,6 +216,38 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
   // Browser persistence is restored after hydration to keep server and client markup deterministic.
   const [hasHydratedStorage, setHasHydratedStorage] = useState(false);
 
+  const saveAdminContent = async (key: 'storefront_cms' | 'settings' | 'categories' | 'pages' | 'coupons', value: unknown) => {
+    const { data, error } = await supabase.auth.getSession();
+    const token = data.session?.access_token;
+    if (error || !token) throw new Error('Sign in as an administrator before saving store content.');
+    const response = await fetch('/api/content', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ key, value }),
+      cache: 'no-store',
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(typeof payload.error === 'string' ? payload.error : 'Store content could not be saved.');
+  };
+
+  const saveProductToDatabase = async (product: Product, method: 'POST' | 'PATCH') => {
+    const { data, error } = await supabase.auth.getSession();
+    const token = data.session?.access_token;
+    if (error || !token) throw new Error('Sign in as an administrator before saving products.');
+    const response = await fetch('/api/products', {
+      method,
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify(product),
+      cache: 'no-store',
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      const details = Array.isArray(payload.details) ? payload.details.map((item: { path?: unknown; message?: unknown }) => `${Array.isArray(item.path) ? item.path.join('.') : ''}: ${String(item.message || '')}`).join('; ') : '';
+      throw new Error([typeof payload.error === 'string' ? payload.error : 'Product could not be saved.', details].filter(Boolean).join(' '));
+    }
+    return payload.product as Product;
+  };
+
   useEffect(() => {
     // Only shopper-owned convenience data may be restored from this browser.
     // Never trust localStorage for products, orders, customers, coupons, settings,
@@ -254,6 +286,19 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
       if (response.ok) {
         const payload = await response.json().catch(() => null);
         if (!cancelled && Array.isArray(payload?.products)) setProducts(payload.products as Product[]);
+      }
+
+      const contentResponse = await fetch('/api/content', { headers: catalogHeaders, cache: 'no-store' });
+      if (contentResponse.ok) {
+        const contentPayload = await contentResponse.json().catch(() => null);
+        const content = contentPayload?.content;
+        if (!cancelled && content && typeof content === 'object') {
+          if (content.storefront_cms) setStorefrontCMS(content.storefront_cms as StorefrontCMS);
+          if (token && Array.isArray(content.categories)) setCategories(content.categories as Category[]);
+          if (token && Array.isArray(content.pages)) setPages(content.pages as StaticPageContent[]);
+          if (token && Array.isArray(content.coupons)) setCoupons(content.coupons as Coupon[]);
+          if (token && content.settings && typeof content.settings === 'object') setSettings(content.settings as StoreSettings);
+        }
       }
 
       // Admins receive durable orders from the protected API; ordinary customers are denied by the server.
@@ -1012,13 +1057,26 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
       reviewCount: 0,
     };
     setProducts((prev) => [newProduct, ...prev]);
-    showToast(`Product "${newProduct.name}" created`, 'success');
+    void saveProductToDatabase(newProduct, 'POST').then((saved) => {
+      setProducts((prev) => prev.map((p) => p.id === saved.id ? saved : p));
+      showToast(`Product "${newProduct.name}" created and saved`, 'success');
+    }).catch((error) => {
+      setProducts((prev) => prev.filter((p) => p.id !== newProduct.id));
+      showToast(error instanceof Error ? error.message : 'Product could not be saved.', 'error');
+    });
     return newProduct;
   };
 
   const updateProduct = (updated: Product) => {
+    const previous = products.find((p) => p.id === updated.id);
     setProducts((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
-    showToast(`Product "${updated.name}" updated`, 'success');
+    void saveProductToDatabase(updated, 'PATCH').then((saved) => {
+      setProducts((prev) => prev.map((p) => p.id === saved.id ? saved : p));
+      showToast(`Product "${updated.name}" updated and saved`, 'success');
+    }).catch((error) => {
+      if (previous) setProducts((prev) => prev.map((p) => p.id === previous.id ? previous : p));
+      showToast(error instanceof Error ? error.message : 'Product changes could not be saved.', 'error');
+    });
   };
 
   const deleteProduct = (productId: string) => {
@@ -1113,16 +1171,22 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
       isActive: categoryData.isActive ?? true,
       order: categoryData.order ?? (categories.length + 1),
     };
-    setCategories((prev) => [...prev, newCategory]);
-    addAuditLog('CATEGORY_CREATED', `Created category "${newCategory.name}"`);
-    showToast(`Category "${newCategory.name}" added`, 'success');
+    const nextCategories = [...categories, newCategory];
+    void saveAdminContent('categories', nextCategories).then(() => {
+      setCategories(nextCategories);
+      addAuditLog('CATEGORY_CREATED', `Created category "${newCategory.name}"`);
+      showToast(`Category "${newCategory.name}" saved`, 'success');
+    }).catch((error) => showToast(error instanceof Error ? error.message : 'Category could not be saved.', 'error'));
     return newCategory;
   };
 
   const updateCategory = (updated: Category) => {
-    setCategories((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
-    addAuditLog('CATEGORY_UPDATED', `Updated category "${updated.name}"`);
-    showToast(`Category "${updated.name}" updated`, 'success');
+    const nextCategories = categories.map((c) => (c.id === updated.id ? updated : c));
+    void saveAdminContent('categories', nextCategories).then(() => {
+      setCategories(nextCategories);
+      addAuditLog('CATEGORY_UPDATED', `Updated category "${updated.name}"`);
+      showToast(`Category "${updated.name}" saved`, 'success');
+    }).catch((error) => showToast(error instanceof Error ? error.message : 'Category could not be saved.', 'error'));
   };
 
   const deleteCategory = (categoryId: string): { success: boolean; message: string } => {
@@ -1132,51 +1196,60 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
       return { success: false, message: `Cannot delete: ${count} products assigned` };
     }
     const cat = categories.find((c) => c.id === categoryId);
-    setCategories((prev) => prev.filter((c) => c.id !== categoryId));
-    addAuditLog('CATEGORY_DELETED', `Deleted category "${cat?.name || categoryId}"`);
-    showToast(`Category "${cat?.name || categoryId}" removed`, 'info');
-    return { success: true, message: 'Category removed' };
+    const nextCategories = categories.filter((c) => c.id !== categoryId);
+    void saveAdminContent('categories', nextCategories).then(() => {
+      setCategories(nextCategories);
+      addAuditLog('CATEGORY_DELETED', `Deleted category "${cat?.name || categoryId}"`);
+      showToast(`Category "${cat?.name || categoryId}" removed`, 'info');
+    }).catch((error) => showToast(error instanceof Error ? error.message : 'Category could not be deleted.', 'error'));
+    return { success: true, message: 'Category removal requested' };
   };
 
   const addPage = (page: StaticPageContent) => {
     const now = new Date().toISOString().slice(0, 10);
     const newPage = { ...page, lastUpdated: now };
-    setPages((prev) => {
-      const filtered = prev.filter((p) => p.slug !== newPage.slug);
-      return [...filtered, newPage];
-    });
-    addAuditLog('PAGE_CREATED', `Created CMS page "${newPage.title}" (/${newPage.slug})`);
-    showToast(`Page "${newPage.title}" saved`, 'success');
+    const nextPages = [...pages.filter((p) => p.slug !== newPage.slug), newPage];
+    void saveAdminContent('pages', nextPages).then(() => {
+      setPages(nextPages);
+      addAuditLog('PAGE_CREATED', `Created CMS page "${newPage.title}" (/${newPage.slug})`);
+      showToast(`Page "${newPage.title}" saved to database`, 'success');
+    }).catch((error) => showToast(error instanceof Error ? error.message : 'Page could not be saved.', 'error'));
   };
 
   const updatePage = (updated: StaticPageContent) => {
     const now = new Date().toISOString().slice(0, 10);
     const updatedPage = { ...updated, lastUpdated: now };
-    setPages((prev) => prev.map((p) => (p.slug === updatedPage.slug ? updatedPage : p)));
-    addAuditLog('PAGE_UPDATED', `Updated CMS page "${updatedPage.title}" (/${updatedPage.slug})`);
-    showToast(`Page "${updatedPage.title}" updated`, 'success');
+    const nextPages = pages.map((p) => (p.slug === updatedPage.slug ? updatedPage : p));
+    void saveAdminContent('pages', nextPages).then(() => {
+      setPages(nextPages);
+      addAuditLog('PAGE_UPDATED', `Updated CMS page "${updatedPage.title}" (/${updatedPage.slug})`);
+      showToast(`Page "${updatedPage.title}" saved to database`, 'success');
+    }).catch((error) => showToast(error instanceof Error ? error.message : 'Page could not be saved.', 'error'));
   };
 
   const deletePage = (slug: string) => {
     const page = pages.find((p) => p.slug === slug);
-    setPages((prev) => prev.filter((p) => p.slug !== slug));
-    addAuditLog('PAGE_DELETED', `Deleted CMS page "${page?.title || slug}"`);
-    showToast(`Page "${page?.title || slug}" deleted`, 'info');
+    const nextPages = pages.filter((p) => p.slug !== slug);
+    void saveAdminContent('pages', nextPages).then(() => {
+      setPages(nextPages);
+      addAuditLog('PAGE_DELETED', `Deleted CMS page "${page?.title || slug}"`);
+      showToast(`Page "${page?.title || slug}" deleted from database`, 'info');
+    }).catch((error) => showToast(error instanceof Error ? error.message : 'Page could not be deleted.', 'error'));
   };
 
   const updateStorefrontCMS = (cmsUpdate: Partial<StorefrontCMS>) => {
-    setStorefrontCMS((prev) => {
-      const merged: StorefrontCMS = {
-        ...prev,
-        ...cmsUpdate,
-        hero: { ...prev.hero, ...(cmsUpdate.hero || {}) },
-        announcement: { ...prev.announcement, ...(cmsUpdate.announcement || {}) },
-        sectionVisibility: { ...prev.sectionVisibility, ...(cmsUpdate.sectionVisibility || {}) },
-      };
-      return merged;
-    });
-    addAuditLog('STOREFRONT_CMS_UPDATED', 'Updated homepage layout and storefront appearance settings');
-    showToast('Storefront appearance updated successfully', 'success');
+    const merged: StorefrontCMS = {
+      ...storefrontCMS,
+      ...cmsUpdate,
+      hero: { ...storefrontCMS.hero, ...(cmsUpdate.hero || {}) },
+      announcement: { ...storefrontCMS.announcement, ...(cmsUpdate.announcement || {}) },
+      sectionVisibility: { ...storefrontCMS.sectionVisibility, ...(cmsUpdate.sectionVisibility || {}) },
+    };
+    void saveAdminContent('storefront_cms', merged).then(() => {
+      setStorefrontCMS(merged);
+      addAuditLog('STOREFRONT_CMS_UPDATED', 'Updated homepage layout and storefront appearance settings');
+      showToast('Storefront appearance saved to database', 'success');
+    }).catch((error) => showToast(error instanceof Error ? error.message : 'Storefront changes could not be saved.', 'error'));
   };
 
   const updateCustomer = (customer: CustomerRecord) => {
@@ -1263,8 +1336,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
   };
 
   const updateSettings = (newSettings: Partial<StoreSettings>) => {
-    setSettings((prev) => ({ ...prev, ...newSettings }));
-    showToast('Settings saved successfully', 'success');
+    const merged = { ...settings, ...newSettings };
+    void saveAdminContent('settings', merged).then(() => {
+      setSettings(merged);
+      showToast('Settings saved to database', 'success');
+    }).catch((error) => showToast(error instanceof Error ? error.message : 'Settings could not be saved.', 'error'));
   };
 
   const addAuditLog = (action: string, details: string, actor: string = 'Admin') => {
