@@ -576,7 +576,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
         brand: brand.trim() || 'Zelux Atelier',
         productType,
         condition,
-        description: description.trim() || 'Artisan handcrafted product made in Bangladesh with premium materials.',
+        description: description.trim(),
         shortDescription: shortDesc.trim() || undefined,
         price: Number(price),
         compareAtPrice: compareAtPrice ? Number(compareAtPrice) : undefined,
@@ -603,7 +603,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
         seoTitle: seoTitle.trim() || name.trim(),
         seoDescription: seoDescription.trim() || shortDesc.trim() || undefined,
         seoKeywords: seoKeywords.trim() || tags.join(', '),
-        canonicalUrl: `https://zelux.vercel.app/product/${slug || 'product'}`,
+        canonicalUrl: `${(process.env.NEXT_PUBLIC_SITE_URL || 'https://zeluxi.vercel.app').replace(/\\/$/, '')}/product/${slug || 'product'}`,
         ogImageUrl: sortedImages[0]?.url,
       };
 
