@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next';
+import type { ReactNode } from 'react';
 import './site.css';
 import { PwaRegister } from './PwaRegister';
 
@@ -7,10 +8,7 @@ const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   applicationName: 'Zelux',
-  title: {
-    default: 'Zelux — Premium Bangladesh Store',
-    template: '%s | Zelux',
-  },
+  title: { default: 'Zelux — Premium Bangladesh Store', template: '%s | Zelux' },
   description: 'Discover thoughtfully curated lifestyle essentials, leather accessories, apparel and everyday goods from Zelux in Bangladesh.',
   robots: { index: true, follow: true, googleBot: { index: true, follow: true, 'max-image-preview': 'large' } },
   alternates: { canonical: '/' },
@@ -26,10 +24,7 @@ export const metadata: Metadata = {
     title: 'Zelux — Premium Bangladesh Store',
     description: 'Discover thoughtfully curated lifestyle essentials, leather accessories, apparel and everyday goods from Zelux in Bangladesh.',
   },
-  icons: {
-    icon: '/favicon.svg',
-    apple: '/apple-touch-icon.png',
-  },
+  icons: { icon: '/favicon.svg', apple: '/apple-touch-icon.png' },
   manifest: '/manifest.webmanifest',
 };
 
@@ -40,7 +35,7 @@ export const viewport: Viewport = {
   viewportFit: 'cover',
 };
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
     <html lang="en">
       <head>
