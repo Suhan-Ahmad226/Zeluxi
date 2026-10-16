@@ -179,6 +179,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     const row = {
       id: product.id,
       name: product.name,
+      sku: product.sku,
       price: product.price,
       cost_price: costPrice ?? null,
       stock: product.stock,
