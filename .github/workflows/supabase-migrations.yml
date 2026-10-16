@@ -1,0 +1,41 @@
+name: Supabase Database Migrations
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "supabase/migrations/**"
+      - "supabase/config.toml"
+      - ".github/workflows/supabase-migrations.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: zeluxi-supabase-migrations
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    name: Apply Supabase migrations
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+
+      - name: Check required secret
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          if [ -z "$SUPABASE_DB_URL" ]; then
+            echo "::error::Add SUPABASE_DB_URL in GitHub repository Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+
+      - name: Apply migrations
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: npx --yes supabase@latest db push --db-url "$SUPABASE_DB_URL" --yes
