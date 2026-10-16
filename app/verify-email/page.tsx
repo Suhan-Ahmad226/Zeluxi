@@ -1,5 +1,5 @@
 import NextStoreApp from '@/src/components/NextStoreApp';
 
 export default function VerifyEmailPage() {
-  return <NextStoreApp />;
+  return <NextStoreApp initialView="verify-email" />;
 }

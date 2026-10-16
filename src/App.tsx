@@ -124,10 +124,10 @@ const MainStoreContent: React.FC = () => {
   );
 };
 
-export default function App() {
+export default function App({ initialView = 'store' }: { initialView?: 'store' | 'shop' | 'tracking' | 'account' | 'admin' | 'about' | 'verify-email' }) {
   return (
     <AuthProvider>
-      <StoreProvider>
+      <StoreProvider initialView={initialView}>
         <MainStoreContent />
       </StoreProvider>
     </AuthProvider>

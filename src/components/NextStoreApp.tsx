@@ -20,6 +20,6 @@ const StoreApp = dynamic(() => import('@/src/App'), {
   ),
 });
 
-export default function NextStoreApp() {
-  return <ErrorBoundary><StoreApp /></ErrorBoundary>;
+export default function NextStoreApp({ initialView = 'store' }: { initialView?: 'store' | 'shop' | 'tracking' | 'account' | 'admin' | 'about' | 'verify-email' }) {
+  return <ErrorBoundary><StoreApp initialView={initialView} /></ErrorBoundary>;
 }

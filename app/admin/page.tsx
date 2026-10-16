@@ -1,5 +1,5 @@
 import NextStoreApp from '@/src/components/NextStoreApp';
 
 export default function AdminPage() {
-  return <NextStoreApp />;
+  return <NextStoreApp initialView="admin" />;
 }
