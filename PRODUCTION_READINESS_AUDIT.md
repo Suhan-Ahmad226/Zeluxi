@@ -1,42 +1,31 @@
-# Production Readiness Audit — 2026-10-15
+# Production Readiness Audit — 2026-10-16
 
-## Scope and method
+## Scope
 
-Reviewed the GitHub `main` branch source files and prepared a separate `production/no-demo-hardening` branch. This is a source-code review, not a live-browser, deployed-site, provider-sandbox, or database migration test.
+Reviewed repository source and updated the application shell to Next.js App Router. This is a source-level review and migration, not a live browser session, Vercel deployment validation, provider sandbox test, or production database migration.
 
-## Confirmed blockers on the inspected source
+## Migration changes
 
-- The app is a Vite + React SPA, not a Next.js server application. The current `StoreContext` persists business state in browser localStorage; no shared server-side CRUD path is wired for products, inventory, orders, customers, coupons, reviews, or admin settings.
-- Demo customer/admin login and a failed-login fallback that granted a demo admin profile existed in `AuthContext`.
-- Auth state could be initialized from cached profile data without proving a valid Supabase session.
-- The Supabase project URL/public key were hardcoded in the client module, and configuration detection therefore could not reliably detect missing deployment variables.
-- The Supabase profile trigger promoted users based on a specific email or user-editable metadata. The profile update policy did not protect the role column from self-promotion.
-- `PaymentService` manufactured successful PAID results for bKash/Nagad/Rocket/SSLCommerz from a customer-provided transaction reference, without calling a gateway.
-- `StoreContext.createOrder` marked non-COD orders PAID immediately.
-- Pathao and Steadfast courier adapters generated fabricated consignment/tracking identifiers and mock tracking events rather than calling courier APIs. `IN_HOUSE` was routed to Pathao by the factory.
-- Webhook signature verification compared a supplied signature with itself.
-- The Telegram module contained a bot token in browser source and returned success without sending a Telegram request.
-- The Supabase auth test suite embedded credentials for a separate Supabase project and made live auth/resend calls.
-- The GitHub Actions workflow used `npm ci` despite no committed `package-lock.json` being present in the inspected repository tree.
-- The Prisma schema and seed file did not mean that the client-side store was using persistent database CRUD.
+- Added a Next.js App Router root layout, page entry, client-mounted storefront, metadata, and security headers.
+- Replaced the frontend build/development configuration with Next.js and Tailwind CSS PostCSS integration.
+- Removed the old standalone HTML entry point, client bootstrap, and bundler configuration.
+- Replaced browser environment references with Next.js public environment variables.
+- Added Next.js route handlers for the existing product and COD order APIs through a small Request/Response adapter.
+- Updated the service worker's offline fallback so it no longer relies on a standalone HTML entry point.
+- Updated CI to typecheck, test, and build the Next.js application.
 
-## Changes made on this branch
+## Confirmed production blockers still present
 
-- Removed demo login buttons and bypasses; no default customer profile is considered authenticated.
-- Admin UI role mapping now reads trusted `app_metadata.role`, not email matching or user-editable `user_metadata.role`.
-- Removed seeded demo products, customers, orders, coupons, reviews, and fake courier history from the initial state. Bumped the local state namespace so prior V1 browser demo data is not reloaded.
-- Required explicit Supabase environment variables instead of embedding a project URL/key in the client source.
-- Changed online payment verification to fail closed until a real server-side gateway verifier exists; order creation keeps payment status UNPAID until authorized verification.
-- Changed courier booking/cancellation/tracking adapters to fail closed instead of inventing successful bookings or live tracking.
-- Changed webhook verification to reject until a real server-side HMAC verifier is implemented.
-- Removed the Telegram bot token from browser code and disabled fake-success notification behavior.
-- Removed fake-success email dispatch behavior, added HTML escaping for email-template data, and documented that a real server-side email provider adapter is still required.
-- Replaced live Supabase integration tests with offline SDK smoke tests and added tests for fail-closed payment/courier behavior.
-- Hardened the Supabase profile SQL: new users always receive CUSTOMER role; client updates cannot modify role/email/id; admin policies use a security-definer role helper.
-- Removed the fake seed records and updated project documentation/CI workflow.
+- The storefront/admin context persists product, inventory, order, customer, coupon, review, and settings state in browser storage rather than fully shared database CRUD.
+- Checkout is intentionally disabled until the persistent catalog/admin integration and end-to-end flow are verified.
+- Real payment gateway initiation, signed callback/webhook verification, refunds, and reconciliation are not complete.
+- Pathao/Steadfast live booking, cancellation, webhooks, and tracking are not complete; adapters fail closed.
+- Server-side admin authorization, rate limiting, monitoring, and end-to-end browser tests still need completion.
+- Email/Telegram delivery requires configured server-side providers; the browser must not contain provider secrets.
+- A package lockfile is not present in the inspected repository tree, so dependency installation is not yet fully reproducible.
 
-## Important limitations after these changes
+## Verification status
 
-This branch is a **safety hardening step, not a complete production ecommerce backend**. The storefront starts with no products/orders until a real persistence layer is connected; admin changes are still browser-local and not shared across customers/devices. Online payment gateways, real courier APIs, server-side authorization, transactional order/stock persistence, email delivery, Telegram server notifications, and live tracking remain unimplemented. Provider credentials, verified business details, database access, and provider sandbox accounts are required to finish those integrations.
+The repository changes need a successful dependency install, TypeScript check, unit test run, and production build before this migration can be considered validated. Live Supabase/Vercel/provider settings cannot be confirmed from repository source alone.
 
-Do not merge/deploy this branch as a claim of full production readiness. Run CI and complete the backend/integration work first.
+**Do not treat the Next.js migration as launch certification.** Keep checkout and online payments fail-closed until the remaining backend and integration work is completed and tested.

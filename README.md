@@ -1,39 +1,37 @@
 # Zeluxi
 
-Zeluxi is a Bangladesh-focused single-store e-commerce frontend built with Vite, React, TypeScript, Tailwind CSS, and Supabase Auth.
+Zeluxi is a Bangladesh-focused single-store e-commerce application built with **Next.js App Router, React 19, TypeScript, Tailwind CSS 4, and Supabase Auth**. The storefront experience is preserved while the application shell and API entry points move to Next.js.
 
-> **Launch status: not production-ready yet.** This repository currently contains a client-side storefront/admin prototype. The storefront state and admin operations still use browser storage; a first COD order API/database migration foundation now exists on the hardening branch, but the existing storefront/Admin are not wired to it and payment/courier services are not production integrations.
+> **Launch status: not production-ready yet.** This migration establishes the Next.js runtime and routes, but it does not magically finish the commerce backend. Product/admin state is still largely browser-storage-backed; checkout remains intentionally blocked until the live catalog and order flow are connected and verified. Payment gateway and courier adapters fail closed until real server-side integrations are configured.
 
-> **Checkout is intentionally disabled on the hardening branch.** The current app cannot safely accept live orders because the storefront/Admin still use browser storage and the new order API is not connected to a persistent, admin-managed live catalog. The UI now explains this, and the context action rejects local-only order creation. Do not deploy this branch as a live-sales release; this gate must only be removed after the server-backed order flow and end-to-end tests pass.
+## Application architecture
 
-## Current implementation
+- Next.js App Router application shell and metadata in `app/`.
+- Next.js route handlers expose `GET/POST/PATCH/DELETE /api/products` and `POST /api/orders`.
+- Existing storefront, customer account, cart, and admin UI components remain in `src/` and are mounted client-side to preserve current interactions during migration.
+- Supabase Auth supports email/password, 6-digit email OTP, and Google/Facebook OAuth flows.
+- Supabase SQL migrations define the persistent commerce foundation; the UI is not yet fully connected to shared database CRUD.
+- Zod validation and unit tests cover core validation and fail-closed payment/courier behavior.
 
-- Vite + React SPA; Vercel serves the generated `dist` directory.
-- Supabase Auth client integration for email/password, email OTP, and Google/Facebook OAuth flows.
-- Client-side cart, product, coupon, order, and admin UI state.
-- Zod input validation and unit tests.
-- Courier and payment adapter interfaces, which must not be treated as live integrations until server-side provider implementations are configured and verified.
+## Security boundaries
 
-## Security and integration boundaries
-
-- Demo/mock catalog and order records must be reviewed and replaced with the real store catalog before launch; do not treat seeded values as live business records.
-- Authentication requires a real Supabase session; cached profile data alone is not considered proof of login.
-- Admin role assignment must be performed through trusted Supabase `app_metadata`/server-side administration. Never promote users based on email text or user-editable metadata.
-- Customer-entered bKash/Nagad/Rocket transaction references are not payment proof. Online payment stays unverified until an authorized manual review or a real server-side gateway verification succeeds.
-- Pathao, Steadfast, and in-house courier adapters fail closed until real server-side booking, cancellation, and tracking APIs are implemented.
-- Telegram delivery is disabled in the browser. Bot tokens must be stored only as server-side secrets and notifications must go through an authenticated server endpoint.
-- The in-memory cache implementation is not a distributed Redis service or a production rate limiter.
+- Public browser configuration uses `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`. These are public identifiers, not secrets.
+- Never expose `SUPABASE_SERVICE_ROLE_KEY`, payment secrets, courier secrets, SMTP credentials, or Telegram bot tokens in browser code or any `NEXT_PUBLIC_*` variable.
+- Admin role assignment must be performed through trusted Supabase `app_metadata`/server-side administration, never an email heuristic or user-editable metadata.
+- Customer-entered bKash/Nagad/Rocket transaction references are not payment proof. Online payment stays unverified until authorized gateway verification succeeds.
+- Courier adapters fail closed until real server-side booking, cancellation, and tracking APIs are implemented.
+- The in-memory cache is not a distributed Redis service or production rate limiter.
 
 ## Required before live launch
 
-1. Connect the storefront and Admin product/category/settings/order flows to persistent database CRUD; the current React context remains browser-storage-backed and the new order API is only a foundation.
-2. Add server-side authentication and authorization for every admin mutation; enforce database RLS policies.
-3. Implement and sandbox-test real payment gateway initiation, callback/webhook signature verification, idempotency, refund handling, and reconciliation.
-4. Implement and sandbox-test Pathao/Steadfast OAuth/token handling, valid city/zone/store mappings, booking, cancellation, webhooks, and live tracking.
-5. Configure Supabase URL/public key, allowed redirect URLs, email OTP templates, expiry, resend/rate limits, and trusted admin provisioning.
-6. Configure verified store contact details, server-side delivery-fee/free-shipping environment values, policies, product catalog, taxes, and legal pages.
-7. Add a committed npm lockfile and use `npm ci` for reproducible CI builds.
-8. Run CI, perform browser-based mobile/desktop QA, verify backups/monitoring, and test end-to-end order flows against provider sandboxes before enabling production credentials.
+1. Connect storefront and Admin product/category/settings/order flows to persistent database CRUD.
+2. Add server-side authorization for every admin mutation and verify database RLS policies.
+3. Implement and sandbox-test payment initiation, signed webhook verification, idempotency, refunds, and reconciliation.
+4. Implement and sandbox-test Pathao/Steadfast authentication, store/zone mappings, booking, cancellation, webhooks, and tracking.
+5. Configure Supabase public variables, allowed redirect URLs, email OTP templates, expiry/resend/rate limits, and trusted admin provisioning.
+6. Set real store policy values for shipping fees/free-shipping threshold and verify catalog, taxes, contact details, and legal pages.
+7. Generate and commit a package lockfile, then switch CI to reproducible installation.
+8. Run CI, mobile/desktop browser QA, monitoring/backups checks, and end-to-end order tests before enabling live sales.
 
 ## Local development
 
@@ -53,8 +51,4 @@ npm test
 npm run build
 ```
 
-Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` for client authentication. Never place service-role keys, payment secrets, courier secrets, SMTP credentials, or Telegram bot tokens in `VITE_*` variables or browser code.
-
-## Deployment note
-
-A successful static build is not proof that orders, payments, admin access, courier booking, email, or tracking work in production. Do not switch live payments or courier dispatch on until the required server-side integrations and end-to-end checks above are complete.
+A successful build does not prove that checkout, payments, admin access, courier booking, email, or tracking work in production. Do not enable live sales until the required server-side integrations and end-to-end checks are complete.

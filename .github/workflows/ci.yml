@@ -8,26 +8,21 @@ on:
 
 jobs:
   validate:
-    name: Lint, Typecheck & Test
+    name: Typecheck, Test & Next.js Build
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout Code
+      - name: Checkout code
         uses: actions/checkout@v4
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22
-
-      - name: Install Dependencies
+          cache: npm
+      - name: Install dependencies
         run: npm install --no-audit --no-fund
-
-      - name: Lint & Typecheck
+      - name: Typecheck
         run: npm run lint
-
-      - name: Run Unit Tests
+      - name: Run unit tests
         run: npm test
-
-      - name: Build Application
+      - name: Build Next.js application
         run: npm run build
