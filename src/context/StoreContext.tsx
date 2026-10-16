@@ -1127,6 +1127,12 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
   };
 
   const duplicateProduct = (productId: string): Product | null => {
+    const pendingKey = `duplicate:${productId}`;
+    const pending = pendingProductCreates.get(pendingKey);
+    if (pending) {
+      showToast('This product copy is already being saved. Please wait.', 'info');
+      return pending;
+    }
     const existing = products.find((p) => p.id === productId);
     if (!existing) return null;
 
@@ -1143,6 +1149,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
       reviewCount: 0,
     };
 
+    pendingProductCreates.set(pendingKey, duplicated);
     setProducts((prev) => [duplicated, ...prev]);
     void saveProductToDatabase(duplicated, 'POST').then((saved) => {
       setProducts((prev) => prev.map((p) => p.id === saved.id ? saved : p));
@@ -1151,6 +1158,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
     }).catch((error) => {
       setProducts((prev) => prev.filter((p) => p.id !== duplicated.id));
       showToast(error instanceof Error ? error.message : 'Product copy could not be saved.', 'error');
+    }).finally(() => {
+      if (pendingProductCreates.get(pendingKey)?.id === duplicated.id) pendingProductCreates.delete(pendingKey);
     });
     return duplicated;
   };
