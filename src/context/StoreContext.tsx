@@ -35,6 +35,7 @@ import {
   INITIAL_STOREFRONT_CMS,
 } from '../data/mockData';
 import { getCourierProvider } from '../lib/shipping/couriers';
+import { supabase } from '../lib/supabase';
 
 interface ToastNotification {
   id: string;
@@ -108,7 +109,7 @@ interface StoreContextType {
     paymentMethod: PaymentMethod,
     courierChoice: CourierProvider,
     transactionId?: string
-  ) => Order;
+  ) => Promise<Order>;
   requestOrderCancellation: (orderId: string, reason: string) => void;
   requestOrderReturn: (orderId: string, reason: string) => void;
 
@@ -123,7 +124,7 @@ interface StoreContextType {
   syncCourierStatus: (orderId: string, adminActor?: string) => Promise<{ success: boolean; status?: string; message: string }>;
   updateOrderStatus: (orderId: string, status: OrderStatus, note: string, trackingCode?: string) => void;
   refundOrder: (orderId: string, amount: number, reason: string, adminActor?: string) => Promise<{ success: boolean; message: string }>;
-  addProduct: (product: Omit<Product, 'id' | 'rating' | 'reviewCount'> & { slug?: string }) => Product;
+  addProduct: (product: Omit<Product, 'id' | 'rating' | 'reviewCount'> & { id?: string; slug?: string }) => Product;
   updateProduct: (product: Product) => void;
   deleteProduct: (productId: string) => void;
   duplicateProduct: (productId: string) => Product | null;
@@ -555,17 +556,77 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
     showToast('Coupon removed', 'info');
   };
 
-  const createOrder = (
-    _customer: ShippingAddress,
-    _paymentMethod: PaymentMethod,
+  const createOrder = async (
+    customer: ShippingAddress,
+    paymentMethod: PaymentMethod,
     _courierChoice: CourierProvider,
     _transactionId?: string
-  ): Order => {
-    // RELEASE SAFETY GATE: a browser-only order is not a real, durable order.
-    // Do not decrement client-side inventory, persist a local order, or report success.
-    throw new Error(
-      'Live order placement is unavailable until secure server-side order processing is deployed and verified.'
-    );
+  ): Promise<Order> => {
+    // Only COD is supported by the server-side order service. Never accept client totals as authoritative.
+    if (paymentMethod !== 'COD') {
+      throw new Error('Only Cash on Delivery is currently available. Online payments are not enabled yet.');
+    }
+    if (!cart.length) throw new Error('Your cart is empty.');
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    const session = sessionData.session;
+    if (sessionError || !session?.access_token || !session.user.email_confirmed_at) {
+      throw new Error('Please sign in with a verified email before placing your order.');
+    }
+    const idempotencyKey = typeof crypto !== 'undefined' && 'randomUUID' in crypto
+      ? crypto.randomUUID()
+      : `zlx-${Date.now()}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
+    const response = await fetch('/api/orders', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${session.access_token}`,
+        'Idempotency-Key': idempotencyKey,
+      },
+      body: JSON.stringify({
+        customer,
+        paymentMethod: 'COD',
+        items: cart.map((item) => ({ productId: item.productId, quantity: item.quantity })),
+      }),
+      cache: 'no-store',
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok || !payload?.order?.orderId) {
+      throw new Error(typeof payload?.error === 'string' ? payload.error : 'Order could not be placed. Please retry.');
+    }
+    const createdAt = new Date().toISOString();
+    const order: Order = {
+      id: String(payload.order.orderId),
+      createdAt,
+      customer,
+      items: cart.map((item) => ({
+        productId: item.productId,
+        productName: item.name,
+        variantLabel: item.variantLabel,
+        price: item.price,
+        quantity: item.quantity,
+        image: item.image,
+      })),
+      subtotal: cart.reduce((sum, item) => sum + item.price * item.quantity, 0),
+      shippingFee: Math.max(0, Number(payload.order.grandTotal) - cart.reduce((sum, item) => sum + item.price * item.quantity, 0)),
+      discount: 0,
+      grandTotal: Number(payload.order.grandTotal),
+      status: 'PENDING',
+      paymentMethod: 'COD',
+      paymentStatus: 'UNPAID',
+      courier: {
+        provider: 'PATHAO',
+        trackingCode: '',
+        estimatedDelivery: '',
+        bookingStatus: 'NOT_BOOKED',
+      },
+      statusHistory: [{ status: 'PENDING', timestamp: createdAt, note: 'Order placed successfully; awaiting admin confirmation.' }],
+    };
+    setOrders((previous) => [order, ...previous]);
+    setLastCreatedOrder(order);
+    setCart([]);
+    setAppliedCoupon(null);
+    showToast('Your order has been placed successfully.', 'success');
+    return order;
   };
 
   const acceptOrderAndBookCourier = async (
@@ -919,7 +980,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
   };
 
   const addProduct = (productData: Omit<Product, 'id' | 'rating' | 'reviewCount'> & { slug?: string }): Product => {
-    const id = `prod-${Date.now().toString().slice(-4)}`;
+    const id = productData.id || `prod-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const slug = productData.slug?.trim() || productData.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
     const newProduct: Product = {
       ...productData,
