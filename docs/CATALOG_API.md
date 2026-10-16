@@ -7,7 +7,7 @@ This change adds `GET /api/products` for published catalog items and administrat
 1. Apply migrations in order in the intended Supabase project:
    - `202610160001_production_commerce.sql`
    - `202610160002_persistent_catalog.sql`
-2. Configure `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `SUPABASE_URL`, and `SUPABASE_SERVICE_ROLE_KEY` in the server deployment environment. The service-role key must never be prefixed with `VITE_` or bundled into browser code.
+2. Configure `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_URL`, and `SUPABASE_SERVICE_ROLE_KEY` in the server deployment environment. The service-role key must never be prefixed with `NEXT_PUBLIC_` or bundled into browser code.
 3. Grant administrator status only through trusted Supabase `app_metadata.role = "ADMIN"`. Never trust client-editable `user_metadata` or an email-address heuristic.
 
 ## API behavior

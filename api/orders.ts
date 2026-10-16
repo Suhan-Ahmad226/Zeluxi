@@ -37,8 +37,8 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-  const anonKey = process.env.VITE_SUPABASE_ANON_KEY;
+  const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anonKey = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   const dhakaFee = readNonNegativeEnv('SHIPPING_DHAKA_FEE');
   const outsideDhakaFee = readNonNegativeEnv('SHIPPING_OUTSIDE_DHAKA_FEE');
@@ -74,7 +74,6 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     if ([...merged.values()].some(qty => qty > 20)) return res.status(400).json({ error: 'Maximum quantity per product is 20.' });
     const items = [...merged].map(([productId, quantity]) => ({ productId, quantity }));
 
-    // The database transaction locks the current products, derives prices, and calculates shipping atomically.
     const admin = createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false, autoRefreshToken: false } });
     const { data, error } = await admin.rpc('create_customer_order', {
       p_user_id: authData.user.id,

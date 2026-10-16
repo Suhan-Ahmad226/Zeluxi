@@ -1,3 +1,5 @@
+'use client';
+
 import React from 'react';
 import { StoreProvider, useStore } from './context/StoreContext';
 import { AuthProvider } from './context/AuthContext';

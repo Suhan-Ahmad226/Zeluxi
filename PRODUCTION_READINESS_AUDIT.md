@@ -2,11 +2,11 @@
 
 ## Scope and method
 
-Reviewed the GitHub `main` branch source files and prepared a separate `production/no-demo-hardening` branch. This is a source-code review, not a live-browser, deployed-site, provider-sandbox, or database migration test.
+Historical snapshot of the pre-migration source reviewed on 2026-10-15. The migration to Next.js App Router is tracked separately; this document records earlier production-readiness findings and is not a verification of the migrated build. This is a source-code review, not a live-browser, deployed-site, provider-sandbox, or database migration test.
 
 ## Confirmed blockers on the inspected source
 
-- The app is a Vite + React SPA, not a Next.js server application. The current `StoreContext` persists business state in browser localStorage; no shared server-side CRUD path is wired for products, inventory, orders, customers, coupons, reviews, or admin settings.
+- At the time of this audit, the app was a Vite + React SPA, not a Next.js server application. The migration adds Next.js App Router entrypoints, but `StoreContext` still persists business state in browser localStorage; shared server-side CRUD is not wired for products, inventory, orders, customers, coupons, reviews, or admin settings.
 - Demo customer/admin login and a failed-login fallback that granted a demo admin profile existed in `AuthContext`.
 - Auth state could be initialized from cached profile data without proving a valid Supabase session.
 - The Supabase project URL/public key were hardcoded in the client module, and configuration detection therefore could not reliably detect missing deployment variables.
@@ -37,6 +37,6 @@ Reviewed the GitHub `main` branch source files and prepared a separate `producti
 
 ## Important limitations after these changes
 
-This branch is a **safety hardening step, not a complete production ecommerce backend**. The storefront starts with no products/orders until a real persistence layer is connected; admin changes are still browser-local and not shared across customers/devices. Online payment gateways, real courier APIs, server-side authorization, transactional order/stock persistence, email delivery, Telegram server notifications, and live tracking remain unimplemented. Provider credentials, verified business details, database access, and provider sandbox accounts are required to finish those integrations.
+The baseline reviewed in this historical audit was a **safety hardening step, not a complete production ecommerce backend**. The storefront starts with no products/orders until a real persistence layer is connected; admin changes are still browser-local and not shared across customers/devices. Online payment gateways, real courier APIs, server-side authorization, transactional order/stock persistence, email delivery, Telegram server notifications, and live tracking remain unimplemented. Provider credentials, verified business details, database access, and provider sandbox accounts are required to finish those integrations.
 
 Do not merge/deploy this branch as a claim of full production readiness. Run CI and complete the backend/integration work first.

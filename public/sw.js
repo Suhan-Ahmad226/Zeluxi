@@ -1,7 +1,5 @@
-const CACHE_NAME = 'zelux-store-v3';
+const CACHE_NAME = 'zelux-next-v1';
 const STATIC_ASSETS = [
-  '/',
-  '/index.html',
   '/favicon.svg',
   '/icon-192.png',
   '/icon-512.png',
@@ -12,8 +10,10 @@ const STATIC_ASSETS = [
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(STATIC_ASSETS);
+    caches.open(CACHE_NAME).then(async (cache) => {
+      await Promise.all(STATIC_ASSETS.map(async (asset) => {
+        try { await cache.add(asset); } catch { /* A missing optional icon must not block installation. */ }
+      }));
     })
   );
   self.skipWaiting();
@@ -21,64 +21,34 @@ self.addEventListener('install', (event) => {
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((keys) => {
-      return Promise.all(
-        keys.map((key) => {
-          if (key !== CACHE_NAME) {
-            return caches.delete(key);
-          }
-        })
-      );
-    })
+    caches.keys().then((keys) => Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))))
   );
   self.clients.claim();
 });
 
 self.addEventListener('fetch', (event) => {
-  // CRITICAL SECURITY: Never cache non-GET requests (mutations: POST, PUT, DELETE, PATCH)
-  if (event.request.method !== 'GET') {
+  const request = event.request;
+  if (request.method !== 'GET') return;
+
+  const url = new URL(request.url);
+  if (url.origin !== self.location.origin || url.pathname.startsWith('/api/') || url.pathname.includes('/auth/')) return;
+
+  if (request.mode === 'navigate') {
+    event.respondWith(fetch(request).catch(() => new Response('You are offline. Reconnect to load Zelux.', {
+      status: 503,
+      headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' }
+    })));
     return;
   }
 
-  const url = new URL(event.request.url);
-
-  // CRITICAL SECURITY: Never cache auth tokens, API endpoints, payment gateways, Supabase, or courier dispatch endpoints
-  if (
-    url.pathname.startsWith('/api/') ||
-    url.pathname.includes('/auth/') ||
-    url.hostname.includes('supabase.co') ||
-    url.hostname.includes('api-hermes.pathao.com')
-  ) {
-    return;
-  }
-
+  if (!/\.(png|jpg|jpeg|svg|webp|ico|woff2?)$/i.test(url.pathname)) return;
   event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      if (cachedResponse) {
-        return cachedResponse;
+    caches.match(request).then((cached) => cached || fetch(request).then((response) => {
+      if (response.ok && response.type === 'basic') {
+        const copy = response.clone();
+        caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
       }
-      return fetch(event.request)
-        .then((networkResponse) => {
-          // Cache successful responses for static assets and CDN images
-          if (
-            networkResponse &&
-            networkResponse.status === 200 &&
-            (event.request.url.match(/\.(js|css|png|jpg|jpeg|svg|webp|woff2?)$/i) ||
-             url.hostname.includes('images.unsplash.com'))
-          ) {
-            const responseToCache = networkResponse.clone();
-            caches.open(CACHE_NAME).then((cache) => {
-              cache.put(event.request, responseToCache);
-            });
-          }
-          return networkResponse;
-        })
-        .catch(() => {
-          // Offline fallback for navigation requests to return App shell
-          if (event.request.mode === 'navigate') {
-            return caches.match('/index.html');
-          }
-        });
-    })
+      return response;
+    }))
   );
 });
