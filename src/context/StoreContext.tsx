@@ -36,7 +36,7 @@ import {
 } from '../data/initialState';
 import { getCourierProvider } from '../lib/shipping/couriers';
 import { supabase } from '../lib/supabase';
-import { persistProductImageUrls } from '../lib/productImageStorage';
+import { persistProductImageUrls, removeProductImageUrls } from '../lib/productImageStorage';
 
 interface ToastNotification {
   id: string;
@@ -150,7 +150,7 @@ interface StoreContextType {
   dismissToast: () => void;
 }
 
-const StoreContext = createContext<StoreContextType | undefined>(undefined);
+const StoreContext = createContext<StoreContextType | undefined>(undefined);\n\n// Reuse the same in-flight create when a Save action fires more than once.\nconst pendingProductCreates = new Map<string, Product>();
 
 // New namespace intentionally ignores legacy browser-only commerce records during hardening.
 const LOCAL_STORAGE_KEY = 'ZELUX_ECOMMERCE_STATE_V3';
@@ -232,21 +232,36 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
   };
 
   const saveProductToDatabase = async (product: Product, method: 'POST' | 'PATCH') => {
-    const { data, error } = await supabase.auth.getSession();
-    const token = data.session?.access_token;
-    if (error || !token) throw new Error('Sign in as an administrator before saving products.');
-    const response = await fetch('/api/products', {
-      method,
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify(product),
-      cache: 'no-store',
-    });
-    const payload = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      const details = Array.isArray(payload.details) ? payload.details.map((item: { path?: unknown; message?: unknown }) => `${Array.isArray(item.path) ? item.path.join('.') : ''}: ${String(item.message || '')}`).join('; ') : '';
-      throw new Error([typeof payload.error === 'string' ? payload.error : 'Product could not be saved.', details].filter(Boolean).join(' '));
+    const previousImages = products.find((item) => item.id === product.id)?.images || [];
+    const hostedImages = await persistProductImageUrls(product.images || [], product.id);
+    const persistedProduct: Product = { ...product, images: hostedImages };
+    const newlyUploadedImages = hostedImages.filter((url, index) => Boolean(product.images?.[index]?.startsWith('data:')));
+
+    try {
+      const { data, error } = await supabase.auth.getSession();
+      const token = data.session?.access_token;
+      if (error || !token) throw new Error('Sign in as an administrator before saving products.');
+      const response = await fetch('/api/products', {
+        method,
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify(persistedProduct),
+        cache: 'no-store',
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        const details = Array.isArray(payload.details) ? payload.details.map((item: { path?: unknown; message?: unknown }) => `${Array.isArray(item.path) ? item.path.join('.') : ''}: ${String(item.message || '')}`).join('; ') : '';
+        throw new Error([typeof payload.error === 'string' ? payload.error : 'Product could not be saved.', details].filter(Boolean).join(' '));
+      }
+
+      // Only remove replaced files after the database confirms the new URLs.
+      // The helper only deletes files in this product's own Storage folder.
+      await removeProductImageUrls(previousImages, product.id, hostedImages);
+      return payload.product as Product;
+    } catch (error) {
+      // Roll back only files uploaded by this attempt; leave previously saved images intact.
+      await removeProductImageUrls(newlyUploadedImages, product.id);
+      throw error;
     }
-    return payload.product as Product;
   };
 
   useEffect(() => {
@@ -1048,15 +1063,24 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
   };
 
   const addProduct = (productData: Omit<Product, 'id' | 'rating' | 'reviewCount'> & { id?: string; slug?: string }): Product => {
-    const id = productData.id || `prod-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const normalizedSku = productData.sku.trim().toLowerCase();
+    const pending = pendingProductCreates.get(normalizedSku);
+    if (pending) {
+      showToast('This product is already being saved. Please wait.', 'info');
+      return pending;
+    }
+    const existingSku = products.find((item) => item.sku.trim().toLowerCase() === normalizedSku);
+    if (existingSku) {
+      showToast(`SKU "${productData.sku}" already exists. Edit the existing product instead.`, 'error');
+      return existingSku;
+    }
+
+    const id = productData.id || (typeof crypto !== 'undefined' && 'randomUUID' in crypto
+      ? `prod-${crypto.randomUUID()}`
+      : `prod-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
     const slug = productData.slug?.trim() || productData.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-    const newProduct: Product = {
-      ...productData,
-      id,
-      slug,
-      rating: 0,
-      reviewCount: 0,
-    };
+    const newProduct: Product = { ...productData, id, slug, rating: 0, reviewCount: 0 };
+    pendingProductCreates.set(normalizedSku, newProduct);
     setProducts((prev) => [newProduct, ...prev]);
     void saveProductToDatabase(newProduct, 'POST').then((saved) => {
       setProducts((prev) => prev.map((p) => p.id === saved.id ? saved : p));
@@ -1064,6 +1088,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
     }).catch((error) => {
       setProducts((prev) => prev.filter((p) => p.id !== newProduct.id));
       showToast(error instanceof Error ? error.message : 'Product could not be saved.', 'error');
+    }).finally(() => {
+      if (pendingProductCreates.get(normalizedSku)?.id === newProduct.id) pendingProductCreates.delete(normalizedSku);
     });
     return newProduct;
   };
