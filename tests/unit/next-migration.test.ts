@@ -18,9 +18,12 @@ test('project tooling is Next.js App Router based and contains no Vite dependenc
   assert.ok(!existsSync(new URL('src/patchFetch.ts', root)));
 });
 
-test('Next.js App Router contains application entry and commerce route handlers', () => {
+test('App Router exposes the known customer and admin entry URLs', () => {
+  for (const route of ['app/page.tsx', 'app/shop/page.tsx', 'app/tracking/page.tsx', 'app/account/page.tsx', 'app/admin/page.tsx', 'app/verify-email/page.tsx']) {
+    assert.ok(existsSync(new URL(route, root)), `Missing App Router route: ${route}`);
+    assert.match(read(route), /NextStoreApp/);
+  }
   assert.ok(existsSync(new URL('app/layout.tsx', root)));
-  assert.ok(existsSync(new URL('app/page.tsx', root)));
   assert.ok(existsSync(new URL('app/api/orders/route.ts', root)));
   assert.ok(existsSync(new URL('app/api/products/route.ts', root)));
   assert.match(read('vercel.json'), /nextjs/);
@@ -30,5 +33,5 @@ test('browser Supabase config uses public Next.js environment variables, never V
   const client = read('src/lib/supabase.ts');
   assert.match(client, /NEXT_PUBLIC_SUPABASE_URL/);
   assert.match(client, /NEXT_PUBLIC_SUPABASE_ANON_KEY/);
-  assert.doesNotMatch(client, /import\.meta|VITE_/);
+  assert.doesNotMatch(client, /import\\.meta|VITE_/);
 });
