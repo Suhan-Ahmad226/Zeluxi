@@ -18,6 +18,7 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
 }) => {
   const {
     products,
+    isCatalogLoading,
     categories,
     selectedCategoryFilter,
     setSelectedCategoryFilter,
@@ -258,7 +259,20 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
         )}
 
         {/* Empty State */}
-        {displayList.length === 0 ? (
+        {displayList.length === 0 && isCatalogLoading ? (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6" role="status" aria-label="Loading products">
+            {Array.from({ length: limit || 8 }, (_, index) => (
+              <div key={index} className="overflow-hidden rounded-2xl border border-slate-200 bg-white animate-pulse">
+                <div className="aspect-[4/5] bg-slate-100" />
+                <div className="space-y-3 p-3 sm:p-4">
+                  <div className="h-3 w-2/3 rounded bg-slate-100" />
+                  <div className="h-4 w-full rounded bg-slate-100" />
+                  <div className="h-4 w-1/3 rounded bg-slate-100" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : displayList.length === 0 ? (
           <div className="text-center py-16 px-4 bg-slate-50 rounded-2xl border border-slate-200">
             <p className="text-base font-semibold text-slate-800">
               No items match your criteria
