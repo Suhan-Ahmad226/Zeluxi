@@ -346,7 +346,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
     } catch (e) {
       console.warn('Storage sync failed', e);
     }
-  }, [hasHydratedStorage, products, categories, cart, wishlist, orders, coupons, customers, pages, storefrontCMS, settings, auditLogs, reviews, questions]);
+  }, [hasHydratedStorage, cart, wishlist]);
 
   const addRecentlyViewed = (productId: string) => {
     setRecentlyViewed((prev) => {
@@ -715,9 +715,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
       };
     }
 
-    // 2. State Validation: Can only accept PENDING or CONFIRMED orders
-    if (targetOrder.status === 'CANCELLED' || targetOrder.status === 'DELIVERED') {
-      const msg = `Cannot book courier for an order with status "${targetOrder.status}".`;
+    // Only orders awaiting fulfillment may be handed to a courier.
+    // Never re-book an order that is already in fulfillment, delivered, cancelled, returned, or refunded.
+    if (targetOrder.status !== 'PENDING' && targetOrder.status !== 'CONFIRMED') {
+      const msg = `Courier booking is only allowed for PENDING or CONFIRMED orders. Current status: "${targetOrder.status}".`;
       showToast(msg, 'error');
       return { success: false, message: msg };
     }
