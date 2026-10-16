@@ -1201,8 +1201,31 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
   };
 
   const addCategory = (categoryData: Omit<Category, 'id' | 'itemCount'> & { id?: string; itemCount?: number }): Category => {
-    const slug = categoryData.slug?.trim() || categoryData.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-    const id = categoryData.id || slug || `cat-${Date.now().toString().slice(-4)}`;
+    const slug = categoryData.slug.trim() || categoryData.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    const existing = categories.find((item) =>
+      (Boolean(categoryData.id) && item.id === categoryData.id) ||
+      item.slug.toLowerCase() === slug.toLowerCase() ||
+      item.name.trim().toLowerCase() === categoryData.name.trim().toLowerCase()
+    );
+
+    if (existing) {
+      const updatedCategory: Category = {
+        ...existing,
+        ...categoryData,
+        id: existing.id,
+        slug,
+        itemCount: categoryData.itemCount ?? existing.itemCount,
+      };
+      const nextCategories = categories.map((item) => item.id === existing.id ? updatedCategory : item);
+      void saveAdminContent('categories', nextCategories).then(() => {
+        setCategories(nextCategories);
+        addAuditLog('CATEGORY_UPDATED', `Updated category "${updatedCategory.name}"`);
+        showToast(`Category "${updatedCategory.name}" saved`, 'success');
+      }).catch((error) => showToast(error instanceof Error ? error.message : 'Category could not be saved.', 'error'));
+      return updatedCategory;
+    }
+
+    const id = categoryData.id || slug || `cat-${Date.now()}`;
     const newCategory: Category = {
       ...categoryData,
       id,
@@ -1219,7 +1242,6 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
     }).catch((error) => showToast(error instanceof Error ? error.message : 'Category could not be saved.', 'error'));
     return newCategory;
   };
-
   const updateCategory = (updated: Category) => {
     const nextCategories = categories.map((c) => (c.id === updated.id ? updated : c));
     void saveAdminContent('categories', nextCategories).then(() => {
