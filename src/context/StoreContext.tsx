@@ -36,7 +36,7 @@ import {
 } from '../data/initialState';
 import { getCourierProvider } from '../lib/shipping/couriers';
 import { supabase } from '../lib/supabase';
-import { persistProductImageUrls } from '../lib/productImageStorage';
+import { persistProductImageUrls, removeProductImageUrls } from '../lib/productImageStorage';
 
 interface ToastNotification {
   id: string;
@@ -235,21 +235,35 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
   };
 
   const saveProductToDatabase = async (product: Product, method: 'POST' | 'PATCH') => {
-    const { data, error } = await supabase.auth.getSession();
-    const token = data.session?.access_token;
-    if (error || !token) throw new Error('Sign in as an administrator before saving products.');
-    const response = await fetch('/api/products', {
-      method,
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify(product),
-      cache: 'no-store',
-    });
-    const payload = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      const details = Array.isArray(payload.details) ? payload.details.map((item: { path?: unknown; message?: unknown }) => `${Array.isArray(item.path) ? item.path.join('.') : ''}: ${String(item.message || '')}`).join('; ') : '';
-      throw new Error([typeof payload.error === 'string' ? payload.error : 'Product could not be saved.', details].filter(Boolean).join(' '));
+    const previousImages = products.find((item) => item.id === product.id)?.images || [];
+    const hostedImages = await persistProductImageUrls(product.images || [], product.id);
+    const persistedProduct: Product = { ...product, images: hostedImages };
+    const newlyUploadedImages = hostedImages.filter((_, index) => Boolean(product.images?.[index]?.startsWith('data:')));
+
+    try {
+      const { data, error } = await supabase.auth.getSession();
+      const token = data.session?.access_token;
+      if (error || !token) throw new Error('Sign in as an administrator before saving products.');
+      const response = await fetch('/api/products', {
+        method,
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify(persistedProduct),
+        cache: 'no-store',
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        const details = Array.isArray(payload.details) ? payload.details.map((item: { path?: unknown; message?: unknown }) => `${Array.isArray(item.path) ? item.path.join('.') : ''}: ${String(item.message || '')}`).join('; ') : '';
+        throw new Error([typeof payload.error === 'string' ? payload.error : 'Product could not be saved.', details].filter(Boolean).join(' '));
+      }
+
+      // Replace the database references first; delete only old images owned by this product afterward.
+      await removeProductImageUrls(previousImages, product.id, hostedImages);
+      return payload.product as Product;
+    } catch (error) {
+      // If the database write fails, remove only files uploaded during this attempt.
+      await removeProductImageUrls(newlyUploadedImages, product.id);
+      throw error;
     }
-    return payload.product as Product;
   };
 
   useEffect(() => {
