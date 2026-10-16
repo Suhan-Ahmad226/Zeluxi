@@ -11,7 +11,7 @@ type ApiResponse = {
   json(payload: unknown): void;
 };
 
-const PUBLIC_KEYS = new Set(['storefront_cms']);
+const PUBLIC_KEYS = new Set(['storefront_cms', 'categories', 'pages', 'settings']);
 
 function header(req: ApiRequest, name: string): string {
   const value = req.headers[name] ?? req.headers[name.toLowerCase()];
