@@ -99,6 +99,36 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
 
   try {
     if (req.method === 'GET') {
+      const token = getHeader(req, 'authorization').replace(/^Bearer\\s+/i, '');
+      if (token && serviceRoleKey) {
+        const authClient = createClient(url, anonKey, { auth: { persistSession: false, autoRefreshToken: false } });
+        const { data: authData } = await authClient.auth.getUser(token);
+        if (String(authData.user?.app_metadata?.role || '').toUpperCase() === 'ADMIN') {
+          const adminClient = createClient(url, serviceRoleKey, { auth: { persistSession: false, autoRefreshToken: false } });
+          const { data: adminRows, error: adminError } = await adminClient.from('store_products')
+            .select('id,name,sku,price,cost_price,stock,published,archived,image_url,product_data,updated_at')
+            .order('updated_at', { ascending: false });
+          if (adminError) return res.status(503).json({ error: 'Administrator catalog could not be loaded.' });
+          const products = (adminRows || []).map((row) => {
+            const stored = row.product_data && typeof row.product_data === 'object'
+              ? row.product_data as Record<string, unknown>
+              : {};
+            return {
+              ...stored,
+              id: row.id,
+              name: row.name,
+              sku: row.sku || stored.sku || '',
+              price: Number(row.price),
+              costPrice: row.cost_price == null ? undefined : Number(row.cost_price),
+              stock: row.stock,
+              published: row.published,
+              archived: row.archived,
+              images: Array.isArray(stored.images) ? stored.images : row.image_url ? [row.image_url] : [],
+            };
+          });
+          return res.status(200).json({ products });
+        }
+      }
       const publicClient = createClient(url, anonKey, {
         auth: { persistSession: false, autoRefreshToken: false },
       });
