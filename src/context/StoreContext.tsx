@@ -242,6 +242,23 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
     setHasHydratedStorage(true);
   }, []);
 
+  // The persistent catalog is the source of truth; local storage is only a fallback for the cart and preferences.
+  useEffect(() => {
+    let cancelled = false;
+    const loadCatalog = async () => {
+      const response = await fetch('/api/products', { cache: 'no-store' });
+      if (!response.ok) return;
+      const payload = await response.json().catch(() => null);
+      if (!cancelled && Array.isArray(payload?.products)) {
+        setProducts(payload.products as Product[]);
+      }
+    };
+    void loadCatalog().catch((error) => {
+      console.warn('Persistent catalog could not be loaded; keeping local fallback state.', error);
+    });
+    return () => { cancelled = true; };
+  }, []);
+
   // Sync to LocalStorage on updates
   useEffect(() => {
     if (!hasHydratedStorage) return;
@@ -1000,9 +1017,23 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
   };
 
   const deleteProduct = (productId: string) => {
-    setProducts((prev) => prev.filter((p) => p.id !== productId));
-    addAuditLog('PRODUCT_DELETED', `Product ID ${productId} deleted from catalog`);
-    showToast('Product removed', 'info');
+    void (async () => {
+      const { data, error: sessionError } = await supabase.auth.getSession();
+      const token = data.session?.access_token;
+      if (sessionError || !token) throw new Error('Please sign in as an administrator to archive products.');
+      const response = await fetch(`/api/products?id=${encodeURIComponent(productId)}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+        cache: 'no-store',
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(typeof payload.error === 'string' ? payload.error : 'Product could not be archived.');
+      setProducts((prev) => prev.filter((p) => p.id !== productId));
+      addAuditLog('PRODUCT_ARCHIVED', `Product ID ${productId} archived from catalog`);
+      showToast('Product archived', 'success');
+    })().catch((error) => {
+      showToast(error instanceof Error ? error.message : 'Product could not be archived.', 'error');
+    });
   };
 
   const duplicateProduct = (productId: string): Product | null => {
