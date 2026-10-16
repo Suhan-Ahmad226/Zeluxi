@@ -33,7 +33,7 @@ import {
   INITIAL_CUSTOMERS,
   INITIAL_PAGES,
   INITIAL_STOREFRONT_CMS,
-} from '../data/mockData';
+} from '../data/initialState';
 import { getCourierProvider } from '../lib/shipping/couriers';
 import { supabase } from '../lib/supabase';
 
