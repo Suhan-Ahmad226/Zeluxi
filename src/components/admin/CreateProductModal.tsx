@@ -2290,8 +2290,8 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
                       return;
                     }
                     const slug = quickCategoryName.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-                    const defaultCatImg = quickCategoryImg || 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=800&q=80';
-                    const defaultSubImg = quickCategoryImg || 'https://images.unsplash.com/photo-1627123424574-724758594e93?auto=format&fit=crop&w=800&q=80';
+                    const defaultCatImg = quickCategoryImg;
+                    const defaultSubImg = quickCategoryImg;
 
                     if (quickAddType === 'category') {
                       const created = addCategory({
