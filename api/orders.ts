@@ -32,8 +32,8 @@ function readNonNegativeEnv(name: string): number | null {
 export default async function handler(req: ApiRequest, res: ApiResponse) {
   res.setHeader('Cache-Control', 'no-store');
   res.setHeader('X-Content-Type-Options', 'nosniff');
-  if (req.method !== 'POST') {
-    res.setHeader('Allow', 'POST');
+  if (!['GET', 'POST', 'PATCH'].includes(req.method || '')) {
+    res.setHeader('Allow', 'GET, POST, PATCH');
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
@@ -43,13 +43,77 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
   const dhakaFee = readNonNegativeEnv('SHIPPING_DHAKA_FEE');
   const outsideDhakaFee = readNonNegativeEnv('SHIPPING_OUTSIDE_DHAKA_FEE');
   const freeShippingThreshold = readNonNegativeEnv('FREE_SHIPPING_THRESHOLD');
-  if (!supabaseUrl || !anonKey || !serviceRoleKey || dhakaFee === null || outsideDhakaFee === null || freeShippingThreshold === null || freeShippingThreshold <= 0) {
-    return res.status(503).json({ error: 'Order service is not configured. No order was created.' });
+  if (!supabaseUrl || !anonKey || !serviceRoleKey) {
+    return res.status(503).json({ error: 'Order service is not configured.' });
   }
 
   const rawAuthHeader = req.headers.authorization;
   const authHeader = Array.isArray(rawAuthHeader) ? rawAuthHeader[0] : rawAuthHeader;
   const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : '';
+  if (!token) return res.status(401).json({ error: 'Sign in is required.' });
+
+  try {
+    const authClient = createClient(supabaseUrl, anonKey, { auth: { persistSession: false, autoRefreshToken: false } });
+    const { data: authData, error: authError } = await authClient.auth.getUser(token);
+    if (authError || !authData.user) return res.status(401).json({ error: 'Invalid or expired session.' });
+
+    if (req.method === 'GET' || req.method === 'PATCH') {
+      if (String(authData.user.app_metadata?.role || '').toUpperCase() !== 'ADMIN') {
+        return res.status(403).json({ error: 'Administrator access is required.' });
+      }
+      const admin = createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false, autoRefreshToken: false } });
+      if (req.method === 'GET') {
+        const { data, error } = await admin.from('store_orders')
+          .select('*, store_order_items(*)')
+          .order('created_at', { ascending: false })
+          .limit(500);
+        if (error) return res.status(503).json({ error: 'Orders could not be loaded.' });
+        const orders = (data || []).map((row: any) => {
+          const customer = row.customer || {};
+          const status = row.status || 'PENDING';
+          return {
+            id: String(row.id),
+            createdAt: row.created_at,
+            customer,
+            items: (row.store_order_items || []).map((item: any) => ({
+              productId: item.product_id,
+              productName: item.product_name,
+              price: Number(item.unit_price),
+              quantity: Number(item.quantity),
+              image: '',
+            })),
+            subtotal: Number(row.subtotal),
+            shippingFee: Number(row.shipping_fee),
+            discount: Number(row.discount || 0),
+            grandTotal: Number(row.grand_total),
+            status,
+            paymentMethod: row.payment_method,
+            paymentStatus: row.payment_status,
+            courier: { provider: 'PATHAO', trackingCode: '', estimatedDelivery: '', bookingStatus: 'NOT_BOOKED' },
+            statusHistory: [{ status, timestamp: row.created_at, note: 'Loaded from persistent order database.' }],
+          };
+        });
+        return res.status(200).json({ orders });
+      }
+      const statusSchema = z.object({
+        orderId: z.string().uuid(),
+        status: z.enum(['PENDING','CONFIRMED','PROCESSING','READY_TO_SHIP','SHIPPED','OUT_FOR_DELIVERY','DELIVERED','CANCELLED','RETURN_REQUESTED','RETURNED','REFUNDED']),
+      }).strict();
+      const parsedStatus = statusSchema.safeParse(req.body);
+      if (!parsedStatus.success) return res.status(400).json({ error: 'Invalid order status update.' });
+      const { data, error } = await admin.from('store_orders')
+        .update({ status: parsedStatus.data.status })
+        .eq('id', parsedStatus.data.orderId)
+        .select('id,status')
+        .maybeSingle();
+      if (error || !data) return res.status(404).json({ error: 'Order status could not be updated.' });
+      return res.status(200).json({ order: { id: data.id, status: data.status } });
+    }
+
+    if (dhakaFee === null || outsideDhakaFee === null || freeShippingThreshold === null || freeShippingThreshold <= 0) {
+      return res.status(503).json({ error: 'Shipping configuration is incomplete. No order was created.' });
+    }
+
   const rawIdempotencyKey = req.headers['idempotency-key'];
   const idempotencyKey = Array.isArray(rawIdempotencyKey) ? rawIdempotencyKey[0] : rawIdempotencyKey;
   if (!token) return res.status(401).json({ error: 'Sign in is required.' });
@@ -58,9 +122,9 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
   }
 
   try {
-    const authClient = createClient(supabaseUrl, anonKey, { auth: { persistSession: false, autoRefreshToken: false } });
-    const { data: authData, error: authError } = await authClient.auth.getUser(token);
-    if (authError || !authData.user || !authData.user.email_confirmed_at) {
+    const verifiedAuth = createClient(supabaseUrl, anonKey, { auth: { persistSession: false, autoRefreshToken: false } });
+    const { data: verifiedData, error: verifiedError } = await verifiedAuth.auth.getUser(token);
+    if (verifiedError || !verifiedData.user || !verifiedData.user.email_confirmed_at) {
       return res.status(401).json({ error: 'A verified account is required.' });
     }
 
@@ -76,7 +140,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
 
     const admin = createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false, autoRefreshToken: false } });
     const { data, error } = await admin.rpc('create_customer_order', {
-      p_user_id: authData.user.id,
+      p_user_id: verifiedData.user.id,
       p_idempotency_key: idempotencyKey,
       p_customer: parsed.data.customer,
       p_items: items,
