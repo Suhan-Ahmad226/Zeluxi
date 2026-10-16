@@ -23,7 +23,7 @@ export const OrderTrackingView: React.FC = () => {
 
   const [searchKey, setSearchKey] = useState(() => {
     if (activeTrackingId) return activeTrackingId;
-    return orders[0]?.id || 'ZLX-2601';
+    return orders[0]?.id || '';
   });
 
   const [searchedOrder, setSearchedOrder] = useState<Order | undefined>(() => {
