@@ -371,81 +371,29 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
 
   const clearCompare = () => setCompareList([]);
 
-  const addReview = (productId: string, review: Omit<ProductReview, 'id' | 'date'>) => {
-    const id = `rev-${Date.now().toString().slice(-4)}`;
-    const date = new Date().toISOString().slice(0, 10);
-    const newRev: ProductReview = { ...review, id, date };
-    setReviews((prev) => [newRev, ...prev]);
-
-    // Recalculate rating
-    setProducts((prev) =>
-      prev.map((p) => {
-        if (p.id === productId) {
-          const nextCount = p.reviewCount + 1;
-          const nextRating = Number(((p.rating * p.reviewCount + review.rating) / nextCount).toFixed(1));
-          return { ...p, rating: nextRating, reviewCount: nextCount };
-        }
-        return p;
-      })
-    );
-
-    showToast('Review submitted! Thank you.', 'success');
+  const addReview = (_productId: string, _review: Omit<ProductReview, 'id' | 'date'>) => {
+    // Do not claim that a review was submitted until it is persisted and moderated by the server.
+    showToast('Review submission is temporarily unavailable. Please try again later.', 'error');
   };
 
-  const askQuestion = (productId: string, userName: string, question: string) => {
-    const id = `qa-${Date.now().toString().slice(-4)}`;
-    const createdAt = new Date().toISOString().slice(0, 10);
-    const newQA: QuestionAnswer = { id, productId, userName, question, createdAt };
-    setQuestions((prev) => [newQA, ...prev]);
-    showToast('Question submitted to concierge', 'success');
+  const askQuestion = (_productId: string, _userName: string, _question: string) => {
+    // Do not show a success state for a question that is only held in browser memory.
+    showToast('Product questions are temporarily unavailable. Please try again later.', 'error');
   };
 
-  const answerQuestion = (questionId: string, answer: string) => {
-    const answeredAt = new Date().toISOString().slice(0, 10);
-    setQuestions((prev) =>
-      prev.map((q) => (q.id === questionId ? { ...q, answer, answeredAt } : q))
-    );
-    showToast('Answer published', 'success');
+  const answerQuestion = (_questionId: string, _answer: string) => {
+    // Admin answers must be persisted through an authorized server endpoint before being published.
+    showToast('Publishing answers is temporarily unavailable until server persistence is enabled.', 'error');
   };
 
-  const requestOrderCancellation = (orderId: string, reason: string) => {
-    const timestampStr = new Date().toISOString().slice(0, 16).replace('T', ' ');
-    setOrders((prev) =>
-      prev.map((o) => {
-        if (o.id === orderId) {
-          return {
-            ...o,
-            status: 'CANCELLED',
-            statusHistory: [
-              ...o.statusHistory,
-              { status: 'CANCELLED', timestamp: timestampStr, note: `Customer requested cancellation: ${reason}` },
-            ],
-          };
-        }
-        return o;
-      })
-    );
-    showToast(`Order #${orderId} has been cancelled`, 'info');
+  const requestOrderCancellation = (_orderId: string, _reason: string) => {
+    // Client-only state changes do not cancel a persisted order; fail honestly instead of misreporting success.
+    showToast('Order cancellation is temporarily unavailable. Contact support before assuming an order is cancelled.', 'error');
   };
 
-  const requestOrderReturn = (orderId: string, reason: string) => {
-    const timestampStr = new Date().toISOString().slice(0, 16).replace('T', ' ');
-    setOrders((prev) =>
-      prev.map((o) => {
-        if (o.id === orderId) {
-          return {
-            ...o,
-            status: 'RETURN_REQUESTED',
-            statusHistory: [
-              ...o.statusHistory,
-              { status: 'RETURN_REQUESTED', timestamp: timestampStr, note: `Customer requested 7-day return: ${reason}` },
-            ],
-          };
-        }
-        return o;
-      })
-    );
-    showToast(`Return request submitted for #${orderId}`, 'info');
+  const requestOrderReturn = (_orderId: string, _reason: string) => {
+    // A return request must be stored and checked against the actual delivery date server-side.
+    showToast('Return requests are temporarily unavailable. Please contact support for assistance.', 'error');
   };
 
   const showToast = (message: string, type: 'success' | 'info' | 'error' = 'success') => {
@@ -459,7 +407,15 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
   const dismissToast = () => setToast(null);
 
   const addToCart = (product: Product, variantId?: string, quantity: number = 1) => {
+    if (!Number.isSafeInteger(quantity) || quantity < 1) {
+      showToast('Please choose a valid quantity.', 'error');
+      return;
+    }
     const variant = variantId ? product.variants.find((v) => v.id === variantId) : undefined;
+    if (variantId && !variant) {
+      showToast('This product option is no longer available. Please refresh the product page.', 'error');
+      return;
+    }
     const price = variant ? variant.price : product.price;
     const availableStock = variant ? variant.stock : product.stock;
 
@@ -646,6 +602,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
     _courierChoice: CourierProvider,
     _transactionId?: string
   ): Promise<Order> => {
+    // The current server RPC accepts product IDs and quantities only. Never silently convert
+    // a selected variant into its parent product because that can charge the wrong price/stock.
+    if (cart.some((item) => Boolean(item.variantId))) {
+      throw new Error('Checkout for product variants is temporarily unavailable. Please remove variant items and refresh the catalog before ordering.');
+    }
     // Only COD is supported by the server-side order service. Never accept client totals as authoritative.
     if (paymentMethod !== 'COD') {
       throw new Error('Only Cash on Delivery is currently available. Online payments are not enabled yet.');
