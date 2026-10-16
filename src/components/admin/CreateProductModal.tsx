@@ -603,7 +603,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
         seoTitle: seoTitle.trim() || name.trim(),
         seoDescription: seoDescription.trim() || shortDesc.trim() || undefined,
         seoKeywords: seoKeywords.trim() || tags.join(', '),
-        canonicalUrl: `${(process.env.NEXT_PUBLIC_SITE_URL || 'https://zeluxi.vercel.app').replace(/\\/$/, '')}/product/${slug || 'product'}`,
+        canonicalUrl: `${(process.env.NEXT_PUBLIC_SITE_URL || 'https://zeluxi.vercel.app').replace(/\/$/, '')}/product/${slug || 'product'}`,
         ogImageUrl: sortedImages[0]?.url,
       };
 
