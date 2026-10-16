@@ -99,7 +99,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
 
   try {
     if (req.method === 'GET') {
-      const token = getHeader(req, 'authorization').replace(/^Bearer\\s+/i, '');
+      const token = getHeader(req, 'authorization').replace(/^Bearer\s+/i, '');
       if (token && serviceRoleKey) {
         const authClient = createClient(url, anonKey, { auth: { persistSession: false, autoRefreshToken: false } });
         const { data: authData } = await authClient.auth.getUser(token);
