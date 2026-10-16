@@ -1300,6 +1300,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
   };
 
   const updateStorefrontCMS = (cmsUpdate: Partial<StorefrontCMS>) => {
+    const previousImageUrl = storefrontCMS.hero.imageUrl;
     const merged: StorefrontCMS = {
       ...storefrontCMS,
       ...cmsUpdate,
@@ -1308,13 +1309,23 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
       sectionVisibility: { ...storefrontCMS.sectionVisibility, ...(cmsUpdate.sectionVisibility || {}) },
     };
     void (async () => {
-      const imageUrl = merged.hero.imageUrl;
-      if (imageUrl.startsWith('data:')) {
-        const [hostedUrl] = await persistProductImageUrls([imageUrl], 'storefront');
-        merged.hero.imageUrl = hostedUrl;
+      let newlyUploadedImageUrl: string | undefined;
+      try {
+        if (merged.hero.imageUrl.startsWith('data:')) {
+          const [hostedUrl] = await persistProductImageUrls([merged.hero.imageUrl], 'storefront');
+          merged.hero.imageUrl = hostedUrl;
+          newlyUploadedImageUrl = hostedUrl;
+        }
+        await saveAdminContent('storefront_cms', merged);
+      } catch (error) {
+        if (newlyUploadedImageUrl) await removeProductImageUrls([newlyUploadedImageUrl], 'storefront');
+        throw error;
       }
-      await saveAdminContent('storefront_cms', merged);
+
       setStorefrontCMS(merged);
+      if (previousImageUrl && previousImageUrl !== merged.hero.imageUrl) {
+        await removeProductImageUrls([previousImageUrl], 'storefront', [merged.hero.imageUrl]);
+      }
       addAuditLog('STOREFRONT_CMS_UPDATED', 'Updated homepage layout and storefront appearance settings');
       showToast('Storefront appearance saved to database', 'success');
     })().catch((error) => showToast(error instanceof Error ? error.message : 'Storefront changes could not be saved.', 'error'));
@@ -1389,15 +1400,20 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
   };
 
   const addCoupon = (coupon: Coupon) => {
-    const enrichedCoupon: Coupon = {
+    const normalizedCode = coupon.code.trim().toUpperCase();
+    const existing = coupons.find((item) => item.code.trim().toUpperCase() === normalizedCode);
+    const normalizedCoupon: Coupon = {
       ...coupon,
-      perUserLimit: coupon.perUserLimit ?? 1,
-      usedBy: coupon.usedBy || [],
+      code: normalizedCode,
+      perUserLimit: coupon.perUserLimit ?? existing?.perUserLimit ?? 1,
+      usedBy: existing?.usedBy || coupon.usedBy || [],
     };
-    const nextCoupons = [enrichedCoupon, ...coupons];
+    const nextCoupons = existing
+      ? coupons.map((item) => item.code.trim().toUpperCase() === normalizedCode ? { ...item, ...normalizedCoupon } : item)
+      : [normalizedCoupon, ...coupons];
     void saveAdminContent('coupons', nextCoupons).then(() => {
       setCoupons(nextCoupons);
-      showToast(`Coupon ${coupon.code} saved (1 use per customer limit active)`, 'success');
+      showToast(`Coupon ${normalizedCode} ${existing ? 'updated' : 'saved'}`, 'success');
     }).catch((error) => showToast(error instanceof Error ? error.message : 'Coupon could not be saved.', 'error'));
   };
 
