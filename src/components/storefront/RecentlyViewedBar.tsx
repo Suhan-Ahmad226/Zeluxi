@@ -1,5 +1,6 @@
 import React from 'react';
 import { useStore } from '../../context/StoreContext';
+import { StoreImage } from '../common/StoreImage';
 import { formatPrice } from '../../utils/formatters';
 import { Eye } from 'lucide-react';
 
