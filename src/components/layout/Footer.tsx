@@ -136,11 +136,13 @@ export const Footer: React.FC = () => {
             <h2 className="text-xs font-bold uppercase tracking-[0.16em] text-white">Payment & delivery</h2>
             <p className="text-sm leading-6 text-slate-400">Secure checkout with available payment methods and reliable delivery options across Bangladesh.</p>
             {settings.showPaymentBadgesInFooter !== false && (
-              <div className="flex flex-wrap gap-2 text-xs font-semibold">
-                {['bKash', 'Nagad', 'Rocket', 'COD'].map((method) => (
-                  <span key={method} className="rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 text-slate-200">{method}</span>
-                ))}
-              </div>
+              {(settings.footerPaymentMethods || ['COD']).filter((method) => typeof method === 'string' && method.trim()).length > 0 && (
+                <div className="flex flex-wrap gap-2 text-xs font-semibold">
+                  {(settings.footerPaymentMethods || ['COD']).filter((method) => typeof method === 'string' && method.trim()).slice(0, 8).map((method) => (
+                    <span key={method} className="rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 text-slate-200">{method.trim()}</span>
+                  ))}
+                </div>
+              )}
             )}
             <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
               <h3 className="text-sm font-semibold text-white">Keep Zelux close</h3>
