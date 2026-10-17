@@ -789,14 +789,12 @@ export const StorefrontCMSManager: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="mt-4 rounded-lg overflow-hidden border border-slate-800 aspect-video relative bg-slate-900">
+                <div className="mt-4 flex min-h-40 items-center justify-center overflow-hidden rounded-lg border border-slate-800 bg-slate-900">
                   {formData.hero.imageUrl ? (
                     <img
                       src={formData.hero.imageUrl}
                       alt={formData.hero.headline ? `Preview: ${formData.hero.headline}` : 'Hero banner preview'}
-                      width={1200}
-                      height={675}
-                      className="h-full w-full object-cover"
+                      className="block h-auto max-h-[50vh] w-full object-contain"
                     />
                   ) : (
                     <div className="flex h-full items-center justify-center p-6 text-center text-xs text-slate-500">Choose or upload an image to preview this banner.</div>
