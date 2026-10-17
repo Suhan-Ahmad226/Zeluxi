@@ -798,7 +798,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
   const completionPercentage = Math.round((completedChecks / formChecks.length) * 100);
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/75 backdrop-blur-md flex items-center justify-center p-2 sm:p-5 animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/70 backdrop-blur-sm flex items-stretch sm:items-center justify-center p-0 sm:p-5 animate-in fade-in duration-200">
       {/* Hidden file replacement input */}
       <input
         ref={replaceImageInputRef}
@@ -845,22 +845,22 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
       )}
 
       {/* Main Dialog Container */}
-      <div className="relative w-full max-w-6xl bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-200/80 max-h-[94vh] flex flex-col">
+      <div className="relative w-full max-w-6xl bg-white rounded-none sm:rounded-2xl shadow-2xl overflow-hidden border-0 sm:border border-slate-200/80 h-[100dvh] sm:h-auto max-h-[100dvh] sm:max-h-[94vh] flex flex-col">
         {/* Top gradient accent line */}
-        <div className="h-1.5 w-full bg-gradient-to-r from-indigo-600 via-violet-600 to-amber-500" />
+        <div className="h-1 w-full bg-indigo-600" />
 
         {/* Modal Top Header */}
-        <div className="px-5 sm:px-7 py-4 border-b border-slate-200 bg-slate-50/90 backdrop-blur-sm flex items-center justify-between gap-4">
+        <div className="px-4 sm:px-6 py-3 border-b border-slate-200 bg-white flex items-center justify-between gap-3">
           <div className="flex items-center gap-3.5 min-w-0">
-            <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-indigo-600 to-violet-600 text-white flex items-center justify-center shadow-md shadow-indigo-500/20 shrink-0">
+            <div className="w-9 h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0">
               <Plus className="w-6 h-6" />
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <h2 className="text-base sm:text-lg font-extrabold text-slate-900 tracking-tight truncate">
-                  {productToEdit ? `Edit Product: ${productToEdit.name}` : 'Create New Catalog Product'}
+                  {productToEdit ? `Edit Product: ${productToEdit.name}` : 'Create product'}
                 </h2>
-                <span className="text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200/80">
+                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-slate-100 text-slate-600">
                   Zelux Studio Admin
                 </span>
                 {hasUnsavedChanges && (
@@ -870,7 +870,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
                   </span>
                 )}
               </div>
-              <p className="text-xs text-slate-500 truncate mt-0.5">
+              <p className="text-xs text-slate-500 truncate mt-0.5 hidden sm:block">
                 Bilingual descriptions, local photo compression, category taxonomy, profit margin architecture, and live storefront view.
               </p>
             </div>
@@ -902,7 +902,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
         </div>
 
         {/* Form Completion Progress Bar */}
-        <div className="w-full bg-slate-100 border-b border-slate-200/60 px-6 py-1.5 flex items-center justify-between text-[11px] text-slate-500">
+        <div className="w-full bg-white border-b border-slate-200 px-4 sm:px-6 py-2 flex items-center justify-between text-xs text-slate-500">
           <div className="flex items-center gap-2">
             <span className="font-semibold text-slate-700">Form Readiness:</span>
             <span className={`font-mono font-bold ${completedChecks === formChecks.length ? 'text-emerald-600' : 'text-indigo-600'}`}>
@@ -925,17 +925,17 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
         </div>
 
         {/* Tab Navigation & Step Indicators */}
-        <div className="px-6 border-b border-slate-200 bg-white flex items-center gap-1 overflow-x-auto text-xs font-semibold scrollbar-none">
+        <div className="px-2 sm:px-4 border-b border-slate-200 bg-white flex items-center gap-1 overflow-x-auto text-sm font-medium scrollbar-none">
           <button
             onClick={() => setActiveTab('general')}
-            className={`py-3 px-3.5 border-b-2 flex items-center gap-2 transition-colors whitespace-nowrap ${
+            className={`py-3 px-3 sm:px-4 border-b-2 flex items-center gap-2 transition-colors whitespace-nowrap ${
               activeTab === 'general'
                 ? 'border-indigo-600 text-indigo-600 font-bold'
                 : 'border-transparent text-slate-500 hover:text-slate-900'
             }`}
           >
             <FileText className="w-4 h-4" />
-            <span>1. Essential Info & Pricing</span>
+            <span>Details & pricing</span>
             {(formErrors.name || formErrors.sku || formErrors.price) && (
               <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
             )}
@@ -953,7 +953,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
             }`}
           >
             <ImageIcon className="w-4 h-4" />
-            <span>2. Media Studio ({images.length} Photos{video ? ' + Video' : ''})</span>
+            <span>Images <span className="text-slate-400">({images.length})</span></span>
             {formErrors.images && <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />}
             {images.length > 0 && <Check className="w-3.5 h-3.5 text-emerald-500" />}
           </button>
@@ -967,7 +967,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
             }`}
           >
             <Layers className="w-4 h-4" />
-            <span>3. Product Variants & SKU Matrix ({enableVariants ? `${variants.length} items` : 'Single'})</span>
+            <span>Variants</span>
           </button>
 
           <button
@@ -979,7 +979,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
             }`}
           >
             <Truck className="w-4 h-4" />
-            <span>4. Shipping, Tax & Specs</span>
+            <span>Shipping & specs</span>
           </button>
 
           <button
@@ -991,18 +991,18 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
             }`}
           >
             <Globe className="w-4 h-4" />
-            <span>5. SEO & Social Meta</span>
+            <span>SEO</span>
           </button>
         </div>
 
         {/* Modal Scrollable Body */}
-        <div className="flex-1 overflow-y-auto p-5 sm:p-6 bg-slate-50/50">
+        <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 bg-slate-50">
           <div className={`grid grid-cols-1 ${showLivePreview ? 'lg:grid-cols-3' : ''} gap-6`}>
             {/* Form Column */}
             <div className={showLivePreview ? 'lg:col-span-2 space-y-6' : 'space-y-6'}>
               {/* TAB 1: GENERAL & PRICING */}
               {activeTab === 'general' && (
-                <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-xs space-y-5 text-xs">
+                <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-6 shadow-sm space-y-5 text-sm">
                   <div>
                     <h3 className="text-sm font-bold text-slate-900">Essential Product Information</h3>
                     <p className="text-slate-500 text-[11px]">Core product identification, category mapping, and pricing architecture</p>
@@ -1667,7 +1667,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
 
               {/* TAB 3: VARIANTS & INVENTORY */}
               {activeTab === 'variants' && (
-                <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-xs space-y-5 text-xs">
+                <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-6 shadow-sm space-y-5 text-xs">
                   <div className="flex items-center justify-between flex-wrap gap-2">
                     <div>
                       <h3 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
@@ -2179,7 +2179,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
         </div>
 
         {/* Modal Bottom Action Bar */}
-        <div className="px-5 sm:px-6 py-4 border-t border-slate-200 bg-white flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="px-4 sm:px-6 py-3 border-t border-slate-200 bg-white flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 sm:gap-3">
           <div className="flex items-center gap-2 text-xs w-full sm:w-auto">
             <button
               type="button"
@@ -2198,12 +2198,12 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
             </button>
           </div>
 
-          <div className="flex items-center gap-2.5 w-full sm:w-auto">
+          <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 w-full sm:w-auto">
             <button
               type="button"
               disabled={isSubmitting}
               onClick={() => handleSaveProduct('draft')}
-              className="flex-1 sm:flex-none px-4 py-2 border border-slate-300 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-50"
+              className="flex-1 sm:flex-none px-3 sm:px-4 py-2.5 border border-slate-300 rounded-xl text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-50"
             >
               Save as Draft
             </button>
@@ -2212,7 +2212,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
               type="button"
               disabled={isSubmitting}
               onClick={() => handleSaveProduct('active', true)}
-              className="flex-1 sm:flex-none px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-semibold hover:bg-slate-800 transition-colors disabled:opacity-50"
+              className="hidden sm:inline-flex sm:flex-none px-4 py-2.5 bg-slate-900 text-white rounded-xl text-sm font-semibold hover:bg-slate-800 transition-colors disabled:opacity-50"
             >
               Save & Add Another
             </button>
@@ -2221,7 +2221,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
               type="button"
               disabled={isSubmitting}
               onClick={() => handleSaveProduct('active', false)}
-              className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-6 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold hover:bg-indigo-700 shadow-sm transition-all disabled:opacity-50 active:scale-95"
+              className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-5 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 shadow-sm transition-all disabled:opacity-50 active:scale-[0.99]"
             >
               <Check className="w-4 h-4" />
               <span>
