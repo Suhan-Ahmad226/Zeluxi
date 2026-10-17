@@ -134,12 +134,17 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
       const publicClient = createClient(url, anonKey, {
         auth: { persistSession: false, autoRefreshToken: false },
       });
-      const { data, error } = await publicClient
+      const requestedLimit = Number(Array.isArray(req.query?.limit) ? req.query?.limit[0] : req.query?.limit);
+      const requestedOffset = Number(Array.isArray(req.query?.offset) ? req.query?.offset[0] : req.query?.offset);
+      const limit = Number.isFinite(requestedLimit) ? Math.min(48, Math.max(1, Math.floor(requestedLimit))) : 12;
+      const offset = Number.isFinite(requestedOffset) ? Math.min(1000000, Math.max(0, Math.floor(requestedOffset))) : 0;
+      const { data, error, count } = await publicClient
         .from('store_products')
-        .select('id,name,price,stock,published,archived,image_url,product_data,updated_at')
+        .select('id,name,price,stock,published,archived,image_url,product_data,updated_at', { count: 'exact' })
         .eq('published', true)
         .eq('archived', false)
-        .order('updated_at', { ascending: false });
+        .order('updated_at', { ascending: false })
+        .range(offset, offset + limit - 1);
       if (error) return res.status(503).json({ error: 'Unable to load catalog.' });
       const products = (data || []).map((row) => {
         const stored = row.product_data && typeof row.product_data === 'object'
@@ -160,7 +165,8 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
             : row.image_url ? [row.image_url] : [],
         };
       });
-      return res.status(200).json({ products });
+      const total = count ?? offset + products.length;
+      return res.status(200).json({ products, pagination: { limit, offset, total, hasMore: offset + products.length < total, nextOffset: offset + products.length } });
     }
 
     if (!serviceRoleKey) return res.status(503).json({ error: 'Catalog administration is not configured.' });
