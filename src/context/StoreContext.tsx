@@ -794,7 +794,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
       const response = await fetch('/api/admin/courier', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
-        body: JSON.stringify({ action: 'book', orderId, weightKg: 0.5, deliveryType: 48 }),
+        body: JSON.stringify({ action: 'book', orderId, deliveryType: 48 }),
         cache: 'no-store',
       });
       const payload = await response.json().catch(() => ({}));
