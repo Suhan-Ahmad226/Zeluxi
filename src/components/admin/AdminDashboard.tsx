@@ -1587,7 +1587,7 @@ export const AdminDashboard: React.FC = () => {
                       </td>
                       <td className="p-3 text-center space-x-1 whitespace-nowrap">
                         {/* Requirement: When order is placed, admin clicks Accept Order to book courier */}
-                        {(ord.status === 'PENDING' || (ord.status === 'CONFIRMED' && ord.courier.bookingStatus !== 'BOOKED')) && (
+                        {(ord.status === 'PENDING' || ord.status === 'CONFIRMED') && !['BOOKED', 'BOOKING_IN_PROGRESS', 'BOOKING_FAILED', 'BOOKING_UNKNOWN'].includes(ord.courier.bookingStatus || 'NOT_BOOKED') && (
                           <button
                             onClick={() => handleAdminAcceptOrder(ord.id)}
                             disabled={processingOrderId === ord.id}
@@ -1633,22 +1633,6 @@ export const AdminDashboard: React.FC = () => {
                             className="px-2 py-1 bg-slate-800 text-white rounded text-[11px] font-semibold hover:bg-slate-700"
                           >
                             Mark Packed
-                          </button>
-                        )}
-                        {ord.status === 'PROCESSING' && (
-                          <button
-                            onClick={() => updateOrderStatus(ord.id, 'SHIPPED', 'Dispatched to Pathao/Steadfast hub')}
-                            className="px-2 py-1 bg-blue-600 text-white rounded text-[11px] font-semibold hover:bg-blue-700"
-                          >
-                            Dispatch Courier
-                          </button>
-                        )}
-                        {ord.status === 'SHIPPED' && (
-                          <button
-                            onClick={() => updateOrderStatus(ord.id, 'DELIVERED', 'Delivery status manually recorded; COD collection must be verified separately')}
-                            className="px-2 py-1 bg-emerald-600 text-white rounded text-[11px] font-semibold hover:bg-emerald-700"
-                          >
-                            Mark Delivered
                           </button>
                         )}
                         {ord.paymentStatus === 'PAID' && (
