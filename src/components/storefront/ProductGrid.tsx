@@ -19,6 +19,9 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
   const {
     products,
     categories,
+    catalogHasMore,
+    isLoadingMoreProducts,
+    loadMoreProducts,
     selectedCategoryFilter,
     setSelectedCategoryFilter,
     activeFilterTab,
@@ -89,7 +92,7 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
 
   const effectiveLimit = featuredOnly ? Math.min(limit ?? 4, 4) : visibleCount;
   const displayList = filteredProducts.slice(0, effectiveLimit);
-  const hasMoreProducts = !featuredOnly && displayList.length < filteredProducts.length;
+  const hasMoreProducts = !featuredOnly && (displayList.length < filteredProducts.length || catalogHasMore);
 
   return (
     <section className="py-12 bg-white" id="main-product-grid">
@@ -301,11 +304,15 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
           <div className="mt-8 flex justify-center">
             <button
               type="button"
-              onClick={() => setVisibleCount((current) => Math.min(current + 8, filteredProducts.length))}
-              className="min-h-11 rounded-lg border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-900 transition-colors hover:border-slate-900 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+              disabled={isLoadingMoreProducts}
+              onClick={() => {
+                setVisibleCount((current) => current + 8);
+                if (visibleCount + 8 >= products.length && catalogHasMore) void loadMoreProducts();
+              }}
+              className="min-h-11 rounded-lg border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-900 transition-colors hover:border-slate-900 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 disabled:cursor-wait disabled:opacity-60"
             >
-              Load More
-              <span className="ml-2 text-slate-500">({filteredProducts.length - displayList.length} remaining)</span>
+              {isLoadingMoreProducts ? 'Loading…' : 'Load More'}
+              {!isLoadingMoreProducts && <span className="ml-2 text-slate-500">({Math.max(0, filteredProducts.length - displayList.length)} more in loaded results)</span>}
             </button>
           </div>
         )}
