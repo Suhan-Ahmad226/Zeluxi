@@ -36,7 +36,7 @@ import {
 } from '../data/initialState';
 import { getCourierProvider } from '../lib/shipping/couriers';
 import { supabase } from '../lib/supabase';
-import { persistProductImageUrls, removeProductImageUrls } from '../lib/productImageStorage';
+import { getCloudinaryPublicId, persistProductImageUrls, removeProductImageUrls } from '../lib/productImageStorage';
 
 interface ToastNotification {
   id: string;
@@ -237,7 +237,12 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
   const saveProductToDatabase = async (product: Product, method: 'POST' | 'PATCH') => {
     const previousImages = products.find((item) => item.id === product.id)?.images || [];
     const hostedImages = await persistProductImageUrls(product.images || [], product.id);
-    const persistedProduct: Product = { ...product, images: hostedImages };
+    const persistedProduct: Product = {
+      ...product,
+      images: hostedImages,
+      imagePublicIds: hostedImages.map(getCloudinaryPublicId).filter((id): id is string => Boolean(id)),
+      videoPublicId: product.videoUrl ? getCloudinaryPublicId(product.videoUrl) : undefined,
+    };
     const newlyUploadedImages = hostedImages.filter((_, index) => Boolean(product.images?.[index]?.startsWith('data:')));
 
     try {
@@ -1346,13 +1351,21 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
         ...merged.hero,
         imageUrl: resolveImage(merged.hero.imageUrl),
         mobileImageUrl: resolveImage(merged.hero.mobileImageUrl),
+        imagePublicId: getCloudinaryPublicId(resolveImage(merged.hero.imageUrl)),
+        mobileImagePublicId: getCloudinaryPublicId(resolveImage(merged.hero.mobileImageUrl)),
       };
       if (Array.isArray(merged.banners)) {
-        merged.banners = merged.banners.map((banner) => ({
-          ...banner,
-          imageUrl: resolveImage(banner.imageUrl),
-          mobileImageUrl: resolveImage(banner.mobileImageUrl),
-        }));
+        merged.banners = merged.banners.map((banner) => {
+          const imageUrl = resolveImage(banner.imageUrl);
+          const mobileImageUrl = resolveImage(banner.mobileImageUrl);
+          return {
+            ...banner,
+            imageUrl,
+            mobileImageUrl,
+            imagePublicId: getCloudinaryPublicId(imageUrl),
+            mobileImagePublicId: getCloudinaryPublicId(mobileImageUrl),
+          };
+        });
       }
 
       await saveAdminContent('storefront_cms', merged);
