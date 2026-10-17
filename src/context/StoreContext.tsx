@@ -882,11 +882,31 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(typeof payload.error === 'string' ? payload.error : 'Order status could not be saved.');
       const timestampStr = new Date().toISOString();
+      const persistedStatus = (payload?.order?.status || newStatus) as OrderStatus;
+      const courierUpdate = payload?.courier;
       setOrders((prev) => prev.map((ord) => ord.id === orderId ? {
         ...ord,
-        status: newStatus,
-        courier: trackingCode ? { ...ord.courier, trackingCode } : ord.courier,
-        statusHistory: [...ord.statusHistory, { status: newStatus, timestamp: timestampStr, note }],
+        status: persistedStatus,
+        courier: {
+          ...ord.courier,
+          ...(trackingCode ? { trackingCode } : {}),
+          ...(courierUpdate ? {
+            provider: courierUpdate.provider || 'PATHAO',
+            consignmentId: courierUpdate.consignmentId || ord.courier.consignmentId,
+            trackingCode: courierUpdate.consignmentId || ord.courier.trackingCode || trackingCode || '',
+            bookingStatus: courierUpdate.bookingStatus || ord.courier.bookingStatus,
+            deliveryFee: Number.isFinite(Number(courierUpdate.deliveryFee)) ? Number(courierUpdate.deliveryFee) : ord.courier.deliveryFee,
+            bookingError: undefined,
+            bookedAt: timestampStr,
+          } : {}),
+        },
+        statusHistory: [...ord.statusHistory, {
+          status: persistedStatus,
+          timestamp: timestampStr,
+          note: persistedStatus === 'SHIPPED' && newStatus === 'CONFIRMED'
+            ? 'Order accepted and Pathao booking confirmed. ' + (courierUpdate?.consignmentId ? 'Consignment: ' + courierUpdate.consignmentId : '')
+            : note,
+        }],
       } : ord));
       const logItem: AuditLog = {
         id: `log-${Date.now()}`,
@@ -896,7 +916,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
         details: `Order #${orderId} transitioned to ${newStatus}. Note: ${note}`,
       };
       setAuditLogs((prev) => [logItem, ...prev]);
-      showToast(`Order #${orderId} status updated to ${newStatus}`, 'success');
+      showToast(payload?.message || `Order #${orderId} status updated to ${persistedStatus}`, 'success');
     })().catch((error) => {
       showToast(error instanceof Error ? error.message : 'Order status could not be saved.', 'error');
     });
