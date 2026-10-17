@@ -1277,7 +1277,6 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
       isActive: categoryData.isActive ?? true,
       order: categoryData.order ?? (categories.length + 1),
     };
-    const nextCategories = [...categories, newCategory];
     let uploadedCategoryImage = '';
     void (async () => {
       const [image] = await persistProductImageUrls([newCategory.image || ''], newCategory.id, 'categories');
