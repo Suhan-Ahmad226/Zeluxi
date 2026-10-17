@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useStore } from '../../context/StoreContext';
+import { StoreImage } from '../common/StoreImage';
 import { useAuth } from '../../context/AuthContext';
 import { formatPrice } from '../../utils/formatters';
 import {
@@ -588,10 +589,12 @@ export const CustomerAccountView: React.FC = () => {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                     {ord.items.map((item, idx) => (
                       <div key={idx} className="flex items-center gap-3 p-2 bg-slate-50 rounded-lg">
-                        <img
+                        <StoreImage
                           src={item.image}
                           alt={item.productName}
                           className="w-12 h-12 rounded object-cover border border-slate-200 bg-white shrink-0"
+                          loading="lazy"
+                          decoding="async"
                         />
                         <div className="min-w-0">
                           <p className="font-semibold text-slate-900 truncate">{item.productName}</p>
@@ -782,10 +785,12 @@ export const CustomerAccountView: React.FC = () => {
                     key={p.id}
                     className="border border-slate-200 rounded-xl p-3 flex gap-3 bg-white shadow-sm hover:border-slate-300 transition-colors"
                   >
-                    <img
-                      src={p.images[0]}
+                    <StoreImage
+                      src={p.images?.[0]}
                       alt={p.name}
                       className="w-20 h-20 rounded-lg object-cover bg-slate-100 shrink-0"
+                      loading="lazy"
+                      decoding="async"
                     />
                     <div className="flex-1 min-w-0 flex flex-col justify-between">
                       <div>
