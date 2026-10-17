@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useStore } from '../../context/StoreContext';
+import { StoreImage } from '../common/StoreImage';
 import { Product } from '../../types';
 import { formatPrice } from '../../utils/formatters';
 import {
@@ -187,10 +188,12 @@ export const InventoryManager: React.FC = () => {
                   <tr key={prod.id} className="hover:bg-slate-50/70 transition-colors">
                     <td className="p-3.5">
                       <div className="flex items-center gap-3">
-                        <img
-                          src={prod.images[0] || 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=800&q=80'}
-                          alt=""
+                        <StoreImage
+                          src={prod.images?.[0] || 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=800&q=80'}
+                          alt={prod.name}
                           className="w-10 h-10 rounded-lg object-cover border border-slate-200 bg-white shrink-0"
+                          loading="lazy"
+                          decoding="async"
                         />
                         <div className="min-w-0">
                           <p className="font-bold text-slate-900 truncate max-w-xs">{prod.name}</p>
