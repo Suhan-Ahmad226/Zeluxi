@@ -100,7 +100,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
               trackingCode: shipment?.consignment_id || '',
               consignmentId: shipment?.consignment_id || '',
               estimatedDelivery: '',
-              bookingStatus: ['BOOKED','IN_TRANSIT','DELIVERED'].includes(status) ? 'BOOKED' : status === 'BOOKING' ? 'BOOKING_IN_PROGRESS' : status === 'FAILED' || status === 'UNKNOWN' ? 'BOOKING_FAILED' : 'NOT_BOOKED',
+              bookingStatus: ['BOOKED','IN_TRANSIT','DELIVERED'].includes(status) ? 'BOOKED' : status === 'BOOKING' ? 'BOOKING_IN_PROGRESS' : ['UNKNOWN','BULK_SUBMITTED'].includes(status) ? 'BOOKING_UNKNOWN' : status === 'FAILED' ? 'BOOKING_FAILED' : 'NOT_BOOKED',
               bookingError: shipment?.error_message || undefined,
               deliveryFee: shipment?.delivery_fee == null ? undefined : Number(shipment.delivery_fee),
               bookedAt: shipment?.booked_at || undefined,
