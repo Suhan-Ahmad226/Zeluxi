@@ -1242,11 +1242,16 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
         itemCount: categoryData.itemCount ?? existing.itemCount,
       };
       const nextCategories = categories.map((item) => item.id === existing.id ? updatedCategory : item);
-      void saveAdminContent('categories', nextCategories).then(() => {
-        setCategories(nextCategories);
-        addAuditLog('CATEGORY_UPDATED', `Updated category "${updatedCategory.name}"`);
-        showToast(`Category "${updatedCategory.name}" saved`, 'success');
-      }).catch((error) => showToast(error instanceof Error ? error.message : 'Category could not be saved.', 'error'));
+      void (async () => {
+        const [image] = await persistProductImageUrls([updatedCategory.image || ''], updatedCategory.id, 'categories');
+        const persistedCategory = { ...updatedCategory, image };
+        const resolvedCategories = nextCategories.map((item) => item.id === persistedCategory.id ? persistedCategory : item);
+        await saveAdminContent('categories', resolvedCategories);
+        setCategories(resolvedCategories);
+        await removeProductImageUrls(existing.image ? [existing.image] : [], existing.id, [image], 'categories');
+        addAuditLog('CATEGORY_UPDATED', `Updated category "${persistedCategory.name}"`);
+        showToast(`Category "${persistedCategory.name}" saved`, 'success');
+      })().catch((error) => showToast(error instanceof Error ? error.message : 'Category could not be saved.', 'error'));
       return updatedCategory;
     }
 
@@ -1260,20 +1265,30 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
       order: categoryData.order ?? (categories.length + 1),
     };
     const nextCategories = [...categories, newCategory];
-    void saveAdminContent('categories', nextCategories).then(() => {
-      setCategories(nextCategories);
-      addAuditLog('CATEGORY_CREATED', `Created category "${newCategory.name}"`);
-      showToast(`Category "${newCategory.name}" saved`, 'success');
-    }).catch((error) => showToast(error instanceof Error ? error.message : 'Category could not be saved.', 'error'));
+    void (async () => {
+      const [image] = await persistProductImageUrls([newCategory.image || ''], newCategory.id, 'categories');
+      const persistedCategory = { ...newCategory, image };
+      const resolvedCategories = [...categories, persistedCategory];
+      await saveAdminContent('categories', resolvedCategories);
+      setCategories(resolvedCategories);
+      addAuditLog('CATEGORY_CREATED', `Created category "${persistedCategory.name}"`);
+      showToast(`Category "${persistedCategory.name}" saved`, 'success');
+    })().catch((error) => showToast(error instanceof Error ? error.message : 'Category could not be saved.', 'error'));
     return newCategory;
   };
   const updateCategory = (updated: Category) => {
     const nextCategories = categories.map((c) => (c.id === updated.id ? updated : c));
-    void saveAdminContent('categories', nextCategories).then(() => {
-      setCategories(nextCategories);
-      addAuditLog('CATEGORY_UPDATED', `Updated category "${updated.name}"`);
-      showToast(`Category "${updated.name}" saved`, 'success');
-    }).catch((error) => showToast(error instanceof Error ? error.message : 'Category could not be saved.', 'error'));
+    const previous = categories.find((c) => c.id === updated.id);
+    void (async () => {
+      const [image] = await persistProductImageUrls([updated.image || ''], updated.id, 'categories');
+      const persistedCategory = { ...updated, image };
+      const resolvedCategories = nextCategories.map((item) => item.id === updated.id ? persistedCategory : item);
+      await saveAdminContent('categories', resolvedCategories);
+      setCategories(resolvedCategories);
+      await removeProductImageUrls(previous?.image ? [previous.image] : [], updated.id, [image], 'categories');
+      addAuditLog('CATEGORY_UPDATED', `Updated category "${persistedCategory.name}"`);
+      showToast(`Category "${persistedCategory.name}" saved`, 'success');
+    })().catch((error) => showToast(error instanceof Error ? error.message : 'Category could not be saved.', 'error'));
   };
 
   const deleteCategory = (categoryId: string): { success: boolean; message: string } => {
