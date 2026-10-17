@@ -117,6 +117,12 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
   const [video, setVideo] = useState<VideoUploadItem | null>(null);
   const [externalImageUrl, setExternalImageUrl] = useState('');
 
+  useEffect(() => {
+    return () => {
+      if (video?.url.startsWith('blob:')) URL.revokeObjectURL(video.url);
+    };
+  }, [video?.url]);
+
   // 2. Essential Product Information
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
@@ -217,6 +223,9 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
           }))
         );
       }
+      setVideo(productToEdit.videoUrl
+        ? { url: productToEdit.videoUrl, name: 'Existing product video', size: 0 }
+        : null);
       if (productToEdit.variants && productToEdit.variants.length > 0) {
         setVariants(productToEdit.variants);
         setEnableVariants(true);
