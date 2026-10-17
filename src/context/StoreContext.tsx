@@ -137,7 +137,7 @@ interface StoreContextType {
   addPage: (page: StaticPageContent) => void;
   updatePage: (page: StaticPageContent) => void;
   deletePage: (slug: string) => void;
-  updateStorefrontCMS: (cms: Partial<StorefrontCMS>) => void;
+  updateStorefrontCMS: (cms: Partial<StorefrontCMS>) => Promise<void>;
   updateCustomer: (customer: CustomerRecord) => void;
   updateCustomerStatus: (customerId: string, status: 'ACTIVE' | 'SUSPENDED') => void;
   updateCustomerNotes: (customerId: string, notes: string) => void;
@@ -1311,36 +1311,66 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
     }).catch((error) => showToast(error instanceof Error ? error.message : 'Page could not be deleted.', 'error'));
   };
 
-  const updateStorefrontCMS = (cmsUpdate: Partial<StorefrontCMS>) => {
-    const previousImageUrl = storefrontCMS.hero.imageUrl;
+  const updateStorefrontCMS = async (cmsUpdate: Partial<StorefrontCMS>): Promise<void> => {
     const merged: StorefrontCMS = {
       ...storefrontCMS,
       ...cmsUpdate,
       hero: { ...storefrontCMS.hero, ...(cmsUpdate.hero || {}) },
+      banners: cmsUpdate.banners ?? storefrontCMS.banners,
       announcement: { ...storefrontCMS.announcement, ...(cmsUpdate.announcement || {}) },
       sectionVisibility: { ...storefrontCMS.sectionVisibility, ...(cmsUpdate.sectionVisibility || {}) },
     };
-    void (async () => {
-      let newlyUploadedImageUrl: string | undefined;
-      try {
-        if (merged.hero.imageUrl.startsWith('data:')) {
-          const [hostedUrl] = await persistProductImageUrls([merged.hero.imageUrl], 'storefront');
-          merged.hero.imageUrl = hostedUrl;
-          newlyUploadedImageUrl = hostedUrl;
-        }
-        await saveAdminContent('storefront_cms', merged);
-      } catch (error) {
-        if (newlyUploadedImageUrl) await removeProductImageUrls([newlyUploadedImageUrl], 'storefront');
-        throw error;
+
+    const previousImageUrls = [
+      storefrontCMS.hero?.imageUrl,
+      storefrontCMS.hero?.mobileImageUrl,
+      ...(storefrontCMS.banners || []).flatMap((banner) => [banner.imageUrl, banner.mobileImageUrl || '']),
+    ].filter((url): url is string => Boolean(url && /^https:\/\//i.test(url)));
+    const dataUrls = [...new Set([
+      merged.hero?.imageUrl,
+      merged.hero?.mobileImageUrl,
+      ...(merged.banners || []).flatMap((banner) => [banner.imageUrl, banner.mobileImageUrl || '']),
+    ].filter((url): url is string => Boolean(url && url.startsWith('data:'))))];
+
+    let uploadedUrls: string[] = [];
+    try {
+      const hostedUrls = dataUrls.length
+        ? await persistProductImageUrls(dataUrls, 'storefront')
+        : [];
+      uploadedUrls = hostedUrls.filter((url, index) => url !== dataUrls[index]);
+
+      const urlMap = new Map(dataUrls.map((url, index) => [url, hostedUrls[index]]));
+      const resolveImage = (url?: string) => (url && urlMap.has(url) ? urlMap.get(url)! : url || '');
+
+      merged.hero = {
+        ...merged.hero,
+        imageUrl: resolveImage(merged.hero.imageUrl),
+        mobileImageUrl: resolveImage(merged.hero.mobileImageUrl),
+      };
+      if (Array.isArray(merged.banners)) {
+        merged.banners = merged.banners.map((banner) => ({
+          ...banner,
+          imageUrl: resolveImage(banner.imageUrl),
+          mobileImageUrl: resolveImage(banner.mobileImageUrl),
+        }));
       }
 
-      setStorefrontCMS(merged);
-      if (previousImageUrl && previousImageUrl !== merged.hero.imageUrl) {
-        await removeProductImageUrls([previousImageUrl], 'storefront', [merged.hero.imageUrl]);
-      }
-      addAuditLog('STOREFRONT_CMS_UPDATED', 'Updated homepage layout and storefront appearance settings');
-      showToast('Storefront appearance saved to database', 'success');
-    })().catch((error) => showToast(error instanceof Error ? error.message : 'Storefront changes could not be saved.', 'error'));
+      await saveAdminContent('storefront_cms', merged);
+    } catch (error) {
+      if (uploadedUrls.length) await removeProductImageUrls(uploadedUrls, 'storefront');
+      throw error;
+    }
+
+    // Reflect the published state only after the server confirms the database write.
+    setStorefrontCMS(merged);
+    const nextImageUrls = [
+      merged.hero?.imageUrl,
+      merged.hero?.mobileImageUrl,
+      ...(merged.banners || []).flatMap((banner) => [banner.imageUrl, banner.mobileImageUrl || '']),
+    ].filter((url): url is string => Boolean(url));
+    await removeProductImageUrls(previousImageUrls, 'storefront', nextImageUrls);
+    addAuditLog('STOREFRONT_CMS_UPDATED', 'Published homepage hero banners and storefront appearance settings');
+    showToast('Storefront appearance saved and published.', 'success');
   };
 
   const updateCustomer = (customer: CustomerRecord) => {
