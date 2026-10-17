@@ -27,6 +27,49 @@ function isSafeLink(value: unknown): boolean {
   }
 }
 
+function validateStoreSettings(value: unknown): string | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return 'Store settings must be an object.';
+  const settings = value as Record<string, unknown>;
+  const textLimits: Record<string, number> = {
+    storeName: 120,
+    tagline: 180,
+    phone: 40,
+    email: 254,
+    address: 300,
+    footerDescription: 500,
+    footerCopyright: 160,
+    whatsappNumber: 24,
+  };
+
+  for (const [field, maxLength] of Object.entries(textLimits)) {
+    const fieldValue = settings[field];
+    if (fieldValue !== undefined && (typeof fieldValue !== 'string' || fieldValue.length > maxLength)) {
+      return `Store setting ${field} must be text of ${maxLength} characters or fewer.`;
+    }
+  }
+
+  const email = settings.email;
+  if (typeof email === 'string' && email.trim() && !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email.trim())) {
+    return 'Enter a valid contact email address.';
+  }
+
+  for (const field of ['facebookUrl', 'instagramUrl', 'tiktokUrl', 'youtubeUrl']) {
+    const fieldValue = settings[field];
+    if (fieldValue !== undefined && (typeof fieldValue !== 'string' || fieldValue.length > 500 ||
+        (fieldValue.trim() !== '' && !/^https:\\/\\//i.test(fieldValue.trim())))) {
+      return `${field} must be an HTTPS URL.`;
+    }
+  }
+
+  for (const field of ['showPhoneInFooter', 'showEmailInFooter', 'showAddressInFooter', 'showSocialLinksInFooter', 'showPaymentBadgesInFooter']) {
+    if (settings[field] !== undefined && typeof settings[field] !== 'boolean') {
+      return `${field} must be a boolean.`;
+    }
+  }
+
+  return null;
+}
+
 function validateHeroCMS(value: unknown): string | null {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return 'Hero content must be an object.';
   const cms = value as Record<string, unknown>;
@@ -136,6 +179,10 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     }
     if (body.key === 'storefront_cms') {
       const validationError = validateHeroCMS(body.value);
+      if (validationError) return res.status(400).json({ error: validationError });
+    }
+    if (body.key === 'settings') {
+      const validationError = validateStoreSettings(body.value);
       if (validationError) return res.status(400).json({ error: validationError });
     }
     const serialized = JSON.stringify(body.value);
