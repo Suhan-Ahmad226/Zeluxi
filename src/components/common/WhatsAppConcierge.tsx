@@ -7,7 +7,7 @@ export const WhatsAppConcierge: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
 
   // Always use the number configured by the administrator. Never fall back to a demo number.
-  const whatsappDigits = (settings.whatsappNumber || '').replace(/\\D/g, '');
+  const whatsappDigits = (settings.whatsappNumber || '').replace(/\D/g, '');
   const normalizedWhatsappNumber = whatsappDigits.startsWith('0') && whatsappDigits.length === 11
     ? `88${whatsappDigits}`
     : whatsappDigits.startsWith('880') && whatsappDigits.length >= 12
@@ -48,7 +48,7 @@ export const WhatsAppConcierge: React.FC = () => {
           </p>
 
           <div className="space-y-2">
-{whatsappUrl ? (
+            {whatsappUrl ? (
               <a
                 href={whatsappUrl}
                 target="_blank"
