@@ -250,6 +250,19 @@ export interface StoreSettings {
   phone: string;
   email: string;
   address: string;
+  /** Optional storefront footer content controlled by administrators. */
+  footerDescription?: string;
+  footerCopyright?: string;
+  whatsappNumber?: string;
+  facebookUrl?: string;
+  instagramUrl?: string;
+  tiktokUrl?: string;
+  youtubeUrl?: string;
+  showPhoneInFooter?: boolean;
+  showEmailInFooter?: boolean;
+  showAddressInFooter?: boolean;
+  showSocialLinksInFooter?: boolean;
+  showPaymentBadgesInFooter?: boolean;
   currencySymbol: string;
   freeShippingThreshold: number;
   shippingDhaka: number;
