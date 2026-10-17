@@ -3,7 +3,7 @@ import { useStore } from '../../context/StoreContext';
 import { formatPrice } from '../../utils/formatters';
 import { Product, ProductVariant } from '../../types';
 import { supabase } from '../../lib/supabase';
-import { persistProductImageUrls } from '../../lib/productImageStorage';
+import { getCloudinaryPublicId, persistProductImageUrls, removeProductImageUrls, uploadCloudinaryMedia } from '../../lib/productImageStorage';
 import { compressImageFile } from '../../utils/imageCompressor';
 import {
   X,
@@ -372,20 +372,16 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
       URL.revokeObjectURL(objectUrl);
       const durationSec = Math.round(videoEl.duration);
 
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const resultUrl = e.target?.result as string;
-        setVideo({
-          url: resultUrl,
-          name: file.name,
-          size: file.size,
-          duration: durationSec,
-          file,
-        });
-        showToast(`Video loaded: ${file.name} (${(file.size / (1024 * 1024)).toFixed(1)}MB, ${durationSec}s)`, 'success');
-        setHasUnsavedChanges(true);
-      };
-      reader.readAsDataURL(file);
+      setVideo({
+        // Object URLs are only for local preview; the file is uploaded securely on Save.
+        url: URL.createObjectURL(file),
+        name: file.name,
+        size: file.size,
+        duration: durationSec,
+        file,
+      });
+      showToast(`Video ready: ${file.name} (${(file.size / (1024 * 1024)).toFixed(1)}MB, ${durationSec}s)`, 'success');
+      setHasUnsavedChanges(true);
     };
   };
 
@@ -544,6 +540,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
 
     setIsSubmitting(true);
 
+    let uploadedVideoUrl: string | undefined;
     try {
       // Sort images so primary is first
       const sortedImages = [...images].sort((a, b) => (b.isPrimary ? 1 : 0) - (a.isPrimary ? 1 : 0));
@@ -584,7 +581,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
         stock: Number(stock),
         lowStockThreshold: Number(lowStockThreshold),
         images: imageUrls,
-        videoUrl: video?.url || undefined,
+        videoUrl: video?.file ? undefined : video?.url || undefined,
         featured: isFeatured,
         isNewArrival,
         isBestSeller,
@@ -614,8 +611,13 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
       }
       const productId = productToEdit?.id || `zlx-${typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : Date.now().toString(36)}`;
       newProductData.images = await persistProductImageUrls(newProductData.images, productId);
+      const uploadedVideo = video?.file ? await uploadCloudinaryMedia(video.file, productId, 'video', 'products') : null;
+      uploadedVideoUrl = uploadedVideo?.url;
       const productPayload: Product = {
         ...newProductData,
+        videoUrl: uploadedVideo?.url || newProductData.videoUrl,
+        videoPublicId: uploadedVideo?.publicId || (newProductData.videoUrl ? getCloudinaryPublicId(newProductData.videoUrl) : undefined),
+        imagePublicIds: newProductData.images.map(getCloudinaryPublicId).filter((id): id is string => Boolean(id)),
         id: productId,
         rating: productToEdit?.rating ?? 0,
         reviewCount: productToEdit?.reviewCount ?? 0,
@@ -679,6 +681,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
         onClose();
       }
     } catch (err) {
+      if (uploadedVideoUrl) await removeProductImageUrls([uploadedVideoUrl], productToEdit?.id || 'pending');
       showToast(err instanceof Error ? err.message : 'Error saving product. Please try again.', 'error');
     } finally {
       setIsSubmitting(false);
