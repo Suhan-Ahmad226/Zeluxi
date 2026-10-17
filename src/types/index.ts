@@ -164,7 +164,8 @@ export type CourierBookingStatus =
   | 'NOT_BOOKED'
   | 'BOOKING_IN_PROGRESS'
   | 'BOOKED'
-  | 'BOOKING_FAILED';
+  | 'BOOKING_FAILED'
+  | 'BOOKING_UNKNOWN';
 
 export interface CourierBookingAttempt {
   attemptId: string;
