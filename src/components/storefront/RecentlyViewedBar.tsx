@@ -32,8 +32,8 @@ export const RecentlyViewedBar: React.FC = () => {
               aria-label={`View ${p.name}`}
             >
               <div className="aspect-square rounded-lg overflow-hidden bg-slate-100 mb-2">
-                <img
-                  src={p.images[0]}
+                <StoreImage
+                  src={p.images?.[0]}
                   alt={p.name}
                   loading="lazy"
                   decoding="async"
