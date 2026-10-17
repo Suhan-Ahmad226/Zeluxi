@@ -1,6 +1,7 @@
 import React from 'react';
 import { useStore } from '../../context/StoreContext';
 import { formatPrice } from '../../utils/formatters';
+import { StoreImage } from '../common/StoreImage';
 import { X, ShoppingBag, Trash2 } from 'lucide-react';
 
 export const ProductCompareModal: React.FC = () => {
@@ -63,7 +64,7 @@ export const ProductCompareModal: React.FC = () => {
                 <div key={p.id} className="border border-slate-200 rounded-xl p-4 flex flex-col justify-between space-y-4 bg-slate-50/50">
                   <div className="space-y-3">
                     <div className="relative aspect-[4/3] rounded-lg overflow-hidden bg-white border border-slate-200">
-                      <img src={p.images[0]} alt={p.name} className="w-full h-full object-cover" />
+                      <StoreImage src={p.images?.[0]} alt={p.name} className="w-full h-full object-cover" loading="lazy" decoding="async" />
                       <button
                         onClick={() => toggleCompare(p.id)}
                         className="absolute top-2 right-2 p-1 bg-white/80 hover:bg-white text-slate-600 rounded-full shadow-sm"
