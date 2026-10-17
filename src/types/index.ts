@@ -273,18 +273,32 @@ export interface StaticPageContent {
   isPublished: boolean;
 }
 
+export interface HeroBannerContent {
+  tagline: string;
+  headline: string;
+  description: string;
+  primaryButtonText: string;
+  secondaryButtonText: string;
+  imageUrl: string;
+  highlightTitle: string;
+  highlightSubtitle: string;
+  highlightPrice: string;
+  primaryButtonLink?: string;
+  secondaryButtonLink?: string;
+  mobileImageUrl?: string;
+}
+
+export interface HeroBannerItem extends HeroBannerContent {
+  id: string;
+  active: boolean;
+  order: number;
+}
+
 export interface StorefrontCMS {
-  hero: {
-    tagline: string;
-    headline: string;
-    description: string;
-    primaryButtonText: string;
-    secondaryButtonText: string;
-    imageUrl: string;
-    highlightTitle: string;
-    highlightSubtitle: string;
-    highlightPrice: string;
-  };
+  /** Legacy single-hero fields kept for backwards compatibility with saved CMS records. */
+  hero: HeroBannerContent;
+  /** Optional multi-banner collection. When absent, the legacy hero is rendered. */
+  banners?: HeroBannerItem[];
   announcement: {
     active: boolean;
     text: string;
