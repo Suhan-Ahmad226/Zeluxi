@@ -19,7 +19,7 @@ const actionSchema = z.discriminatedUnion('action', [
   z.object({ action: z.literal('zones'), cityId: z.number().int().positive() }).strict(),
   z.object({ action: z.literal('areas'), zoneId: z.number().int().positive() }).strict(),
   z.object({ action: z.literal('price'), cityId: z.number().int().positive(), zoneId: z.number().int().positive(), weightKg: z.number().min(0.5).max(10), deliveryType: z.union([z.literal(48), z.literal(12)]).default(48) }).strict(),
-  z.object({ action: z.literal('book'), orderId: z.string().uuid(), weightKg: z.number().min(0.5).max(10).default(0.5), deliveryType: z.union([z.literal(48), z.literal(12)]).default(48), recipientCity: z.number().int().positive().optional(), recipientZone: z.number().int().positive().optional(), recipientArea: z.number().int().positive().optional() }).strict(),
+  z.object({ action: z.literal('book'), orderId: z.string().uuid(), weightKg: z.number().min(0.5).max(10).optional(), deliveryType: z.union([z.literal(48), z.literal(12)]).default(48), recipientCity: z.number().int().positive().optional(), recipientZone: z.number().int().positive().optional(), recipientArea: z.number().int().positive().optional() }).strict(),
   z.object({ action: z.literal('sync'), orderId: z.string().uuid() }).strict(),
   z.object({ action: z.literal('bulk'), orderIds: z.array(z.string().uuid()).min(1).max(20), weightKg: z.number().min(0.5).max(10).default(0.5) }).strict(),
 ]);
