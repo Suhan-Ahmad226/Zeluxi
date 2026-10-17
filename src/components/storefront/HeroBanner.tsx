@@ -3,6 +3,7 @@ import { ArrowRight, ChevronLeft, ChevronRight, Pause, Play } from 'lucide-react
 import { useStore } from '../../context/StoreContext';
 import { DEFAULT_HERO_IMAGE, getHeroBanners, isSafeHeroLink } from '../../lib/heroBanners';
 import { generateSrcSet, getOptimizedImageUrl } from '../../lib/cloudinary';
+import { StoreImage } from '../common/StoreImage';
 import type { HeroBannerItem } from '../../types';
 
 export const HeroBanner: React.FC = () => {
@@ -159,7 +160,7 @@ export const HeroBanner: React.FC = () => {
                     sizes="(max-width: 639px) calc(100vw - 2rem), 40vw"
                   />
                 )}
-                <img
+                <StoreImage
                   src={imageUrl}
                   srcSet={imageSrcSet || undefined}
                   sizes="(max-width: 639px) calc(100vw - 2rem), (max-width: 1023px) calc(100vw - 3rem), 40vw"
