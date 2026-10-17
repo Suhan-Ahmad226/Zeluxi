@@ -30,25 +30,6 @@ export async function bookPathaoOrderFromDatabase(
   if (!order) throw new PathaoBookingError('Order not found.', 404, 'ORDER_NOT_FOUND');
   const itemRows = (order.store_order_items || []) as Array<{ product_name: string; quantity: number; store_products?: { product_data?: Record<string, unknown> } | null }>;
   const quantity = itemRows.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
-  if (!quantity || itemRows.some((item) => !Number.isSafeInteger(Number(item.quantity)) || Number(item.quantity) < 1)) {
-    throw new PathaoBookingError('Order has no valid line items.', 422, 'ORDER_ITEMS_INVALID');
-  }
-  const configuredFallbackWeight = Number(process.env.PATHAO_DEFAULT_ITEM_WEIGHT_KG || 0.5);
-  if (!Number.isFinite(configuredFallbackWeight) || configuredFallbackWeight <= 0 || configuredFallbackWeight > 10) {
-    throw new PathaoBookingError('PATHAO_DEFAULT_ITEM_WEIGHT_KG must be greater than 0 and at most 10 kg.', 503, 'CONFIG_INVALID');
-  }
-  const calculatedWeight = itemRows.reduce((sum, item) => {
-    const storedWeight = Number(item.store_products?.product_data?.weightKg || 0);
-    const itemWeight = Number.isFinite(storedWeight) && storedWeight > 0 ? storedWeight : configuredFallbackWeight;
-    return sum + itemWeight * Number(item.quantity);
-  }, 0);
-  const weightKg = options.weightKg ?? Math.max(0.5, Math.round(calculatedWeight * 100) / 100);
-  if (!Number.isFinite(weightKg) || weightKg < 0.5 || weightKg > 10) {
-    throw new PathaoBookingError('Calculated parcel weight is ' + weightKg + ' kg. Pathao accepts 0.5–10 kg per parcel. Set accurate product weights or split this order before accepting it.', 422, 'PARCEL_WEIGHT_OUT_OF_RANGE');
-  }
-  if (!['PENDING', 'CONFIRMED', 'PROCESSING', 'READY_TO_SHIP', 'SHIPPED'].includes(String(order.status))) {
-    throw new PathaoBookingError('Order status ' + order.status + ' is not eligible for Pathao booking.', 409, 'ORDER_NOT_ELIGIBLE');
-  }
 
   const { data: existing, error: existingError } = await db.from('courier_shipments')
     .select('*').eq('order_id', orderId).maybeSingle();
@@ -65,6 +46,25 @@ export async function bookPathaoOrderFromDatabase(
   }
   if (existing && ['UNKNOWN', 'BULK_SUBMITTED', 'BOOKING'].includes(String(existing.status))) {
     throw new PathaoBookingError('Booking is in progress or its outcome is unresolved. Reconcile this order in Pathao before retrying.', 409, 'BOOKING_OUTCOME_UNRESOLVED');
+  }
+  if (!['PENDING', 'CONFIRMED', 'PROCESSING', 'READY_TO_SHIP'].includes(String(order.status))) {
+    throw new PathaoBookingError('Order status ' + order.status + ' is not eligible for Pathao booking.', 409, 'ORDER_NOT_ELIGIBLE');
+  }
+  if (!quantity || itemRows.some((item) => !Number.isSafeInteger(Number(item.quantity)) || Number(item.quantity) < 1)) {
+    throw new PathaoBookingError('Order has no valid line items.', 422, 'ORDER_ITEMS_INVALID');
+  }
+  const configuredFallbackWeight = Number(process.env.PATHAO_DEFAULT_ITEM_WEIGHT_KG || 0.5);
+  if (!Number.isFinite(configuredFallbackWeight) || configuredFallbackWeight <= 0 || configuredFallbackWeight > 10) {
+    throw new PathaoBookingError('PATHAO_DEFAULT_ITEM_WEIGHT_KG must be greater than 0 and at most 10 kg.', 503, 'CONFIG_INVALID');
+  }
+  const calculatedWeight = itemRows.reduce((sum, item) => {
+    const storedWeight = Number(item.store_products?.product_data?.weightKg || 0);
+    const itemWeight = Number.isFinite(storedWeight) && storedWeight > 0 ? storedWeight : configuredFallbackWeight;
+    return sum + itemWeight * Number(item.quantity);
+  }, 0);
+  const weightKg = options.weightKg ?? Math.max(0.5, Math.round(calculatedWeight * 100) / 100);
+  if (!Number.isFinite(weightKg) || weightKg < 0.5 || weightKg > 10) {
+    throw new PathaoBookingError('Calculated parcel weight is ' + weightKg + ' kg. Pathao accepts 0.5–10 kg per parcel. Set accurate product weights or split this order before accepting it.', 422, 'PARCEL_WEIGHT_OUT_OF_RANGE');
   }
 
   const merchantOrderId = existing?.merchant_order_id || ('ZLX-' + orderId.replace(/-/g, '').slice(0, 18).toUpperCase());
