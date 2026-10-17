@@ -111,13 +111,51 @@ export async function POST(request: NextRequest) {
       const { data: shipment, error } = await db.from('courier_shipments').select('*').eq('order_id', input.orderId).maybeSingle();
       if (error) return jsonError('Courier shipment history could not be loaded.', 503);
       if (!shipment?.consignment_id) return jsonError('This shipment has no confirmed consignment ID. Resolve booking outcome in Pathao first.', 409);
+      const { data: order, error: orderReadError } = await db.from('store_orders').select('status').eq('id', input.orderId).maybeSingle();
+      if (orderReadError || !order) return jsonError('Order status could not be loaded for safe synchronization.', 503);
       const info = await getPathaoOrderInfo(shipment.consignment_id);
-      const mapped = mapPathaoStatus(String(info.order_status_slug || info.order_status || ''));
+      const pathaoStatus = String(info.order_status_slug || info.order_status || '');
+      const mapped = mapPathaoStatus(pathaoStatus);
+      const currentOrderStatus = String(order.status || 'PENDING');
+      const terminalOrderStatuses = ['CANCELLED', 'RETURNED', 'REFUNDED'];
+      const orderRank: Record<string, number> = {
+        PENDING: 0, CONFIRMED: 1, PROCESSING: 2, READY_TO_SHIP: 3,
+        SHIPPED: 4, OUT_FOR_DELIVERY: 5, DELIVERED: 6,
+      };
+      let nextOrderStatus = currentOrderStatus;
+      if (mapped && !terminalOrderStatuses.includes(currentOrderStatus)) {
+        if (mapped === 'RETURNED') nextOrderStatus = 'RETURNED';
+        else if (mapped === 'CANCELLED' && currentOrderStatus !== 'DELIVERED') nextOrderStatus = 'CANCELLED';
+        else if (mapped === 'DELIVERED' || (orderRank[mapped] ?? -1) >= (orderRank[currentOrderStatus] ?? -1)) nextOrderStatus = mapped;
+      }
+      let nextShipmentStatus = String(shipment.status);
+      if (mapped === 'RETURNED' && currentOrderStatus !== 'CANCELLED') nextShipmentStatus = 'RETURNED';
+      else if (mapped === 'CANCELLED' && currentOrderStatus !== 'DELIVERED' && !terminalOrderStatuses.includes(currentOrderStatus)) nextShipmentStatus = 'CANCELLED';
+      else if (currentOrderStatus !== 'DELIVERED' && currentOrderStatus !== 'RETURNED' && currentOrderStatus !== 'CANCELLED') {
+        if (mapped === 'DELIVERED') nextShipmentStatus = 'DELIVERED';
+        else if (mapped === 'SHIPPED' || mapped === 'OUT_FOR_DELIVERY') nextShipmentStatus = 'IN_TRANSIT';
+      }
       const now = new Date().toISOString();
-      await db.from('courier_shipments').update({ status: mapped === 'DELIVERED' ? 'DELIVERED' : mapped === 'SHIPPED' || mapped === 'OUT_FOR_DELIVERY' ? 'IN_TRANSIT' : shipment.status, pathao_order_status: info.order_status_slug || info.order_status, last_synced_at: now, updated_at: now, error_code: null, error_message: null }).eq('order_id', input.orderId);
-      if (mapped) await db.from('store_orders').update({ status: mapped }).eq('id', input.orderId);
-      await db.from('courier_shipment_events').insert({ order_id: input.orderId, provider: 'PATHAO', event_type: 'STATUS_SYNC', status: mapped || info.order_status_slug || info.order_status, note: 'Status fetched from Pathao order info API.', payload: { updated_at: info.updated_at, invoice_id: info.invoice_id } });
-      return NextResponse.json({ success: true, message: 'Pathao status synchronized: ' + (info.order_status_slug || info.order_status), shipment: { orderId: input.orderId, status: mapped || info.order_status_slug || info.order_status, consignmentId: shipment.consignment_id } }, { headers: { 'Cache-Control': 'no-store' } });
+      const { error: shipmentUpdateError } = await db.from('courier_shipments').update({
+        status: nextShipmentStatus, pathao_order_status: pathaoStatus,
+        last_synced_at: now, updated_at: now, error_code: null, error_message: null,
+      }).eq('order_id', input.orderId);
+      if (shipmentUpdateError) return jsonError('Pathao status was read but could not be saved locally.', 503);
+      if (nextOrderStatus !== currentOrderStatus) {
+        const { error: orderUpdateError } = await db.from('store_orders').update({ status: nextOrderStatus }).eq('id', input.orderId);
+        if (orderUpdateError) return jsonError('Pathao status was read but the order status could not be saved.', 503);
+      }
+      const { error: eventError } = await db.from('courier_shipment_events').insert({
+        order_id: input.orderId, provider: 'PATHAO', event_type: 'STATUS_SYNC',
+        status: nextOrderStatus, note: 'Status fetched from Pathao order info API.',
+        payload: { pathao_status: pathaoStatus, updated_at: info.updated_at, invoice_id: info.invoice_id },
+      });
+      if (eventError) return jsonError('Pathao status was synchronized but the event history could not be saved.', 503);
+      return NextResponse.json({
+        success: true,
+        message: 'Pathao status synchronized: ' + pathaoStatus,
+        shipment: { orderId: input.orderId, status: nextOrderStatus, consignmentId: shipment.consignment_id },
+      }, { headers: { 'Cache-Control': 'no-store' } });
     }
     return jsonError('Unsupported courier action.', 400);
   } catch (e) {
