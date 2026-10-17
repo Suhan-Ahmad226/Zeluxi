@@ -48,16 +48,27 @@ function validateStoreSettings(value: unknown): string | null {
     }
   }
 
-  const email = settings.email;
-  if (typeof email === 'string' && email.trim() && !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email.trim())) {
-    return 'Enter a valid contact email address.';
+  if (typeof settings.email === 'string' && settings.email.trim()) {
+    const normalizedEmail = settings.email.trim();
+    const atIndex = normalizedEmail.indexOf('@');
+    const domain = atIndex >= 0 ? normalizedEmail.slice(atIndex + 1) : '';
+    if (atIndex <= 0 || atIndex !== normalizedEmail.lastIndexOf('@') || !domain.includes('.') ||
+        normalizedEmail.includes(' ') || domain.startsWith('.') || domain.endsWith('.')) {
+      return 'Enter a valid contact email address.';
+    }
   }
 
   for (const field of ['facebookUrl', 'instagramUrl', 'tiktokUrl', 'youtubeUrl']) {
     const fieldValue = settings[field];
-    if (fieldValue !== undefined && (typeof fieldValue !== 'string' || fieldValue.length > 500 ||
-        (fieldValue.trim() !== '' && !/^https:\\/\\//i.test(fieldValue.trim())))) {
+    if (fieldValue !== undefined && (typeof fieldValue !== 'string' || fieldValue.length > 500)) {
       return `${field} must be an HTTPS URL.`;
+    }
+    if (typeof fieldValue === 'string' && fieldValue.trim()) {
+      try {
+        if (new URL(fieldValue.trim()).protocol !== 'https:') return `${field} must be an HTTPS URL.`;
+      } catch {
+        return `${field} must be a valid HTTPS URL.`;
+      }
     }
   }
 
