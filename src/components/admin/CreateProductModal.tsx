@@ -85,7 +85,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
   onProductCreated,
   onProductUpdated,
 }) => {
-  const { addProduct, updateProduct, categories, addCategory, language, showToast } = useStore();
+  const { syncProduct, categories, addCategory, language, showToast } = useStore();
 
   // Quick category & subcategory creator state
   const [isQuickAddCategoryOpen, setIsQuickAddCategoryOpen] = useState(false);
@@ -637,12 +637,8 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
       }
 
       if (productToEdit) {
-        const updatedProduct: Product = {
-          ...productToEdit,
-          ...newProductData,
-          id: productToEdit.id,
-        };
-        updateProduct(updatedProduct);
+        const updatedProduct: Product = { ...productPayload, id: productToEdit.id };
+        syncProduct(updatedProduct);
         setHasUnsavedChanges(false);
         if (onProductUpdated) {
           onProductUpdated(updatedProduct);
@@ -652,7 +648,8 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
         return;
       }
 
-      const created = addProduct({ ...newProductData, id: productId });
+      const created = productPayload;
+      syncProduct(created);
       setHasUnsavedChanges(false);
 
       if (onProductCreated) {
