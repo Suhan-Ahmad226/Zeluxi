@@ -25,3 +25,30 @@
 ::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 9999px; }
 ::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
 button, a, input, select { touch-action: manipulation; }
+
+.announcement-marquee-track {
+  display: flex;
+  width: max-content;
+  align-items: center;
+  gap: 3rem;
+  white-space: nowrap;
+  will-change: transform;
+  animation-name: announcement-marquee-scroll;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+.announcement-marquee-track > span {
+  flex: 0 0 auto;
+}
+
+@keyframes announcement-marquee-scroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(calc(-50% - 1.5rem)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .announcement-marquee-track {
+    animation: none;
+  }
+}
