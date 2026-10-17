@@ -15,7 +15,6 @@ import {
   Truck,
   Layers,
 } from 'lucide-react';
-import { PWAInstallButton } from '../common/PWAInstallButton';
 
 export const Navbar: React.FC = () => {
   const {
@@ -128,9 +127,6 @@ export const Navbar: React.FC = () => {
           >
             <Search className="w-5 h-5" />
           </button>
-
-          {/* PWA Install Button */}
-          <PWAInstallButton variant="subtle" className="hidden lg:inline-flex" />
 
           {/* Wishlist Link */}
           <button
