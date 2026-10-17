@@ -312,7 +312,6 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
               className="min-h-11 rounded-lg border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-900 transition-colors hover:border-slate-900 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 disabled:cursor-wait disabled:opacity-60"
             >
               {isLoadingMoreProducts ? 'Loading…' : 'Load More'}
-              {!isLoadingMoreProducts && <span className="ml-2 text-slate-500">({Math.max(0, filteredProducts.length - displayList.length)} more in loaded results)</span>}
             </button>
           </div>
         )}
