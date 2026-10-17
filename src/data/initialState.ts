@@ -37,6 +37,7 @@ export const INITIAL_SETTINGS: StoreSettings = {
   showAddressInFooter: true,
   showSocialLinksInFooter: true,
   showPaymentBadgesInFooter: true,
+  footerPaymentMethods: ['COD'],
   currencySymbol: '৳',
   freeShippingThreshold: 3500,
   shippingDhaka: 60,
