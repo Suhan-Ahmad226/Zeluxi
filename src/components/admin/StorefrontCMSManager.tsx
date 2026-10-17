@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useStore } from '../../context/StoreContext';
 import { StorefrontCMS, HeroBannerItem } from '../../types';
 import { getHeroBanners, heroContentFromBanner } from '../../lib/heroBanners';
@@ -43,7 +43,17 @@ export const StorefrontCMSManager: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'hero' | 'announcement' | 'visibility'>('hero');
   const [showLivePreview, setShowLivePreview] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const selectedBanner = formData.banners?.find((banner) => banner.id === selectedBannerId);
+
+  // The CMS is fetched asynchronously; refresh the editor when the saved server state arrives.
+  useEffect(() => {
+    const current = buildEditorState(storefrontCMS);
+    setFormData(current);
+    setSelectedBannerId((previous) =>
+      current.banners?.some((banner) => banner.id === previous)
+        ? previous
+        : current.banners?.[0]?.id || '',
+    );
+  }, [storefrontCMS]);
 
   // Banner image upload state
   const bannerFileInputRef = useRef<HTMLInputElement>(null);
