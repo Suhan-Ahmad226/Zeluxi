@@ -1,6 +1,7 @@
 import React from 'react';
 import { useStore } from '../../context/StoreContext';
 import { MapPin, Phone, Mail } from 'lucide-react';
+import { PWAInstallButton } from '../common/PWAInstallButton';
 
 export const Footer: React.FC = () => {
   const { settings, setActiveView, setActiveStaticPage } = useStore();
@@ -135,6 +136,14 @@ export const Footer: React.FC = () => {
               <span className="px-2 py-0.5 bg-slate-800 rounded border border-slate-700 font-medium">COD</span>
               <span className="px-2 py-0.5 bg-slate-800 rounded border border-slate-700 font-medium">Pathao</span>
               <span className="px-2 py-0.5 bg-slate-800 rounded border border-slate-700 font-medium">Steadfast</span>
+            </div>
+
+            <div className="mt-5 pt-4 border-t border-slate-800">
+              <h5 className="text-xs font-semibold text-white mb-2">Shop Zelux your way</h5>
+              <p className="text-xs text-slate-400 leading-relaxed mb-3">
+                Add Zelux to your device for quick access to your store.
+              </p>
+              <PWAInstallButton variant="primary" className="w-full sm:w-auto" />
             </div>
           </div>
         </div>
