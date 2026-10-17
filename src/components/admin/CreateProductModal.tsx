@@ -541,6 +541,8 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
     setIsSubmitting(true);
 
     let uploadedVideoUrl: string | undefined;
+    let uploadedImageUrls: string[] = [];
+    let mediaOwnerId = productToEdit?.id || 'pending';
     try {
       // Sort images so primary is first
       const sortedImages = [...images].sort((a, b) => (b.isPrimary ? 1 : 0) - (a.isPrimary ? 1 : 0));
@@ -610,7 +612,10 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
         throw new Error('Please sign in with an administrator account before saving products.');
       }
       const productId = productToEdit?.id || `zlx-${typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : Date.now().toString(36)}`;
+      mediaOwnerId = productId;
+      const dataImageIndexes = newProductData.images.map((url, index) => url.startsWith('data:') ? index : -1).filter((index) => index >= 0);
       newProductData.images = await persistProductImageUrls(newProductData.images, productId);
+      uploadedImageUrls = dataImageIndexes.map((index) => newProductData.images[index]).filter((url): url is string => Boolean(url));
       const uploadedVideo = video?.file ? await uploadCloudinaryMedia(video.file, productId, 'video', 'products') : null;
       uploadedVideoUrl = uploadedVideo?.url;
       const productPayload: Product = {
@@ -678,7 +683,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
         onClose();
       }
     } catch (err) {
-      if (uploadedVideoUrl) await removeProductImageUrls([uploadedVideoUrl], productToEdit?.id || 'pending');
+      await removeProductImageUrls([...uploadedImageUrls, ...(uploadedVideoUrl ? [uploadedVideoUrl] : [])], mediaOwnerId);
       showToast(err instanceof Error ? err.message : 'Error saving product. Please try again.', 'error');
     } finally {
       setIsSubmitting(false);
