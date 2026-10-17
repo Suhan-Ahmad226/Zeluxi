@@ -5,6 +5,7 @@ import { Product, ProductVariant } from '../../types';
 import { supabase } from '../../lib/supabase';
 import { getCloudinaryPublicId, persistProductImageUrls, removeProductImageUrls, uploadCloudinaryMedia } from '../../lib/productImageStorage';
 import { compressImageFile } from '../../utils/imageCompressor';
+import { StoreImage } from '../common/StoreImage';
 import {
   X,
   Upload,
@@ -1489,7 +1490,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
                                   : 'border-slate-200 bg-white hover:border-slate-300'
                               }`}
                             >
-                              <img
+                              <StoreImage
                                 src={img.url}
                                 alt={img.name}
                                 className="w-20 h-20 rounded-lg object-cover border border-slate-200 bg-slate-100 shrink-0"
@@ -2040,7 +2041,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
                     <div className="max-w-md bg-white border border-slate-200 rounded-xl overflow-hidden shadow-xs">
                       <div className="aspect-video bg-slate-100 overflow-hidden">
                         {primaryImage?.url ? (
-                          <img src={primaryImage.url} alt="OG" className="w-full h-full object-cover" />
+                          <StoreImage src={primaryImage.url} alt="OG" className="w-full h-full object-cover" />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center text-slate-400 text-xs">
                             No image selected
@@ -2126,7 +2127,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
                     <div className="rounded-xl overflow-hidden border border-slate-200 shadow-sm bg-white">
                       <div className="relative aspect-square bg-slate-100 overflow-hidden">
                         {primaryImage ? (
-                          <img
+                          <StoreImage
                             src={primaryImage.url}
                             alt={name || 'Preview'}
                             className="w-full h-full object-cover"
@@ -2292,7 +2293,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
                   <div className="flex items-center gap-2">
                     {quickCategoryImg ? (
                       <div className="relative w-12 h-12 rounded-lg overflow-hidden border border-slate-200 shrink-0">
-                        <img src={quickCategoryImg} alt="Preview" className="w-full h-full object-cover" />
+                        <StoreImage src={quickCategoryImg} alt="Preview" className="w-full h-full object-cover" />
                         <button
                           type="button"
                           onClick={() => setQuickCategoryImg('')}
