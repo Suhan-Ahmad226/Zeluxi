@@ -22,13 +22,30 @@ export async function bookPathaoOrderFromDatabase(
   options: { weightKg?: number; deliveryType?: 48 | 12; recipientCity?: number; recipientZone?: number; recipientArea?: number } = {},
 ) {
   const db = adminDb();
-  const weightKg = options.weightKg ?? 0.5;
   const deliveryType = options.deliveryType ?? 48;
   const { data: order, error: orderError } = await db.from('store_orders')
-    .select('id,status,payment_method,payment_status,customer,grand_total,store_order_items(product_name,quantity)')
+    .select('id,status,payment_method,payment_status,customer,grand_total,store_order_items(product_name,quantity,store_products(product_data))')
     .eq('id', orderId).maybeSingle();
   if (orderError) throw new PathaoBookingError('Order could not be loaded from the database.', 503, 'ORDER_READ_FAILED');
   if (!order) throw new PathaoBookingError('Order not found.', 404, 'ORDER_NOT_FOUND');
+  const itemRows = (order.store_order_items || []) as Array<{ product_name: string; quantity: number; store_products?: { product_data?: Record<string, unknown> } | null }>;
+  const quantity = itemRows.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
+  if (!quantity || itemRows.some((item) => !Number.isSafeInteger(Number(item.quantity)) || Number(item.quantity) < 1)) {
+    throw new PathaoBookingError('Order has no valid line items.', 422, 'ORDER_ITEMS_INVALID');
+  }
+  const configuredFallbackWeight = Number(process.env.PATHAO_DEFAULT_ITEM_WEIGHT_KG || 0.5);
+  if (!Number.isFinite(configuredFallbackWeight) || configuredFallbackWeight <= 0 || configuredFallbackWeight > 10) {
+    throw new PathaoBookingError('PATHAO_DEFAULT_ITEM_WEIGHT_KG must be greater than 0 and at most 10 kg.', 503, 'CONFIG_INVALID');
+  }
+  const calculatedWeight = itemRows.reduce((sum, item) => {
+    const storedWeight = Number(item.store_products?.product_data?.weightKg || 0);
+    const itemWeight = Number.isFinite(storedWeight) && storedWeight > 0 ? storedWeight : configuredFallbackWeight;
+    return sum + itemWeight * Number(item.quantity);
+  }, 0);
+  const weightKg = options.weightKg ?? Math.max(0.5, Math.round(calculatedWeight * 100) / 100);
+  if (!Number.isFinite(weightKg) || weightKg < 0.5 || weightKg > 10) {
+    throw new PathaoBookingError('Calculated parcel weight is ' + weightKg + ' kg. Pathao accepts 0.5–10 kg per parcel. Set accurate product weights or split this order before accepting it.', 422, 'PARCEL_WEIGHT_OUT_OF_RANGE');
+  }
   if (!['PENDING', 'CONFIRMED', 'PROCESSING', 'READY_TO_SHIP', 'SHIPPED'].includes(String(order.status))) {
     throw new PathaoBookingError('Order status ' + order.status + ' is not eligible for Pathao booking.', 409, 'ORDER_NOT_ELIGIBLE');
   }
@@ -69,11 +86,6 @@ export async function bookPathaoOrderFromDatabase(
 
   try {
     const customer = (order.customer || {}) as Record<string, unknown>;
-    const itemRows = (order.store_order_items || []) as Array<{ product_name: string; quantity: number }>;
-    const quantity = itemRows.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
-    if (!quantity || itemRows.some((item) => !Number.isSafeInteger(Number(item.quantity)) || Number(item.quantity) < 1)) {
-      throw new PathaoBookingError('Order has no valid line items.', 422, 'ORDER_ITEMS_INVALID');
-    }
     const address = [customer.addressDetails, customer.thanaCity, customer.district, customer.division, customer.postalCode, 'Bangladesh']
       .filter((part) => typeof part === 'string' && part.trim()).join(', ');
     const result = await createPathaoOrder({
