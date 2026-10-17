@@ -34,7 +34,6 @@ import {
   INITIAL_PAGES,
   INITIAL_STOREFRONT_CMS,
 } from '../data/initialState';
-import { getCourierProvider } from '../lib/shipping/couriers';
 import { supabase } from '../lib/supabase';
 import { getCloudinaryPublicId, persistProductImageUrls, removeProductImageUrls } from '../lib/productImageStorage';
 
@@ -783,222 +782,42 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
     adminActor: string = 'Admin Staff'
   ): Promise<{ success: boolean; message: string; trackingCode?: string; consignmentId?: string }> => {
     const targetOrder = orders.find((o) => o.id === orderId);
-    if (!targetOrder) {
-      showToast('Order not found', 'error');
-      return { success: false, message: 'Order not found' };
-    }
-
-    // 1. Idempotency Check: Already booked?
+    if (!targetOrder) return { success: false, message: 'Order not found.' };
     if (targetOrder.courier?.bookingStatus === 'BOOKED' && targetOrder.courier?.consignmentId) {
-      const msg = `Order #${orderId} has already been booked with ${targetOrder.courier.provider} (Consignment: ${targetOrder.courier.consignmentId}). Duplicate booking prevented.`;
-      showToast(msg, 'info');
-      return {
-        success: true,
-        message: msg,
-        trackingCode: targetOrder.courier.trackingCode,
-        consignmentId: targetOrder.courier.consignmentId,
-      };
+      return { success: true, message: 'This order already has a confirmed courier booking.', trackingCode: targetOrder.courier.trackingCode, consignmentId: targetOrder.courier.consignmentId };
     }
-
-    // 2. State Validation: Can only accept PENDING or CONFIRMED orders
-    if (targetOrder.status === 'CANCELLED' || targetOrder.status === 'DELIVERED') {
-      const msg = `Cannot book courier for an order with status "${targetOrder.status}".`;
-      showToast(msg, 'error');
-      return { success: false, message: msg };
-    }
-
-    const now = new Date();
-    const timestampStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(
-      now.getDate()
-    ).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-
-    // Mark as BOOKING_IN_PROGRESS to prevent concurrent double-clicks
-    setOrders((prev) =>
-      prev.map((o) => {
-        if (o.id === orderId) {
-          return {
-            ...o,
-            courier: {
-              ...o.courier,
-              bookingStatus: 'BOOKING_IN_PROGRESS',
-              bookingError: undefined,
-            },
-          };
-        }
-        return o;
-      })
-    );
-
-    // 3. Prepare Courier Shipment Request
-    const courierProvider = getCourierProvider(targetOrder.courier.provider || 'PATHAO');
-    const codAmount = targetOrder.paymentMethod === 'COD' ? targetOrder.grandTotal : 0;
-    const totalItemsCount = targetOrder.items.reduce((sum, item) => sum + item.quantity, 0);
-
-    const shipmentRequest = {
-      orderId: targetOrder.id,
-      customerName: targetOrder.customer.fullName,
-      customerPhone: targetOrder.customer.phone,
-      deliveryAddress: targetOrder.customer.addressDetails,
-      division: targetOrder.customer.division,
-      district: targetOrder.customer.district,
-      thanaCity: targetOrder.customer.thanaCity,
-      itemCount: totalItemsCount,
-      codAmount,
-      notes: targetOrder.customer.notes,
-    };
-
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    const token = sessionData.session?.access_token;
+    if (sessionError || !token) return { success: false, message: 'Sign in as an administrator before booking courier.' };
+    setOrders((previous) => previous.map((o) => o.id === orderId ? { ...o, courier: { ...o.courier, bookingStatus: 'BOOKING_IN_PROGRESS', bookingError: undefined } } : o));
     try {
-      const result = await courierProvider.createShipment(shipmentRequest);
-      const attemptId = `att-${Date.now()}`;
-
-      if (result.success && result.consignmentId) {
-        // Successful booking
-        const newAttempt: CourierBookingAttempt = {
-          attemptId,
-          timestamp: timestampStr,
-          courier: targetOrder.courier.provider,
-          success: true,
-          consignmentId: result.consignmentId,
-          trackingCode: result.trackingCode,
-          statusCode: 200,
-          responsePayload: result.responsePayload,
-        };
-
-        setOrders((prev) =>
-          prev.map((o) => {
-            if (o.id === orderId) {
-              const updatedHistory = [
-                ...o.statusHistory,
-                {
-                  status: 'CONFIRMED' as OrderStatus,
-                  timestamp: timestampStr,
-                  note: `Order Accepted by ${adminActor}. Booked on ${result.courier} (Consignment: ${result.consignmentId}, Tracking: ${result.trackingCode})`,
-                },
-              ];
-
-              return {
-                ...o,
-                status: 'CONFIRMED',
-                courier: {
-                  ...o.courier,
-                  provider: result.courier,
-                  consignmentId: result.consignmentId,
-                  trackingCode: result.trackingCode,
-                  bookingStatus: 'BOOKED',
-                  bookingError: undefined,
-                  bookedAt: timestampStr,
-                  deliveryFee: result.deliveryFee,
-                  hubLocation: result.hubLocation,
-                  estimatedDelivery: result.estimatedDelivery || o.courier.estimatedDelivery,
-                },
-                bookingAttempts: [newAttempt, ...(o.bookingAttempts || [])],
-                statusHistory: updatedHistory,
-              };
-            }
-            return o;
-          })
-        );
-
-        const logItem: AuditLog = {
-          id: `log-${Date.now()}`,
-          timestamp: timestampStr,
-          actor: adminActor,
-          action: 'COURIER_BOOKED',
-          details: `Order #${orderId} confirmed and dispatched to ${result.courier}. Tracking: ${result.trackingCode}, Consignment: ${result.consignmentId}`,
-        };
-        setAuditLogs((prev) => [logItem, ...prev]);
-
-        showToast(
-          `Order #${orderId} accepted! Booked on ${result.courier} (${result.trackingCode})`,
-          'success'
-        );
-
-        return {
-          success: true,
-          message: 'Order accepted and courier shipment successfully booked.',
-          trackingCode: result.trackingCode,
-          consignmentId: result.consignmentId,
-        };
-      } else {
-        // Provider returned validation or booking failure
-        const errorMsg = result.errorMessage || 'Courier provider rejected shipment dispatch.';
-        const failedAttempt: CourierBookingAttempt = {
-          attemptId,
-          timestamp: timestampStr,
-          courier: targetOrder.courier.provider,
-          success: false,
-          errorMessage: errorMsg,
-        };
-
-        setOrders((prev) =>
-          prev.map((o) => {
-            if (o.id === orderId) {
-              const updatedHistory = [
-                ...o.statusHistory,
-                {
-                  status: o.status,
-                  timestamp: timestampStr,
-                  note: `Courier booking attempt failed: ${errorMsg}`,
-                },
-              ];
-
-              return {
-                ...o,
-                courier: {
-                  ...o.courier,
-                  bookingStatus: 'BOOKING_FAILED',
-                  bookingError: errorMsg,
-                },
-                bookingAttempts: [failedAttempt, ...(o.bookingAttempts || [])],
-                statusHistory: updatedHistory,
-              };
-            }
-            return o;
-          })
-        );
-
-        const logItem: AuditLog = {
-          id: `log-${Date.now()}`,
-          timestamp: timestampStr,
-          actor: adminActor,
-          action: 'COURIER_BOOKING_FAILED',
-          details: `Order #${orderId} courier booking failed: ${errorMsg}`,
-        };
-        setAuditLogs((prev) => [logItem, ...prev]);
-
-        showToast(`Courier booking failed: ${errorMsg}`, 'error');
-        return { success: false, message: errorMsg };
+      const response = await fetch('/api/admin/courier', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+        body: JSON.stringify({ action: 'book', orderId, weightKg: 0.5, deliveryType: 48 }),
+        cache: 'no-store',
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok || !payload.success || !payload.shipment?.consignmentId) {
+        const message = typeof payload.error === 'string' ? payload.error : 'Pathao booking failed or needs reconciliation.';
+        setOrders((previous) => previous.map((o) => o.id === orderId ? { ...o, courier: { ...o.courier, bookingStatus: 'BOOKING_FAILED', bookingError: message } } : o));
+        showToast(message, 'error');
+        return { success: false, message };
       }
-    } catch (err: any) {
-      const errorMsg = err?.message || 'Network timeout connecting to Courier API.';
-      const attemptId = `att-${Date.now()}`;
-      const failedAttempt: CourierBookingAttempt = {
-        attemptId,
-        timestamp: timestampStr,
-        courier: targetOrder.courier.provider,
-        success: false,
-        errorMessage: errorMsg,
-      };
-
-      setOrders((prev) =>
-        prev.map((o) => {
-          if (o.id === orderId) {
-            return {
-              ...o,
-              courier: {
-                ...o.courier,
-                bookingStatus: 'BOOKING_FAILED',
-                bookingError: errorMsg,
-              },
-              bookingAttempts: [failedAttempt, ...(o.bookingAttempts || [])],
-            };
-          }
-          return o;
-        })
-      );
-
-      showToast(`Error dispatching to Courier: ${errorMsg}`, 'error');
-      return { success: false, message: errorMsg };
+      const shipment = payload.shipment;
+      const timestamp = new Date().toISOString();
+      setOrders((previous) => previous.map((o) => o.id === orderId ? {
+        ...o, status: 'SHIPPED',
+        courier: { ...o.courier, provider: 'PATHAO', consignmentId: shipment.consignmentId, trackingCode: shipment.consignmentId, bookingStatus: 'BOOKED', bookingError: undefined, bookedAt: timestamp, deliveryFee: Number(shipment.deliveryFee || 0), lastSyncedAt: timestamp },
+        statusHistory: [...o.statusHistory, { status: 'SHIPPED', timestamp, note: 'Pathao booking confirmed by ' + adminActor + '. Consignment: ' + shipment.consignmentId }],
+      } : o));
+      showToast('Pathao shipment booked. Consignment: ' + shipment.consignmentId, 'success');
+      return { success: true, message: 'Pathao shipment booked successfully.', trackingCode: shipment.consignmentId, consignmentId: shipment.consignmentId };
+    } catch {
+      const message = 'Courier request could not be confirmed. Check Pathao before retrying.';
+      setOrders((previous) => previous.map((o) => o.id === orderId ? { ...o, courier: { ...o.courier, bookingStatus: 'BOOKING_FAILED', bookingError: message } } : o));
+      showToast(message, 'error');
+      return { success: false, message };
     }
   };
 
@@ -1014,68 +833,33 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
    */
   const syncCourierStatus = async (
     orderId: string,
-    adminActor: string = 'Automated Status Sync'
+    _adminActor: string = 'Automated Status Sync'
   ): Promise<{ success: boolean; status?: string; message: string }> => {
-    const targetOrder = orders.find((o) => o.id === orderId);
-    if (!targetOrder) {
-      return { success: false, message: 'Order not found' };
-    }
-
-    if (!targetOrder.courier?.trackingCode) {
-      return { success: false, message: 'Order has no active tracking code to synchronize.' };
-    }
-
-    const courierProvider = getCourierProvider(targetOrder.courier.provider);
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    const token = sessionData.session?.access_token;
+    if (sessionError || !token) return { success: false, message: 'Sign in as an administrator before syncing courier status.' };
     try {
-      const tracking = await courierProvider.getTracking(targetOrder.courier.trackingCode);
-      const now = new Date();
-      const timestampStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(
-        now.getDate()
-      ).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-
-      // Map courier status to order status if appropriate
-      let targetOrderStatus = targetOrder.status;
-      if (tracking.status === 'DELIVERED') {
-        targetOrderStatus = 'DELIVERED';
-      } else if (tracking.status === 'OUT_FOR_DELIVERY') {
-        targetOrderStatus = 'OUT_FOR_DELIVERY';
-      } else if (tracking.status === 'IN_TRANSIT' && targetOrder.status === 'CONFIRMED') {
-        targetOrderStatus = 'SHIPPED';
-      }
-
-      setOrders((prev) =>
-        prev.map((o) => {
-          if (o.id === orderId) {
-            return {
-              ...o,
-              status: targetOrderStatus,
-              // Courier delivery status is not proof that COD money was collected.
-              paymentStatus: o.paymentStatus,
-              courier: {
-                ...o.courier,
-                lastSyncedAt: timestampStr,
-              },
-            };
-          }
-          return o;
-        })
-      );
-
-      const logItem: AuditLog = {
-        id: `log-${Date.now()}`,
-        timestamp: timestampStr,
-        actor: adminActor,
-        action: 'COURIER_SYNCED',
-        details: `Order #${orderId} synced with ${targetOrder.courier.provider}. Status: ${tracking.status}`,
-      };
-      setAuditLogs((prev) => [logItem, ...prev]);
-
-      showToast(`Courier status synchronized: ${tracking.status}`, 'success');
-      return { success: true, status: tracking.status, message: 'Courier status updated successfully.' };
-    } catch (err: any) {
-      const msg = err?.message || 'Failed to poll courier status.';
-      showToast(msg, 'error');
-      return { success: false, message: msg };
+      const response = await fetch('/api/admin/courier', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+        body: JSON.stringify({ action: 'sync', orderId }),
+        cache: 'no-store',
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok || !payload.success) return { success: false, message: typeof payload.error === 'string' ? payload.error : 'Courier status sync failed.' };
+      const nextStatus = payload.shipment?.status;
+      const timestamp = new Date().toISOString();
+      setOrders((previous) => previous.map((o) => {
+        if (o.id !== orderId) return o;
+        const status = ['DELIVERED','SHIPPED','OUT_FOR_DELIVERY','CANCELLED','RETURNED','CONFIRMED'].includes(nextStatus) ? nextStatus as OrderStatus : o.status;
+        return { ...o, status, courier: { ...o.courier, lastSyncedAt: timestamp } };
+      }));
+      showToast(payload.message || 'Courier status synchronized.', 'success');
+      return { success: true, status: String(nextStatus || ''), message: payload.message || 'Courier status synchronized.' };
+    } catch {
+      const message = 'Courier status could not be synchronized. Please retry later.';
+      showToast(message, 'error');
+      return { success: false, message };
     }
   };
 
