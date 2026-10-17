@@ -75,6 +75,15 @@ export const PagesCMSManager: React.FC = () => {
     }
 
     const cleanedSlug = slug.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    if (!cleanedSlug) {
+      showToast('Please use a URL slug with English letters or numbers.', 'error');
+      return;
+    }
+    const duplicateSlug = pages.some((page) => page.slug === cleanedSlug && page.slug !== editingPage?.slug);
+    if (duplicateSlug) {
+      showToast('This URL slug is already in use. Choose a unique slug.', 'error');
+      return;
+    }
     const pageData: StaticPageContent = {
       slug: cleanedSlug,
       title: title.trim(),
@@ -250,6 +259,7 @@ export const PagesCMSManager: React.FC = () => {
                     type="text"
                     required
                     value={slug}
+                    disabled={Boolean(editingPage)}
                     onChange={(e) => setSlug(e.target.value)}
                     placeholder="shipping-policy"
                     className="w-full px-3 py-2 font-mono text-[11px] focus:outline-none"
