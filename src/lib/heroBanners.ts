@@ -35,8 +35,8 @@ export function heroContentFromBanner(banner: HeroBannerItem): HeroBannerContent
 export function isSafeHeroLink(value?: string): boolean {
   if (!value) return false;
   const link = value.trim();
-  if (!link || /[\\u0000-\\u001f]/.test(link)) return false;
-  if (link.startsWith('/')) return !link.startsWith('//') && !link.includes('\\\\');
+  if (!link || [...link].some((character) => character.charCodeAt(0) < 32 || character.charCodeAt(0) === 127)) return false;
+  if (link.startsWith('/')) return !link.startsWith('//') && !link.includes(String.fromCharCode(92));
   try {
     const parsed = new URL(link);
     return parsed.protocol === 'https:' && Boolean(parsed.hostname);
