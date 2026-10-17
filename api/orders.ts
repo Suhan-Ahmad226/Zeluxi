@@ -2,6 +2,7 @@ type ApiRequest = { method?: string; headers: Record<string, string | string[] |
 type ApiResponse = { setHeader(name: string, value: string): void; status(code: number): ApiResponse; json(payload: unknown): void };
 import { createClient } from '@supabase/supabase-js';
 import { z } from 'zod';
+import { bookPathaoOrderFromDatabase, PathaoBookingError } from '../src/lib/shipping/pathao-booking';
 
 const addressSchema = z.object({
   fullName: z.string().trim().min(2).max(100),
@@ -118,6 +119,26 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
       }
       const parsed = statusSchema.safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ error: 'Invalid order status update.' });
+
+      // Accepting an order is a courier operation: do not mark it accepted unless
+      // Pathao confirms the booking. The dedicated Admin > Delivery & Tracking
+      // action uses this same idempotent booking service.
+      if (parsed.data.status === 'CONFIRMED') {
+        try {
+          const shipment = await bookPathaoOrderFromDatabase(parsed.data.orderId);
+          return res.status(200).json({
+            order: { id: parsed.data.orderId, status: 'SHIPPED' },
+            courier: { provider: 'PATHAO', consignmentId: shipment.consignmentId, bookingStatus: 'BOOKED', deliveryFee: shipment.deliveryFee },
+            message: shipment.alreadyBooked ? 'Existing Pathao booking confirmed.' : 'Order accepted and booked with Pathao.',
+          });
+        } catch (bookingError) {
+          if (bookingError instanceof PathaoBookingError) {
+            return res.status(bookingError.httpStatus).json({ error: bookingError.message, code: bookingError.safeCode });
+          }
+          return res.status(502).json({ error: 'Pathao booking could not be confirmed. Check the courier shipment state before retrying.' });
+        }
+      }
+
       const { data, error } = await admin.from('store_orders')
         .update({ status: parsed.data.status })
         .eq('id', parsed.data.orderId)
