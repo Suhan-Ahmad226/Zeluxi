@@ -67,7 +67,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
         return res.status(403).json({ error: 'Administrator access is required.' });
       }
       const { data, error } = await admin.from('store_orders')
-        .select('*, store_order_items(*)')
+        .select('*, store_order_items(*), courier_shipments(*)')
         .order('created_at', { ascending: false })
         .limit(500);
       if (error) return res.status(503).json({ error: 'Orders could not be loaded.' });
@@ -91,7 +91,21 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
           status,
           paymentMethod: row.payment_method,
           paymentStatus: row.payment_status,
-          courier: { provider: 'PATHAO', trackingCode: '', estimatedDelivery: '', bookingStatus: 'NOT_BOOKED' },
+          courier: (() => {
+            const shipment = Array.isArray(row.courier_shipments) ? row.courier_shipments[0] : row.courier_shipments;
+            const status = shipment?.status;
+            return {
+              provider: 'PATHAO',
+              trackingCode: shipment?.consignment_id || '',
+              consignmentId: shipment?.consignment_id || '',
+              estimatedDelivery: '',
+              bookingStatus: ['BOOKED','IN_TRANSIT','DELIVERED'].includes(status) ? 'BOOKED' : status === 'BOOKING' ? 'BOOKING_IN_PROGRESS' : status === 'FAILED' || status === 'UNKNOWN' ? 'BOOKING_FAILED' : 'NOT_BOOKED',
+              bookingError: shipment?.error_message || undefined,
+              deliveryFee: shipment?.delivery_fee == null ? undefined : Number(shipment.delivery_fee),
+              bookedAt: shipment?.booked_at || undefined,
+              lastSyncedAt: shipment?.last_synced_at || undefined,
+            };
+          })(),
           statusHistory: [{ status, timestamp: row.created_at, note: 'Loaded from persistent order database.' }],
         };
       });
