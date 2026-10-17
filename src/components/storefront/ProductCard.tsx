@@ -1,9 +1,9 @@
 import React from 'react';
 
-const FALLBACK_PRODUCT_IMAGE = 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22 viewBox=%220 0 400 300%22%3E%3Crect width=%22400%22 height=%22300%22 fill=%22%23f1f5f9%22/%3E%3Cpath d=%22M160 190l35-42 25 28 18-20 42 34z%22 fill=%22%23cbd5e1%22/%3E%3Ccircle cx=%22180%22 cy=%22110%22 r=%2216%22 fill=%22%23cbd5e1%22/%3E%3C/svg%3E';
 import { Product } from '../../types';
 import { useStore } from '../../context/StoreContext';
 import { formatPrice } from '../../utils/formatters';
+import { StoreImage } from '../common/StoreImage';
 import { Heart, ShoppingBag, Eye, Star } from 'lucide-react';
 
 interface ProductCardProps {
@@ -41,17 +41,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     >
       {/* Product Image Zone */}
       <div className="relative aspect-[4/3] bg-[#F8F9FA] overflow-hidden">
-        <img
-          src={product.images?.[0] || FALLBACK_PRODUCT_IMAGE}
+        <StoreImage
+          src={product.images?.[0]}
           alt={product.name}
           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-          referrerPolicy="no-referrer"
           loading="lazy"
           decoding="async"
-          onError={(event) => {
-            const image = event.currentTarget;
-            if (image.src !== FALLBACK_PRODUCT_IMAGE) image.src = FALLBACK_PRODUCT_IMAGE;
-          }}
         />
 
         {/* Wishlist Button */}
