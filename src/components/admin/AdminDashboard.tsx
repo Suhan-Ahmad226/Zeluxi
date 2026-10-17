@@ -442,7 +442,6 @@ export const AdminDashboard: React.FC = () => {
       footerShowCustomerCare: footerCustomerCareVisible,
       footerShowPaymentDelivery: footerPaymentDeliveryVisible,
       footerShowPwaInstall: footerPwaVisible,
-      footerPaymentMethods: [...new Set(footerPaymentMethodsInput.split(/[\n,]/).map((method) => method.trim()).filter(Boolean))].slice(0, 12),
       shippingDhaka: Number(shippingDhakaInput),
       shippingOutsideDhaka: Number(shippingOutsideInput),
       freeShippingThreshold: Number(freeThresholdInput),
