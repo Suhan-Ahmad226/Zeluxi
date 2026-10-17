@@ -143,6 +143,8 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
         .select('id,name,price,stock,published,archived,image_url,product_data,updated_at', { count: 'exact' })
         .eq('published', true)
         .eq('archived', false)
+        // Keep featured items in the initial catalog page so the homepage can render its featured section.
+        .order('product_data->featured', { ascending: false })
         .order('updated_at', { ascending: false })
         .range(offset, offset + limit - 1);
       if (error) return res.status(503).json({ error: 'Unable to load catalog.' });
