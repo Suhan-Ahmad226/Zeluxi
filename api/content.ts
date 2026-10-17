@@ -13,6 +13,55 @@ type ApiResponse = {
 
 const PUBLIC_KEYS = new Set(['storefront_cms', 'categories', 'pages', 'settings']);
 
+function isSafeLink(value: unknown): boolean {
+  if (typeof value !== 'string' || !value.trim()) return true;
+  const link = value.trim();
+  return (link.startsWith('/') && !link.startsWith('//') && !link.includes('\\\\')) ||
+    /^https:\/\//i.test(link);
+}
+
+function validateHeroCMS(value: unknown): string | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return 'Hero content must be an object.';
+  const cms = value as Record<string, unknown>;
+  if (!cms.hero || typeof cms.hero !== 'object' || Array.isArray(cms.hero)) return 'Hero content is missing.';
+  if (cms.banners === undefined) return null; // Backwards-compatible legacy CMS record.
+  if (!Array.isArray(cms.banners)) return 'Hero banners must be an array.';
+  if (cms.banners.length > 10) return 'A maximum of 10 hero banners is allowed.';
+
+  const ids = new Set<string>();
+  for (const [index, raw] of cms.banners.entries()) {
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return `Banner ${index + 1} is invalid.`;
+    const banner = raw as Record<string, unknown>;
+    if (typeof banner.id !== 'string' || !banner.id.trim() || banner.id.length > 100 || ids.has(banner.id)) {
+      return `Banner ${index + 1} has an invalid or duplicate ID.`;
+    }
+    ids.add(banner.id);
+    if (typeof banner.active !== 'boolean' || !Number.isFinite(banner.order)) {
+      return `Banner ${index + 1} has invalid publishing or ordering settings.`;
+    }
+    if (typeof banner.headline !== 'string' || banner.headline.length > 180 ||
+        (banner.active && !banner.headline.trim())) {
+      return `Banner ${index + 1} needs a headline of 180 characters or fewer.`;
+    }
+    for (const field of ['tagline', 'description', 'primaryButtonText', 'secondaryButtonText', 'highlightTitle', 'highlightSubtitle', 'highlightPrice']) {
+      if (banner[field] !== undefined && (typeof banner[field] !== 'string' || (banner[field] as string).length > 2000)) {
+        return `Banner ${index + 1} has invalid text in ${field}.`;
+      }
+    }
+    for (const field of ['imageUrl', 'mobileImageUrl']) {
+      const image = banner[field];
+      if (image !== undefined && (typeof image !== 'string' || image.length > 2_000_000 ||
+          (image !== '' && !/^https:\/\//i.test(image) && !/^data:image\/(jpeg|png|webp);base64,/i.test(image)))) {
+        return `Banner ${index + 1} has an invalid image URL.`;
+      }
+    }
+    for (const field of ['primaryButtonLink', 'secondaryButtonLink']) {
+      if (!isSafeLink(banner[field])) return `Banner ${index + 1} has an unsafe button link.`;
+    }
+  }
+  return null;
+}
+
 function header(req: ApiRequest, name: string): string {
   const value = req.headers[name] ?? req.headers[name.toLowerCase()];
   return Array.isArray(value) ? value[0] ?? '' : value ?? '';
@@ -77,6 +126,10 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     const body = req.body as { key?: unknown; value?: unknown } | null;
     if (!body || typeof body.key !== 'string' || !/^(storefront_cms|settings|categories|pages|coupons)$/.test(body.key)) {
       return res.status(400).json({ error: 'A supported content key is required.' });
+    }
+    if (body.key === 'storefront_cms') {
+      const validationError = validateHeroCMS(body.value);
+      if (validationError) return res.status(400).json({ error: validationError });
     }
     const serialized = JSON.stringify(body.value);
     if (!serialized || serialized.length > 2_500_000) {
