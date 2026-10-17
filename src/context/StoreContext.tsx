@@ -235,7 +235,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
   };
 
   const saveProductToDatabase = async (product: Product, method: 'POST' | 'PATCH') => {
-    const previousImages = products.find((item) => item.id === product.id)?.images || [];
+    const previousProduct = products.find((item) => item.id === product.id);
+    const previousImages = previousProduct?.images || [];
+    const previousMedia = [...previousImages, ...(previousProduct?.videoUrl ? [previousProduct.videoUrl] : [])];
     const hostedImages = await persistProductImageUrls(product.images || [], product.id);
     const persistedProduct: Product = {
       ...product,
@@ -244,6 +246,12 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
       videoPublicId: product.videoUrl ? getCloudinaryPublicId(product.videoUrl) : undefined,
     };
     const newlyUploadedImages = hostedImages.filter((_, index) => Boolean(product.images?.[index]?.startsWith('data:')));
+    const newlyUploadedMedia = [
+      ...newlyUploadedImages,
+      ...(persistedProduct.videoUrl && persistedProduct.videoUrl !== previousProduct?.videoUrl && getCloudinaryPublicId(persistedProduct.videoUrl)
+        ? [persistedProduct.videoUrl]
+        : []),
+    ];
 
     try {
       const { data, error } = await supabase.auth.getSession();
@@ -262,11 +270,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
       }
 
       // Replace the database references first; delete only old images owned by this product afterward.
-      await removeProductImageUrls(previousImages, product.id, hostedImages);
+      await removeProductImageUrls(previousMedia, product.id, [...hostedImages, ...(persistedProduct.videoUrl ? [persistedProduct.videoUrl] : [])]);
       return payload.product as Product;
     } catch (error) {
       // If the database write fails, remove only files uploaded during this attempt.
-      await removeProductImageUrls(newlyUploadedImages, product.id);
+      await removeProductImageUrls(newlyUploadedMedia, product.id);
       throw error;
     }
   };
