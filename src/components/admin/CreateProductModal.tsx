@@ -625,13 +625,27 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
       }
       const productId = productToEdit?.id || `zlx-${typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : Date.now().toString(36)}`;
       mediaOwnerId = productId;
-      const dataImageIndexes = newProductData.images.map((url, index) => url.startsWith('data:') ? index : -1).filter((index) => index >= 0);
-      newProductData.images = await persistProductImageUrls(newProductData.images, productId);
+      const sourceImageUrls = [...newProductData.images];
+      const dataImageIndexes = sourceImageUrls.map((url, index) => url.startsWith('data:') ? index : -1).filter((index) => index >= 0);
+      newProductData.images = await persistProductImageUrls(sourceImageUrls, productId);
       uploadedImageUrls = dataImageIndexes.map((index) => newProductData.images[index]).filter((url): url is string => Boolean(url));
+
+      // Variant imageUrl must reference the durable hosted image URL, never an inline
+      // base64 data URL (which exceeds the API's URL length limit and is not persistent).
+      const persistedVariants = (newProductData.variants || []).map((variant) => {
+        const variantImageUrl = typeof variant.imageUrl === 'string' ? variant.imageUrl : '';
+        if (!variantImageUrl) return { ...variant, imageUrl: undefined };
+        if (!variantImageUrl.startsWith('data:')) return { ...variant, imageUrl: variantImageUrl };
+        const sourceIndex = sourceImageUrls.indexOf(variantImageUrl);
+        const hostedImageUrl = sourceIndex >= 0 ? newProductData.images[sourceIndex] : newProductData.images[0];
+        return { ...variant, imageUrl: hostedImageUrl || undefined };
+      });
+
       const uploadedVideo = video?.file ? await uploadCloudinaryMedia(video.file, productId, 'video', 'products') : null;
       uploadedVideoUrl = uploadedVideo?.url;
       const productPayload: Product = {
         ...newProductData,
+        variants: persistedVariants,
         videoUrl: uploadedVideo?.url || newProductData.videoUrl,
         videoPublicId: uploadedVideo?.publicId || (newProductData.videoUrl ? getCloudinaryPublicId(newProductData.videoUrl) : undefined),
         imagePublicIds: newProductData.images.map(getCloudinaryPublicId).filter((id): id is string => Boolean(id)),
