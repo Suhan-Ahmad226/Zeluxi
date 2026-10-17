@@ -267,6 +267,19 @@ export interface StoreSettings {
   canonicalUrl?: string;
   ogImageUrl?: string;
   maintenanceMode?: boolean;
+  /** Footer content and visibility controls; omitted legacy values keep the default layout. */
+  footerShowContact?: boolean;
+  footerShowNavigation?: boolean;
+  footerShowCustomerCare?: boolean;
+  footerShowPaymentDelivery?: boolean;
+  footerShowPwaInstall?: boolean;
+  footerShowSocialLinks?: boolean;
+  footerFacebookUrl?: string;
+  footerInstagramUrl?: string;
+  footerTikTokUrl?: string;
+  footerYouTubeUrl?: string;
+  footerWhatsAppNumber?: string;
+  footerCopyrightText?: string;
 }
 
 export interface StaticPageContent {
