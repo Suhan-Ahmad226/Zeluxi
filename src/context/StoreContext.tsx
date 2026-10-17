@@ -794,13 +794,14 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
       const response = await fetch('/api/admin/courier', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
-        body: JSON.stringify({ action: 'book', orderId, weightKg: 0.5, deliveryType: 48 }),
+        body: JSON.stringify({ action: 'book', orderId, deliveryType: 48 }),
         cache: 'no-store',
       });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok || !payload.success || !payload.shipment?.consignmentId) {
         const message = typeof payload.error === 'string' ? payload.error : 'Pathao booking failed or needs reconciliation.';
-        setOrders((previous) => previous.map((o) => o.id === orderId ? { ...o, courier: { ...o.courier, bookingStatus: 'BOOKING_FAILED', bookingError: message } } : o));
+        const uncertain = ['BOOKING_OUTCOME_UNRESOLVED', 'BOOKING_PERSISTENCE_UNKNOWN', 'BOOKING_PERSISTENCE_PARTIAL', 'BOOKING_STATE_PERSISTENCE_FAILED', 'PATHAO_OUTCOME_UNKNOWN', 'ORDER_SHIPMENT_STATE_MISMATCH'].includes(String(payload.code || '')) || response.status >= 500;
+        setOrders((previous) => previous.map((o) => o.id === orderId ? { ...o, courier: { ...o.courier, bookingStatus: uncertain ? 'BOOKING_UNKNOWN' : 'BOOKING_FAILED', bookingError: message } } : o));
         showToast(message, 'error');
         return { success: false, message };
       }
@@ -814,8 +815,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
       showToast('Pathao shipment booked. Consignment: ' + shipment.consignmentId, 'success');
       return { success: true, message: 'Pathao shipment booked successfully.', trackingCode: shipment.consignmentId, consignmentId: shipment.consignmentId };
     } catch {
-      const message = 'Courier request could not be confirmed. Check Pathao before retrying.';
-      setOrders((previous) => previous.map((o) => o.id === orderId ? { ...o, courier: { ...o.courier, bookingStatus: 'BOOKING_FAILED', bookingError: message } } : o));
+      // A network failure can happen after Pathao has accepted the parcel.
+      // Never make a blind retry when the remote outcome is unknown.
+      const message = 'Booking outcome is unknown. Check the Pathao merchant panel before retrying.';
+      setOrders((previous) => previous.map((o) => o.id === orderId ? { ...o, courier: { ...o.courier, bookingStatus: 'BOOKING_UNKNOWN', bookingError: message } } : o));
       showToast(message, 'error');
       return { success: false, message };
     }
@@ -882,11 +885,31 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(typeof payload.error === 'string' ? payload.error : 'Order status could not be saved.');
       const timestampStr = new Date().toISOString();
+      const persistedStatus = (payload?.order?.status || newStatus) as OrderStatus;
+      const courierUpdate = payload?.courier;
       setOrders((prev) => prev.map((ord) => ord.id === orderId ? {
         ...ord,
-        status: newStatus,
-        courier: trackingCode ? { ...ord.courier, trackingCode } : ord.courier,
-        statusHistory: [...ord.statusHistory, { status: newStatus, timestamp: timestampStr, note }],
+        status: persistedStatus,
+        courier: {
+          ...ord.courier,
+          ...(trackingCode ? { trackingCode } : {}),
+          ...(courierUpdate ? {
+            provider: courierUpdate.provider || 'PATHAO',
+            consignmentId: courierUpdate.consignmentId || ord.courier.consignmentId,
+            trackingCode: courierUpdate.consignmentId || ord.courier.trackingCode || trackingCode || '',
+            bookingStatus: courierUpdate.bookingStatus || ord.courier.bookingStatus,
+            deliveryFee: Number.isFinite(Number(courierUpdate.deliveryFee)) ? Number(courierUpdate.deliveryFee) : ord.courier.deliveryFee,
+            bookingError: undefined,
+            bookedAt: timestampStr,
+          } : {}),
+        },
+        statusHistory: [...ord.statusHistory, {
+          status: persistedStatus,
+          timestamp: timestampStr,
+          note: persistedStatus === 'SHIPPED' && newStatus === 'CONFIRMED'
+            ? 'Order accepted and Pathao booking confirmed. ' + (courierUpdate?.consignmentId ? 'Consignment: ' + courierUpdate.consignmentId : '')
+            : note,
+        }],
       } : ord));
       const logItem: AuditLog = {
         id: `log-${Date.now()}`,
@@ -896,7 +919,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
         details: `Order #${orderId} transitioned to ${newStatus}. Note: ${note}`,
       };
       setAuditLogs((prev) => [logItem, ...prev]);
-      showToast(`Order #${orderId} status updated to ${newStatus}`, 'success');
+      showToast(payload?.message || `Order #${orderId} status updated to ${persistedStatus}`, 'success');
     })().catch((error) => {
       showToast(error instanceof Error ? error.message : 'Order status could not be saved.', 'error');
     });

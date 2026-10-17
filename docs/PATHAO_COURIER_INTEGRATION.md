@@ -8,6 +8,7 @@ Configure these in local .env.local and Vercel server-side environment variables
 - PATHAO_BASE_URL must be https://courier-api-sandbox.pathao.com for sandbox or https://api-hermes.pathao.com for production. The app rejects mismatched hosts.
 - PATHAO_CLIENT_ID, PATHAO_CLIENT_SECRET, PATHAO_USERNAME, PATHAO_PASSWORD are credentials for the selected environment.
 - PATHAO_STORE_ID must be an approved active merchant store ID.
+- PATHAO_DEFAULT_ITEM_WEIGHT_KG is the per-item fallback weight (default 0.5 kg) used only when a product has no positive `weightKg` in its saved product metadata. Automatic booking sums each order line's product weight times quantity and rejects parcels over Pathao's 10 kg limit; maintain accurate product weights in the catalog.
 - PATHAO_TOKEN_ENCRYPTION_KEY is a random 32-byte key encoded as base64 or 64 hex characters. Generate with: node -e "console.log(require('node:crypto').randomBytes(32).toString('base64'))"
 
 OAuth access and refresh tokens are encrypted with AES-256-GCM in courier_tokens. Do not reuse the API client secret as the encryption key.
@@ -25,7 +26,8 @@ All admin endpoints require a valid Supabase access token and trusted app_metada
 - POST {"action":"stores"} or {"action":"cities"}: fetch merchant stores or cities.
 - POST {"action":"zones","cityId":1} and {"action":"areas","zoneId":298}: fetch locations.
 - POST {"action":"price","cityId":1,"zoneId":298,"weightKg":0.5,"deliveryType":48}: price plan for configured pickup store.
-- POST {"action":"book","orderId":"<store_orders UUID>","weightKg":0.5,"deliveryType":48}: create a single shipment.
+- POST {"action":"book","orderId":"<store_orders UUID>","weightKg":0.5,"deliveryType":48}: create a single shipment. The admin acceptance action and admin status API share the same server-side, duplicate-safe booking service.
+- PATCH /api/orders with status `CONFIRMED` is treated as accepting the order: Pathao booking must succeed before the API reports the order as `SHIPPED`. A booking failure leaves the order unaccepted and records a safe failure/unknown state. Repeated requests reuse a confirmed consignment instead of creating a duplicate.
 - POST {"action":"sync","orderId":"<store_orders UUID>"}: fetch Pathao order short-info.
 
 Bulk booking is deliberately disabled because the supplied bulk API returns only an accepted flag and no individual consignment IDs. Cancellation is not exposed because the supplied specification does not include a cancellation endpoint. Do not invent undocumented endpoints.
@@ -37,4 +39,5 @@ Bulk booking is deliberately disabled because the supplied bulk API returns only
 3. Test in sandbox from Admin > Delivery & Tracking.
 4. Switch the mode, URL and credentials together only after production merchant approval.
 5. A timeout or ambiguous server error sets the shipment to UNKNOWN. Reconcile it in Pathao before retrying to prevent duplicate parcels.
-6. The supplied docs only describe short order info, not signed webhook verification, tracking history, cancellation, pickup rescheduling or settlement endpoints. These are not claimed as implemented.
+6. Manual changes to courier-owned order states (SHIPPED, OUT_FOR_DELIVERY, DELIVERED, RETURNED) are blocked; use Pathao status sync to keep customer/admin tracking consistent. Cancelling an order with an existing or unresolved consignment is also blocked because the supplied specification has no documented cancellation endpoint.
+7. The supplied docs only describe short order info, not signed webhook verification, tracking history, cancellation, pickup rescheduling or settlement endpoints. These are not claimed as implemented.

@@ -2,6 +2,7 @@ type ApiRequest = { method?: string; headers: Record<string, string | string[] |
 type ApiResponse = { setHeader(name: string, value: string): void; status(code: number): ApiResponse; json(payload: unknown): void };
 import { createClient } from '@supabase/supabase-js';
 import { z } from 'zod';
+import { bookPathaoOrderFromDatabase, PathaoBookingError } from '../src/lib/shipping/pathao-booking';
 
 const addressSchema = z.object({
   fullName: z.string().trim().min(2).max(100),
@@ -99,7 +100,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
               trackingCode: shipment?.consignment_id || '',
               consignmentId: shipment?.consignment_id || '',
               estimatedDelivery: '',
-              bookingStatus: ['BOOKED','IN_TRANSIT','DELIVERED'].includes(status) ? 'BOOKED' : status === 'BOOKING' ? 'BOOKING_IN_PROGRESS' : status === 'FAILED' || status === 'UNKNOWN' ? 'BOOKING_FAILED' : 'NOT_BOOKED',
+              bookingStatus: ['BOOKED','IN_TRANSIT','DELIVERED'].includes(status) ? 'BOOKED' : status === 'BOOKING' ? 'BOOKING_IN_PROGRESS' : ['UNKNOWN','BULK_SUBMITTED'].includes(status) ? 'BOOKING_UNKNOWN' : status === 'FAILED' ? 'BOOKING_FAILED' : 'NOT_BOOKED',
               bookingError: shipment?.error_message || undefined,
               deliveryFee: shipment?.delivery_fee == null ? undefined : Number(shipment.delivery_fee),
               bookedAt: shipment?.booked_at || undefined,
@@ -118,6 +119,44 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
       }
       const parsed = statusSchema.safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ error: 'Invalid order status update.' });
+
+      // Accepting an order is a courier operation: do not mark it accepted unless
+      // Pathao confirms the booking. The dedicated Admin > Delivery & Tracking
+      // action uses this same idempotent booking service.
+      if (parsed.data.status === 'CONFIRMED') {
+        try {
+          const shipment = await bookPathaoOrderFromDatabase(parsed.data.orderId);
+          return res.status(200).json({
+            order: { id: parsed.data.orderId, status: 'SHIPPED' },
+            courier: { provider: 'PATHAO', consignmentId: shipment.consignmentId, bookingStatus: 'BOOKED', deliveryFee: shipment.deliveryFee },
+            message: shipment.alreadyBooked ? 'Existing Pathao booking confirmed.' : 'Order accepted and booked with Pathao.',
+          });
+        } catch (bookingError) {
+          if (bookingError instanceof PathaoBookingError) {
+            return res.status(bookingError.httpStatus).json({ error: bookingError.message, code: bookingError.safeCode });
+          }
+          return res.status(502).json({ error: 'Pathao booking could not be confirmed. Check the courier shipment state before retrying.' });
+        }
+      }
+
+      if (['SHIPPED', 'OUT_FOR_DELIVERY', 'DELIVERED', 'RETURNED'].includes(parsed.data.status)) {
+        return res.status(409).json({
+          error: 'Courier-managed status must be synchronized from Pathao. Manual status changes are blocked to keep tracking accurate.',
+          code: 'COURIER_STATUS_SYNC_REQUIRED',
+        });
+      }
+      if (parsed.data.status === 'CANCELLED') {
+        const { data: shipment, error: shipmentError } = await admin.from('courier_shipments')
+          .select('status,consignment_id').eq('order_id', parsed.data.orderId).maybeSingle();
+        if (shipmentError) return res.status(503).json({ error: 'Courier status could not be checked before cancellation.' });
+        if (shipment?.consignment_id || ['BOOKING', 'UNKNOWN', 'BULK_SUBMITTED'].includes(String(shipment?.status || ''))) {
+          return res.status(409).json({
+            error: 'This order has a Pathao booking or unresolved booking attempt. The supplied Pathao API specification has no cancellation endpoint, so it cannot be safely cancelled here.',
+            code: 'PATHAO_CANCELLATION_UNAVAILABLE',
+          });
+        }
+      }
+
       const { data, error } = await admin.from('store_orders')
         .update({ status: parsed.data.status })
         .eq('id', parsed.data.orderId)

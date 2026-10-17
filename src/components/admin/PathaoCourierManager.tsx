@@ -72,8 +72,16 @@ export default function PathaoCourierManager() {
     if (result.success) setMessage(result.message); else setError(result.message);
     await load(); setWorkingOrder('');
   };
-  const needsBooking = orders.filter((o) => ['PENDING','CONFIRMED','PROCESSING','READY_TO_SHIP'].includes(o.status) && o.courier?.bookingStatus !== 'BOOKED').slice(0, 20);
-  const booked = orders.filter((o) => Boolean(o.courier?.consignmentId) && o.courier?.bookingStatus === 'BOOKED').slice(0, 20);
+  const needsBooking = orders.filter((o) =>
+    ['PENDING','CONFIRMED','PROCESSING','READY_TO_SHIP'].includes(o.status) &&
+    !['BOOKED','BOOKING_IN_PROGRESS','BOOKING_UNKNOWN'].includes(o.courier?.bookingStatus || 'NOT_BOOKED')
+  ).slice(0, 20);
+  const booked = orders.filter((o) =>
+    Boolean(o.courier?.consignmentId) && ['BOOKED','BOOKING_UNKNOWN'].includes(o.courier?.bookingStatus || '')
+  ).slice(0, 20);
+  const unresolvedWithoutConsignment = orders.filter((o) =>
+    o.courier?.bookingStatus === 'BOOKING_UNKNOWN' && !o.courier?.consignmentId
+  ).slice(0, 20);
   return <div className="space-y-6">
     <section className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -150,8 +158,13 @@ export default function PathaoCourierManager() {
     </section>
     <section className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6">
       <h3 className="font-bold text-slate-900">Booked shipments</h3>
-      {booked.length ? <div className="mt-4 divide-y divide-slate-100 rounded-xl border border-slate-200">{booked.map((order) => <div key={order.id} className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"><div><p className="font-semibold text-slate-900">Order #{order.id}</p><p className="mt-1 text-xs text-slate-500">Consignment: {order.courier.consignmentId} · {order.status}</p></div><button disabled={Boolean(workingOrder)} onClick={() => void sync(order.id)} className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 disabled:opacity-50">{workingOrder === order.id ? 'Syncing…' : 'Sync status'}</button></div>)}</div> : <p className="mt-3 text-sm text-slate-500">No booked shipments are available in the current order list.</p>}
+      {booked.length ? <div className="mt-4 divide-y divide-slate-100 rounded-xl border border-slate-200">{booked.map((order) => <div key={order.id} className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"><div><p className="font-semibold text-slate-900">Order #{order.id}</p><p className="mt-1 text-xs text-slate-500">Consignment: {order.courier.consignmentId} · {order.status}</p>{order.courier.bookingStatus === 'BOOKING_UNKNOWN' && <p className="mt-1 text-xs font-semibold text-amber-700">Booking state needs reconciliation. Sync this consignment before any retry.</p>}</div><button disabled={Boolean(workingOrder)} onClick={() => void sync(order.id)} className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 disabled:opacity-50">{workingOrder === order.id ? 'Syncing…' : 'Sync status'}</button></div>)}</div> : <p className="mt-3 text-sm text-slate-500">No booked shipments are available in the current order list.</p>}
     </section>
+    {unresolvedWithoutConsignment.length > 0 && <section className="rounded-2xl border border-amber-200 bg-amber-50 p-5 sm:p-6">
+      <h3 className="font-bold text-amber-900">Booking outcome requires manual reconciliation</h3>
+      <p className="mt-1 text-sm text-amber-800">Pathao may have accepted the parcel even though Zeluxi did not receive a confirmed consignment ID. Open the Pathao Merchant Panel and search using the merchant order ID before retrying. Automated retry is disabled for safety.</p>
+      <div className="mt-3 space-y-2">{unresolvedWithoutConsignment.map((order) => <div key={order.id} className="rounded-lg border border-amber-200 bg-white p-3 text-sm"><strong>Order #{order.id}</strong><p className="mt-1 text-xs text-slate-600">{order.courier.bookingError || 'Booking outcome is unknown.'}</p></div>)}</div>
+    </section>}
     <section className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6"><h3 className="font-bold text-slate-900">Operational safeguards</h3><ul className="mt-3 grid grid-cols-1 gap-3 text-sm text-slate-600 sm:grid-cols-2"><li className="rounded-lg bg-slate-50 p-3">Duplicate booking protection and persistent shipment status</li><li className="rounded-lg bg-slate-50 p-3">Ambiguous outcomes must be reconciled before retry</li><li className="rounded-lg bg-slate-50 p-3">COD collection is separated from courier delivery fees</li><li className="rounded-lg bg-slate-50 p-3">Credentials and tokens never reach browser code</li></ul></section>
   </div>;
 }
