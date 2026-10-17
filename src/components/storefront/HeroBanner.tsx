@@ -142,14 +142,14 @@ export const HeroBanner: React.FC = () => {
                 <img
                   src={imageUrl}
                   alt={banner.highlightSubtitle || banner.headline || 'Featured Zelux collection'}
-                  width={1200}
-                  height={900}
                   fetchPriority="high"
                   decoding="async"
-                  className="h-full w-full object-cover transition-transform duration-500 motion-safe:group-hover:scale-[1.03]"
+                  className="block h-auto max-h-[70vh] w-full object-contain"
                 />
               </picture>
-              <div aria-hidden="true" className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-transparent to-transparent" />
+              {(banner.highlightTitle || banner.highlightSubtitle || banner.highlightPrice) && (
+                <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent" />
+              )}
               {(banner.highlightTitle || banner.highlightSubtitle || banner.highlightPrice) && (
                 <div className="absolute bottom-4 left-4 right-4 text-left sm:bottom-5 sm:left-5 sm:right-5">
                   {banner.highlightTitle && (
