@@ -270,6 +270,7 @@ export const AdminDashboard: React.FC = () => {
   const [footerCustomerCareVisible, setFooterCustomerCareVisible] = useState(settings.footerShowCustomerCare !== false);
   const [footerPaymentDeliveryVisible, setFooterPaymentDeliveryVisible] = useState(settings.footerShowPaymentDelivery !== false);
   const [footerPwaVisible, setFooterPwaVisible] = useState(settings.footerShowPwaInstall !== false);
+  const [footerPaymentMethodsInput, setFooterPaymentMethodsInput] = useState((settings.footerPaymentMethods || ['COD']).join('\n'));
   const [shippingDhakaInput, setShippingDhakaInput] = useState(settings.shippingDhaka);
   const [shippingOutsideInput, setShippingOutsideInput] = useState(settings.shippingOutsideDhaka);
   const [freeThresholdInput, setFreeThresholdInput] = useState(settings.freeShippingThreshold);
@@ -299,6 +300,7 @@ export const AdminDashboard: React.FC = () => {
     setFooterCustomerCareVisible(settings.footerShowCustomerCare !== false);
     setFooterPaymentDeliveryVisible(settings.footerShowPaymentDelivery !== false);
     setFooterPwaVisible(settings.footerShowPwaInstall !== false);
+    setFooterPaymentMethodsInput((settings.footerPaymentMethods || ['COD']).join('\n'));
     setShippingDhakaInput(settings.shippingDhaka);
     setShippingOutsideInput(settings.shippingOutsideDhaka);
     setFreeThresholdInput(settings.freeShippingThreshold);
@@ -437,6 +439,7 @@ export const AdminDashboard: React.FC = () => {
       footerShowCustomerCare: footerCustomerCareVisible,
       footerShowPaymentDelivery: footerPaymentDeliveryVisible,
       footerShowPwaInstall: footerPwaVisible,
+      footerPaymentMethods: [...new Set(footerPaymentMethodsInput.split(/[\n,]/).map((method) => method.trim()).filter(Boolean))].slice(0, 12),
       shippingDhaka: Number(shippingDhakaInput),
       shippingOutsideDhaka: Number(shippingOutsideInput),
       freeShippingThreshold: Number(freeThresholdInput),
@@ -3043,6 +3046,12 @@ export const AdminDashboard: React.FC = () => {
                 <h4 className="mb-1 text-sm font-bold text-slate-900">Payment Badges</h4>
                 <p className="mb-3 text-xs text-slate-500">Comma-separated labels shown in the footer, e.g. COD, bKash, Nagad. Add only payment methods that your store actually supports.</p>
                 <input type="text" maxLength={200} value={paymentMethodsInput} onChange={(e) => setPaymentMethodsInput(e.target.value)} placeholder="COD, bKash" className="w-full rounded-lg border px-3 py-2 focus:border-indigo-600 focus:outline-none" />
+              </div>
+
+              <div className="border-t border-slate-200 pt-5">
+                <h4 className="mb-1 text-sm font-bold text-slate-900">Payment method badges</h4>
+                <p className="mb-3 text-xs text-slate-500">Enter only payment methods that are actually available at checkout. Use one per line or separate them with commas.</p>
+                <textarea rows={3} maxLength={600} value={footerPaymentMethodsInput} onChange={(e) => setFooterPaymentMethodsInput(e.target.value)} placeholder={'Cash on delivery\nbKash'} className="w-full rounded-lg border px-3 py-2 focus:border-indigo-600 focus:outline-none" />
               </div>
 
               <div className="border-t border-slate-200 pt-5">
