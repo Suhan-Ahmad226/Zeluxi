@@ -136,11 +136,17 @@ export async function removeProductImageUrls(
   for (const url of oldUrls) {
     const cloudinaryAsset = getCloudinaryAsset(url);
     if (cloudinaryAsset) {
+      const scope = ownerId === 'storefront' ? 'storefront' : 'products';
+      const ownedPrefix = scope === 'storefront'
+        ? 'zelux/storefront/storefront/'
+        : `zelux/products/${ownerId}/`;
+      // A duplicated product can reference another product's media. Never delete shared assets.
+      if (!cloudinaryAsset.publicId.startsWith(ownedPrefix)) continue;
       try {
         const response = await fetch('/api/media/cloudinary-delete', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-          body: JSON.stringify(cloudinaryAsset),
+          body: JSON.stringify({ ...cloudinaryAsset, ownerId, scope }),
           cache: 'no-store',
         });
         if (!response.ok) console.warn('Cloudinary cleanup failed; retry may be needed.');
