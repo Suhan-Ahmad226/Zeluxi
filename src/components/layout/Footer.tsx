@@ -139,8 +139,8 @@ export const Footer: React.FC = () => {
               <p className="text-sm leading-6 text-slate-400">See the payment methods and delivery options available at checkout.</p>
               {showPaymentBadges && (
                 <div className="flex flex-wrap gap-2 text-xs font-semibold" aria-label="Payment methods">
-                  {['bKash', 'Nagad', 'Rocket', 'Cash on delivery'].map((method) => (
-                    <span key={method} className="rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 text-slate-200">{method}</span>
+                  {(settings.footerPaymentMethods || ['Cash on delivery']).filter((method) => typeof method === 'string' && method.trim()).slice(0, 8).map((method) => (
+                    <span key={method} className="rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 text-slate-200">{method.trim()}</span>
                   ))}
                 </div>
               )}
