@@ -16,7 +16,7 @@ const PUBLIC_KEYS = new Set(['storefront_cms', 'categories', 'pages', 'settings'
 function isSafeLink(value: unknown): boolean {
   if (typeof value !== 'string' || !value.trim()) return true;
   const link = value.trim();
-  return (link.startsWith('/') && !link.startsWith('//') && !link.includes('\\\\')) ||
+  return (link.startsWith('/') && !link.startsWith('//') && !link.includes(String.fromCharCode(92))) ||
     /^https:\/\//i.test(link);
 }
 
