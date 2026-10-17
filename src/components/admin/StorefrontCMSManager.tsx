@@ -82,17 +82,8 @@ export const StorefrontCMSManager: React.FC = () => {
         'success'
       );
     } catch (err) {
-      console.error('Banner image upload error:', err);
-      // Fallback to FileReader
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const dataUrl = e.target?.result as string;
-        if (dataUrl) {
-          handleHeroChange('imageUrl', dataUrl);
-          showToast('Banner image uploaded from local storage', 'success');
-        }
-      };
-      reader.readAsDataURL(file);
+      console.error('Banner image optimization failed:', err);
+      showToast('This image could not be optimized. Please try a JPG, PNG, or WebP image.', 'error');
     } finally {
       setIsCompressingBanner(false);
     }
