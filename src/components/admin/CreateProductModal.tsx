@@ -652,7 +652,15 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
       });
       const apiResult = await apiResponse.json().catch(() => ({}));
       if (!apiResponse.ok) {
-        throw new Error(typeof apiResult.error === 'string' ? apiResult.error : 'Product could not be saved to the catalog database.');
+        const details = Array.isArray(apiResult.details)
+          ? apiResult.details.map((item: { path?: unknown; message?: unknown }) => {
+              const field = Array.isArray(item.path) ? item.path.map(String).join('.') : '';
+              const message = typeof item.message === 'string' ? item.message : '';
+              return field && message ? field + ': ' + message : message;
+            }).filter(Boolean)
+          : [];
+        const message = typeof apiResult.error === 'string' ? apiResult.error : 'Product could not be saved to the catalog database.';
+        throw new Error(details.length ? message + ' ' + details.join('; ') : message);
       }
 
       // Database references are now committed. Clean up only replaced assets owned by this product.
