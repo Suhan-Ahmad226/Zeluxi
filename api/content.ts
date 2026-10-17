@@ -17,10 +17,11 @@ function isSafeLink(value: unknown): boolean {
   if (value === undefined || value === null || value === '') return true;
   if (typeof value !== 'string') return false;
   const link = value.trim();
-  if (!link || /[\\u0000-\\u001f]/.test(link)) return false;
+  if (!link || [...link].some((character) => character.charCodeAt(0) < 32 || character.charCodeAt(0) === 127)) return false;
   if (link.startsWith('/')) return !link.startsWith('//') && !link.includes(String.fromCharCode(92));
   try {
-    return new URL(link).protocol === 'https:' && Boolean(new URL(link).hostname);
+    const parsed = new URL(link);
+    return parsed.protocol === 'https:' && Boolean(parsed.hostname);
   } catch {
     return false;
   }
