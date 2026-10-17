@@ -436,7 +436,7 @@ export const AdminDashboard: React.FC = () => {
       showAddressInFooter,
       showSocialLinksInFooter,
       showPaymentBadgesInFooter,
-      footerPaymentMethods: paymentMethodsInput.split(',').map((method) => method.trim()).filter(Boolean).slice(0, 8),
+      footerPaymentMethods: [...new Set(footerPaymentMethodsInput.split(/[\\n,]/).map((method) => method.trim()).filter(Boolean))].slice(0, 8),
       footerShowContact: footerContactVisible,
       footerShowNavigation: footerNavigationVisible,
       footerShowCustomerCare: footerCustomerCareVisible,
