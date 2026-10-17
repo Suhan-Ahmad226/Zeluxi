@@ -265,6 +265,11 @@ export const AdminDashboard: React.FC = () => {
   const [showAddressInFooter, setShowAddressInFooter] = useState(settings.showAddressInFooter !== false);
   const [showSocialLinksInFooter, setShowSocialLinksInFooter] = useState(settings.showSocialLinksInFooter !== false);
   const [showPaymentBadgesInFooter, setShowPaymentBadgesInFooter] = useState(settings.showPaymentBadgesInFooter !== false);
+  const [footerContactVisible, setFooterContactVisible] = useState(settings.footerShowContact !== false);
+  const [footerNavigationVisible, setFooterNavigationVisible] = useState(settings.footerShowNavigation !== false);
+  const [footerCustomerCareVisible, setFooterCustomerCareVisible] = useState(settings.footerShowCustomerCare !== false);
+  const [footerPaymentDeliveryVisible, setFooterPaymentDeliveryVisible] = useState(settings.footerShowPaymentDelivery !== false);
+  const [footerPwaVisible, setFooterPwaVisible] = useState(settings.footerShowPwaInstall !== false);
   const [shippingDhakaInput, setShippingDhakaInput] = useState(settings.shippingDhaka);
   const [shippingOutsideInput, setShippingOutsideInput] = useState(settings.shippingOutsideDhaka);
   const [freeThresholdInput, setFreeThresholdInput] = useState(settings.freeShippingThreshold);
@@ -289,6 +294,11 @@ export const AdminDashboard: React.FC = () => {
     setShowAddressInFooter(settings.showAddressInFooter !== false);
     setShowSocialLinksInFooter(settings.showSocialLinksInFooter !== false);
     setShowPaymentBadgesInFooter(settings.showPaymentBadgesInFooter !== false);
+    setFooterContactVisible(settings.footerShowContact !== false);
+    setFooterNavigationVisible(settings.footerShowNavigation !== false);
+    setFooterCustomerCareVisible(settings.footerShowCustomerCare !== false);
+    setFooterPaymentDeliveryVisible(settings.footerShowPaymentDelivery !== false);
+    setFooterPwaVisible(settings.footerShowPwaInstall !== false);
     setShippingDhakaInput(settings.shippingDhaka);
     setShippingOutsideInput(settings.shippingOutsideDhaka);
     setFreeThresholdInput(settings.freeShippingThreshold);
@@ -422,6 +432,11 @@ export const AdminDashboard: React.FC = () => {
       showAddressInFooter,
       showSocialLinksInFooter,
       showPaymentBadgesInFooter,
+      footerShowContact: footerContactVisible,
+      footerShowNavigation: footerNavigationVisible,
+      footerShowCustomerCare: footerCustomerCareVisible,
+      footerShowPaymentDelivery: footerPaymentDeliveryVisible,
+      footerShowPwaInstall: footerPwaVisible,
       shippingDhaka: Number(shippingDhakaInput),
       shippingOutsideDhaka: Number(shippingOutsideInput),
       freeShippingThreshold: Number(freeThresholdInput),
@@ -3033,6 +3048,11 @@ export const AdminDashboard: React.FC = () => {
                     { label: 'Show store address', checked: showAddressInFooter, onChange: setShowAddressInFooter },
                     { label: 'Show social media icons', checked: showSocialLinksInFooter, onChange: setShowSocialLinksInFooter },
                     { label: 'Show payment badges', checked: showPaymentBadgesInFooter, onChange: setShowPaymentBadgesInFooter },
+                    { label: 'Show all contact details', checked: footerContactVisible, onChange: setFooterContactVisible },
+                    { label: 'Show explore navigation', checked: footerNavigationVisible, onChange: setFooterNavigationVisible },
+                    { label: 'Show customer care links', checked: footerCustomerCareVisible, onChange: setFooterCustomerCareVisible },
+                    { label: 'Show payment & delivery section', checked: footerPaymentDeliveryVisible, onChange: setFooterPaymentDeliveryVisible },
+                    { label: 'Show app install button', checked: footerPwaVisible, onChange: setFooterPwaVisible },
                   ].map((item) => (
                     <label key={item.label} className="flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 p-3 text-slate-700">
                       <input type="checkbox" checked={item.checked} onChange={(e) => item.onChange(e.target.checked)} className="h-4 w-4 accent-indigo-600" />
