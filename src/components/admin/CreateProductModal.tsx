@@ -641,6 +641,16 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
         throw new Error(typeof apiResult.error === 'string' ? apiResult.error : 'Product could not be saved to the catalog database.');
       }
 
+      // Database references are now committed. Clean up only replaced assets owned by this product.
+      if (productToEdit) {
+        await removeProductImageUrls(
+          [...(productToEdit.images || []), ...(productToEdit.videoUrl ? [productToEdit.videoUrl] : [])],
+          productId,
+          [...productPayload.images, ...(productPayload.videoUrl ? [productPayload.videoUrl] : [])],
+          'products',
+        );
+      }
+
       if (productToEdit) {
         const updatedProduct: Product = { ...productPayload, id: productToEdit.id };
         syncProduct(updatedProduct);
