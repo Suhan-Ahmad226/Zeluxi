@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Product,
@@ -46,6 +46,9 @@ interface ToastNotification {
 
 interface StoreContextType {
   products: Product[];
+  catalogHasMore: boolean;
+  isLoadingMoreProducts: boolean;
+  loadMoreProducts: () => Promise<void>;
   categories: Category[];
   cart: CartItem[];
   wishlist: string[];
@@ -166,6 +169,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
   const router = useRouter();
   // Load initial state from LocalStorage if available
   const [products, setProducts] = useState<Product[]>(INITIAL_PRODUCTS);
+  const [catalogHasMore, setCatalogHasMore] = useState(false);
+  const [isLoadingMoreProducts, setIsLoadingMoreProducts] = useState(false);
+  const loadingMoreRef = useRef(false);
 
   const [categories, setCategories] = useState<Category[]>(INITIAL_CATEGORIES);
 
@@ -315,10 +321,13 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData.session?.access_token;
       const catalogHeaders = token ? { Authorization: `Bearer ${token}` } : {};
-      const response = await fetch('/api/products', { headers: catalogHeaders, cache: 'no-store' });
+      const response = await fetch('/api/products?limit=12&offset=0', { headers: catalogHeaders, cache: 'no-store' });
       if (response.ok) {
         const payload = await response.json().catch(() => null);
-        if (!cancelled && Array.isArray(payload?.products)) setProducts(payload.products as Product[]);
+        if (!cancelled && Array.isArray(payload?.products)) {
+          setProducts(payload.products as Product[]);
+          setCatalogHasMore(Boolean(payload?.pagination?.hasMore));
+        }
       }
 
       const contentResponse = await fetch('/api/content', { headers: catalogHeaders, cache: 'no-store' });
@@ -349,6 +358,36 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
     });
     return () => { cancelled = true; };
   }, []);
+
+  const loadMoreProducts = async () => {
+    if (loadingMoreRef.current || !catalogHasMore) return;
+    loadingMoreRef.current = true;
+    setIsLoadingMoreProducts(true);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      const offset = products.length;
+      const response = await fetch(`/api/products?limit=12&offset=${offset}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        cache: 'no-store',
+      });
+      const payload = await response.json().catch(() => null);
+      if (!response.ok || !Array.isArray(payload?.products)) {
+        throw new Error('More products could not be loaded.');
+      }
+      setProducts((current) => {
+        const existingIds = new Set(current.map((product) => product.id));
+        return [...current, ...(payload.products as Product[]).filter((product: Product) => !existingIds.has(product.id))];
+      });
+      setCatalogHasMore(Boolean(payload?.pagination?.hasMore));
+    } catch (error) {
+      console.warn('Additional products could not be loaded.', error);
+      showToast('Could not load more products. Please try again.', 'error');
+    } finally {
+      loadingMoreRef.current = false;
+      setIsLoadingMoreProducts(false);
+    }
+  };
 
   // Sync to LocalStorage on updates
   useEffect(() => {
@@ -1554,6 +1593,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
     <StoreContext.Provider
       value={{
         products,
+        catalogHasMore,
+        isLoadingMoreProducts,
+        loadMoreProducts,
         categories,
         cart,
         wishlist,
