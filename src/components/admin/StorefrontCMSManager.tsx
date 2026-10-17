@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useStore } from '../../context/StoreContext';
+import { StoreImage } from '../common/StoreImage';
 import { StorefrontCMS, HeroBannerItem } from '../../types';
 import { getHeroBanners, heroContentFromBanner } from '../../lib/heroBanners';
 import { compressImageFile } from '../../utils/imageCompressor';
@@ -569,7 +570,7 @@ export const StorefrontCMSManager: React.FC = () => {
                             : 'border-slate-200 hover:border-indigo-300'
                         }`}
                       >
-                        <img src={preset.url} alt={preset.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                        <StoreImage src={preset.url} alt={preset.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
                         <span className="absolute inset-x-0 bottom-0 p-1 text-[9px] font-bold bg-slate-950/80 text-white backdrop-blur-xs truncate">
                           {preset.name}
                         </span>
@@ -581,7 +582,7 @@ export const StorefrontCMSManager: React.FC = () => {
                 {/* Current Banner Preview with Replace / Remove controls */}
                 {formData.hero.imageUrl && (
                   <div className="flex items-center gap-3 p-2 bg-white rounded-xl border border-slate-200">
-                    <img
+                    <StoreImage
                       src={formData.hero.imageUrl}
                       alt="Banner Preview"
                       className="w-16 h-12 object-cover rounded-lg border border-slate-200 bg-slate-100 shrink-0"
