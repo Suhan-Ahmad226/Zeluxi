@@ -6,9 +6,20 @@ export const WhatsAppConcierge: React.FC = () => {
   const { settings, setActiveView } = useStore();
   const [isOpen, setIsOpen] = useState(false);
 
-  const whatsappUrl = `https://wa.me/8801700112233?text=${encodeURIComponent(
-    'Hello Zelux Concierge, I have an inquiry regarding a product / order.'
-  )}`;
+  // Always use the number configured by the administrator. Never fall back to a demo number.
+  const whatsappDigits = (settings.whatsappNumber || '').replace(/\\D/g, '');
+  const normalizedWhatsappNumber = whatsappDigits.startsWith('0') && whatsappDigits.length === 11
+    ? `88${whatsappDigits}`
+    : whatsappDigits.startsWith('880') && whatsappDigits.length >= 12
+      ? whatsappDigits
+      : whatsappDigits.length >= 10 && whatsappDigits.length <= 15
+        ? whatsappDigits
+        : '';
+  const whatsappUrl = normalizedWhatsappNumber
+    ? `https://wa.me/${normalizedWhatsappNumber}?text=${encodeURIComponent(
+        'Hello Zelux, I have an inquiry regarding a product / order.'
+      )}`
+    : '';
 
   return (
     <div className="fixed bottom-20 md:bottom-6 right-3 sm:right-6 z-40">
@@ -37,18 +48,27 @@ export const WhatsAppConcierge: React.FC = () => {
           </p>
 
           <div className="space-y-2">
-            <a
-              href={whatsappUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center justify-between p-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold shadow-sm transition-colors"
-            >
-              <span className="flex items-center gap-2">
-                <MessageSquare className="w-4 h-4" />
-                <span>Chat on WhatsApp</span>
-              </span>
-              <ArrowUpRight className="w-3.5 h-3.5" />
-            </a>
+{whatsappUrl ? (
+              <a
+                href={whatsappUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-between p-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold shadow-sm transition-colors"
+              >
+                <span className="flex items-center gap-2">
+                  <MessageSquare className="w-4 h-4" />
+                  <span>Chat on WhatsApp</span>
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="font-mono text-[10px] opacity-90">{normalizedWhatsappNumber}</span>
+                  <ArrowUpRight className="w-3.5 h-3.5" />
+                </span>
+              </a>
+            ) : (
+              <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+                WhatsApp support is not configured yet. Please add the number in Admin Settings.
+              </div>
+            )}
 
             <a
               href={`tel:${settings.phone}`}
