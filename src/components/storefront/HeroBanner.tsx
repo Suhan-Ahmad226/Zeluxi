@@ -95,7 +95,12 @@ export const HeroBanner: React.FC = () => {
       onTouchStart={(event) => { touchStartX.current = event.changedTouches[0]?.clientX ?? null; }}
       onTouchEnd={(event) => {
         if (touchStartX.current === null || banners.length < 2) return;
-        const delta = event.changedTouches[0]?.clientX - touchStartX.current;
+        const touchX = event.changedTouches[0]?.clientX;
+        if (touchX === undefined) {
+          touchStartX.current = null;
+          return;
+        }
+        const delta = touchX - touchStartX.current;
         if (Math.abs(delta) > 45) moveTo(activeIndex + (delta < 0 ? 1 : -1));
         touchStartX.current = null;
       }}
