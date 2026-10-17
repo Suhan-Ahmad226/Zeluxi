@@ -46,7 +46,6 @@ function mapPathaoStatus(raw: string): string | null {
   if (['out_for_delivery', 'assigned_for_delivery', 'on_the_way'].includes(s)) return 'OUT_FOR_DELIVERY';
   if (['cancelled', 'canceled'].includes(s)) return 'CANCELLED';
   if (['returned', 'return'].includes(s)) return 'RETURNED';
-  if (['pending', 'created', 'order_created'].includes(s)) return 'CONFIRMED';
   return null;
 }
 export async function GET(request: NextRequest) {
@@ -130,7 +129,7 @@ export async function POST(request: NextRequest) {
         await db.from('courier_shipment_events').insert({ order_id: input.orderId, provider: 'PATHAO', event_type: 'BOOKED', status: result.status, note: 'Shipment booking confirmed by Pathao API.', payload: result.response });
         return NextResponse.json({ success: true, message: 'Pathao shipment booked successfully.', shipment: { orderId: input.orderId, consignmentId: result.consignmentId, status: result.status, deliveryFee: result.deliveryFee } }, { status: 201, headers: { 'Cache-Control': 'no-store' } });
       } catch (e) {
-        const unknown = e instanceof PathaoApiError && (e.safeCode === 'PATHAO_OUTCOME_UNKNOWN' || !e.status || e.status >= 500);
+        const unknown = e instanceof PathaoApiError && (e.safeCode === 'PATHAO_OUTCOME_UNKNOWN' || (Boolean(e.status) && e.status! >= 500));
         const safeError = e instanceof PathaoApiError ? e.message : 'Pathao booking failed unexpectedly.';
         await db.from('courier_shipments').update({ status: unknown ? 'UNKNOWN' : 'FAILED', error_code: e instanceof PathaoApiError ? e.safeCode : 'UNEXPECTED_ERROR', error_message: safeError.slice(0, 300), updated_at: new Date().toISOString() }).eq('order_id', input.orderId);
         await db.from('courier_shipment_events').insert({ order_id: input.orderId, provider: 'PATHAO', event_type: unknown ? 'OUTCOME_UNKNOWN' : 'BOOKING_FAILED', status: unknown ? 'UNKNOWN' : 'FAILED', note: safeError.slice(0, 300) });
