@@ -249,10 +249,51 @@ export const AdminDashboard: React.FC = () => {
 
   // Settings State Form
   const [storeNameInput, setStoreNameInput] = useState(settings.storeName);
+  const [taglineInput, setTaglineInput] = useState(settings.tagline || '');
+  const [phoneInput, setPhoneInput] = useState(settings.phone || '');
+  const [emailInput, setEmailInput] = useState(settings.email || '');
+  const [addressInput, setAddressInput] = useState(settings.address || '');
+  const [footerDescriptionInput, setFooterDescriptionInput] = useState(settings.footerDescription || '');
+  const [footerCopyrightInput, setFooterCopyrightInput] = useState(settings.footerCopyright || 'All rights reserved.');
+  const [whatsappInput, setWhatsappInput] = useState(settings.whatsappNumber || '');
+  const [facebookInput, setFacebookInput] = useState(settings.facebookUrl || '');
+  const [instagramInput, setInstagramInput] = useState(settings.instagramUrl || '');
+  const [tiktokInput, setTiktokInput] = useState(settings.tiktokUrl || '');
+  const [youtubeInput, setYoutubeInput] = useState(settings.youtubeUrl || '');
+  const [showPhoneInFooter, setShowPhoneInFooter] = useState(settings.showPhoneInFooter !== false);
+  const [showEmailInFooter, setShowEmailInFooter] = useState(settings.showEmailInFooter !== false);
+  const [showAddressInFooter, setShowAddressInFooter] = useState(settings.showAddressInFooter !== false);
+  const [showSocialLinksInFooter, setShowSocialLinksInFooter] = useState(settings.showSocialLinksInFooter !== false);
+  const [showPaymentBadgesInFooter, setShowPaymentBadgesInFooter] = useState(settings.showPaymentBadgesInFooter !== false);
   const [shippingDhakaInput, setShippingDhakaInput] = useState(settings.shippingDhaka);
   const [shippingOutsideInput, setShippingOutsideInput] = useState(settings.shippingOutsideDhaka);
   const [freeThresholdInput, setFreeThresholdInput] = useState(settings.freeShippingThreshold);
   const [announcementInput, setAnnouncementInput] = useState(settings.announcementText);
+
+  // Settings may arrive asynchronously from the content API after this component mounts.
+  React.useEffect(() => {
+    setStoreNameInput(settings.storeName || 'Zelux');
+    setTaglineInput(settings.tagline || '');
+    setPhoneInput(settings.phone || '');
+    setEmailInput(settings.email || '');
+    setAddressInput(settings.address || '');
+    setFooterDescriptionInput(settings.footerDescription || '');
+    setFooterCopyrightInput(settings.footerCopyright || 'All rights reserved.');
+    setWhatsappInput(settings.whatsappNumber || '');
+    setFacebookInput(settings.facebookUrl || '');
+    setInstagramInput(settings.instagramUrl || '');
+    setTiktokInput(settings.tiktokUrl || '');
+    setYoutubeInput(settings.youtubeUrl || '');
+    setShowPhoneInFooter(settings.showPhoneInFooter !== false);
+    setShowEmailInFooter(settings.showEmailInFooter !== false);
+    setShowAddressInFooter(settings.showAddressInFooter !== false);
+    setShowSocialLinksInFooter(settings.showSocialLinksInFooter !== false);
+    setShowPaymentBadgesInFooter(settings.showPaymentBadgesInFooter !== false);
+    setShippingDhakaInput(settings.shippingDhaka);
+    setShippingOutsideInput(settings.shippingOutsideDhaka);
+    setFreeThresholdInput(settings.freeShippingThreshold);
+    setAnnouncementInput(settings.announcementText);
+  }, [settings]);
 
   // Quick Edit Price & Delete Product States
   const [editingPriceProduct, setEditingPriceProduct] = useState<Product | null>(null);
@@ -364,7 +405,23 @@ export const AdminDashboard: React.FC = () => {
   const handleSaveSettings = (e: React.FormEvent) => {
     e.preventDefault();
     updateSettings({
-      storeName: storeNameInput,
+      storeName: storeNameInput.trim() || 'Zelux',
+      tagline: taglineInput.trim(),
+      phone: phoneInput.trim(),
+      email: emailInput.trim(),
+      address: addressInput.trim(),
+      footerDescription: footerDescriptionInput.trim(),
+      footerCopyright: footerCopyrightInput.trim() || 'All rights reserved.',
+      whatsappNumber: whatsappInput.trim(),
+      facebookUrl: facebookInput.trim(),
+      instagramUrl: instagramInput.trim(),
+      tiktokUrl: tiktokInput.trim(),
+      youtubeUrl: youtubeInput.trim(),
+      showPhoneInFooter,
+      showEmailInFooter,
+      showAddressInFooter,
+      showSocialLinksInFooter,
+      showPaymentBadgesInFooter,
       shippingDhaka: Number(shippingDhakaInput),
       shippingOutsideDhaka: Number(shippingOutsideInput),
       freeShippingThreshold: Number(freeThresholdInput),
@@ -2906,6 +2963,83 @@ export const AdminDashboard: React.FC = () => {
                   onChange={(e) => setAnnouncementInput(e.target.value)}
                   className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:border-indigo-600"
                 />
+              </div>
+
+
+              <div className="border-t border-slate-200 pt-5">
+                <h4 className="mb-1 text-sm font-bold text-slate-900">Footer & Contact Details</h4>
+                <p className="mb-4 text-xs text-slate-500">These details appear in the public storefront footer after saving.</p>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div>
+                    <label className="mb-1 block font-semibold">Store tagline</label>
+                    <input type="text" maxLength={180} value={taglineInput} onChange={(e) => setTaglineInput(e.target.value)} placeholder="Thoughtfully selected essentials..." className="w-full rounded-lg border px-3 py-2 focus:border-indigo-600 focus:outline-none" />
+                  </div>
+                  <div>
+                    <label className="mb-1 block font-semibold">Contact phone</label>
+                    <input type="tel" maxLength={40} value={phoneInput} onChange={(e) => setPhoneInput(e.target.value)} placeholder="+8801XXXXXXXXX" className="w-full rounded-lg border px-3 py-2 focus:border-indigo-600 focus:outline-none" />
+                  </div>
+                  <div>
+                    <label className="mb-1 block font-semibold">Contact email</label>
+                    <input type="email" maxLength={254} value={emailInput} onChange={(e) => setEmailInput(e.target.value)} placeholder="support@example.com" className="w-full rounded-lg border px-3 py-2 focus:border-indigo-600 focus:outline-none" />
+                  </div>
+                  <div>
+                    <label className="mb-1 block font-semibold">Store address</label>
+                    <input type="text" maxLength={300} value={addressInput} onChange={(e) => setAddressInput(e.target.value)} placeholder="Area, city, Bangladesh" className="w-full rounded-lg border px-3 py-2 focus:border-indigo-600 focus:outline-none" />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="mb-1 block font-semibold">Footer description (optional)</label>
+                    <textarea rows={2} maxLength={500} value={footerDescriptionInput} onChange={(e) => setFooterDescriptionInput(e.target.value)} placeholder="Short description about your store" className="w-full rounded-lg border px-3 py-2 focus:border-indigo-600 focus:outline-none" />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="mb-1 block font-semibold">Copyright text</label>
+                    <input type="text" maxLength={160} value={footerCopyrightInput} onChange={(e) => setFooterCopyrightInput(e.target.value)} placeholder="All rights reserved." className="w-full rounded-lg border px-3 py-2 focus:border-indigo-600 focus:outline-none" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="border-t border-slate-200 pt-5">
+                <h4 className="mb-1 text-sm font-bold text-slate-900">Social Media Links</h4>
+                <p className="mb-4 text-xs text-slate-500">Only secure HTTPS links are shown on the storefront. Leave a field empty to hide that social icon.</p>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div>
+                    <label className="mb-1 block font-semibold">WhatsApp number (international format)</label>
+                    <input type="tel" maxLength={24} value={whatsappInput} onChange={(e) => setWhatsappInput(e.target.value)} placeholder="8801XXXXXXXXX" className="w-full rounded-lg border px-3 py-2 focus:border-indigo-600 focus:outline-none" />
+                  </div>
+                  <div>
+                    <label className="mb-1 block font-semibold">Facebook page URL</label>
+                    <input type="url" maxLength={500} value={facebookInput} onChange={(e) => setFacebookInput(e.target.value)} placeholder="https://facebook.com/yourpage" className="w-full rounded-lg border px-3 py-2 focus:border-indigo-600 focus:outline-none" />
+                  </div>
+                  <div>
+                    <label className="mb-1 block font-semibold">Instagram URL</label>
+                    <input type="url" maxLength={500} value={instagramInput} onChange={(e) => setInstagramInput(e.target.value)} placeholder="https://instagram.com/yourpage" className="w-full rounded-lg border px-3 py-2 focus:border-indigo-600 focus:outline-none" />
+                  </div>
+                  <div>
+                    <label className="mb-1 block font-semibold">TikTok URL</label>
+                    <input type="url" maxLength={500} value={tiktokInput} onChange={(e) => setTiktokInput(e.target.value)} placeholder="https://tiktok.com/@yourpage" className="w-full rounded-lg border px-3 py-2 focus:border-indigo-600 focus:outline-none" />
+                  </div>
+                  <div>
+                    <label className="mb-1 block font-semibold">YouTube URL</label>
+                    <input type="url" maxLength={500} value={youtubeInput} onChange={(e) => setYoutubeInput(e.target.value)} placeholder="https://youtube.com/@yourchannel" className="w-full rounded-lg border px-3 py-2 focus:border-indigo-600 focus:outline-none" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="border-t border-slate-200 pt-5">
+                <h4 className="mb-3 text-sm font-bold text-slate-900">Footer Visibility</h4>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  {[
+                    { label: 'Show phone number', checked: showPhoneInFooter, onChange: setShowPhoneInFooter },
+                    { label: 'Show email address', checked: showEmailInFooter, onChange: setShowEmailInFooter },
+                    { label: 'Show store address', checked: showAddressInFooter, onChange: setShowAddressInFooter },
+                    { label: 'Show social media icons', checked: showSocialLinksInFooter, onChange: setShowSocialLinksInFooter },
+                    { label: 'Show payment badges', checked: showPaymentBadgesInFooter, onChange: setShowPaymentBadgesInFooter },
+                  ].map((item) => (
+                    <label key={item.label} className="flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 p-3 text-slate-700">
+                      <input type="checkbox" checked={item.checked} onChange={(e) => item.onChange(e.target.checked)} className="h-4 w-4 accent-indigo-600" />
+                      <span>{item.label}</span>
+                    </label>
+                  ))}
+                </div>
               </div>
 
               <button
