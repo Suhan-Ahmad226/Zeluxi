@@ -77,6 +77,7 @@ export interface Category {
   slug: string;
   description: string;
   image: string;
+  imagePublicId?: string;
   itemCount: number;
   order?: number;
   isActive?: boolean;
