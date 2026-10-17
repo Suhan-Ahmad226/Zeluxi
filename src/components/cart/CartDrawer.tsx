@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useStore } from '../../context/StoreContext';
+import { StoreImage } from '../common/StoreImage';
 import { formatPrice } from '../../utils/formatters';
 import { ShoppingBag, X, Trash2, ArrowRight, Tag, Sparkles, Check } from 'lucide-react';
 
@@ -123,10 +124,12 @@ export const CartDrawer: React.FC = () => {
                   key={`${item.productId}-${item.variantId || 'std'}`}
                   className="flex items-center gap-3 p-3 bg-slate-50/70 border border-slate-200/80 rounded-xl"
                 >
-                  <img
+                  <StoreImage
                     src={item.image}
                     alt={item.name}
                     className="w-16 h-16 rounded-lg object-cover bg-white border border-slate-200 shrink-0"
+                    loading="lazy"
+                    decoding="async"
                   />
                   <div className="flex-1 min-w-0">
                     <h4 className="text-xs font-semibold text-slate-900 truncate">
