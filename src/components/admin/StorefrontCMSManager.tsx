@@ -483,7 +483,8 @@ export const StorefrontCMSManager: React.FC = () => {
                   className="hidden"
                   onChange={(e) => {
                     const file = e.target.files?.[0];
-                    if (file) void handleBannerFile(file);\n                    e.currentTarget.value = '';
+                    if (file) void handleBannerFile(file);
+                    e.currentTarget.value = '';
                   }}
                 />
 
