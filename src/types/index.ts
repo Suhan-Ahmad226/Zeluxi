@@ -290,11 +290,22 @@ export interface StoreSettings {
 }
 
 export interface StaticPageContent {
+  /** Stable URL path segment, normalized to lowercase kebab-case. */
   slug: string;
   title: string;
   content: string;
   lastUpdated: string;
   isPublished: boolean;
+  /** Optional search and social metadata. */
+  seoTitle?: string;
+  seoDescription?: string;
+  ogImageUrl?: string;
+  /** Navigation is opt-in so private/landing pages are not exposed by default. */
+  showInHeader?: boolean;
+  showInFooter?: boolean;
+  navigationLabel?: string;
+  navigationGroup?: 'company' | 'customer-care' | 'legal' | 'custom';
+  navigationOrder?: number;
 }
 
 export interface HeroBannerContent {

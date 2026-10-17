@@ -33,7 +33,7 @@ function phoneHref(value?: string): string | null {
 }
 
 export const Footer: React.FC = () => {
-  const { settings, setActiveView, setActiveStaticPage } = useStore();
+  const { settings, pages, setActiveView, setActiveStaticPage } = useStore();
   const storeName = settings.storeName?.trim() || 'Zelux';
   const phone = settings.phone?.trim() || '';
   const email = settings.email?.trim() || '';
@@ -68,7 +68,7 @@ export const Footer: React.FC = () => {
               <span className="rounded bg-indigo-500/20 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-indigo-200">Store</span>
             </a>
             <p className="max-w-sm break-words text-sm leading-6 text-slate-400">
-              {settings.footerDescription?.trim() || settings.tagline?.trim() || 'Thoughtfully selected essentials for everyday living.'}
+              {settings.footerDescription?.trim() || settings.tagline?.trim() || ''}
             </p>
 
             {showContact && (address || phone || email) && (
@@ -129,6 +129,20 @@ export const Footer: React.FC = () => {
                 <li><button type="button" onClick={() => setActiveStaticPage('support')} className="text-left transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400">Contact support</button></li>
                 <li><button type="button" onClick={() => setActiveStaticPage('privacy')} className="text-left transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400">Privacy policy</button></li>
                 <li><button type="button" onClick={() => setActiveStaticPage('terms')} className="text-left transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400">Terms of service</button></li>
+                {pages
+                  .filter((page) => page.isPublished && page.showInFooter === true && !['about', 'shipping', 'refund', 'support', 'faq', 'privacy', 'terms'].includes(page.slug))
+                  .sort((a, b) => (a.navigationOrder ?? 100) - (b.navigationOrder ?? 100))
+                  .map((page) => (
+                    <li key={page.slug}>
+                      <button
+                        type="button"
+                        onClick={() => setActiveStaticPage(page.slug)}
+                        className="text-left transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+                      >
+                        {page.navigationLabel?.trim() || page.title}
+                      </button>
+                    </li>
+                  ))}
               </ul>
             </nav>
           )}
