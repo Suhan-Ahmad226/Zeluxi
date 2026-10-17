@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useStore } from '../../context/StoreContext';
+import { StoreImage } from '../common/StoreImage';
 import { Category } from '../../types';
 import { compressImageFile } from '../../utils/imageCompressor';
 import {
