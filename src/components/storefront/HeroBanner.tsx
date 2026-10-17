@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { ArrowRight, ChevronLeft, ChevronRight, Pause, Play } from 'lucide-react';
 import { useStore } from '../../context/StoreContext';
 import { DEFAULT_HERO_IMAGE, getHeroBanners, isSafeHeroLink } from '../../lib/heroBanners';
+import { generateSrcSet, getOptimizedImageUrl } from '../../lib/cloudinary';
 import type { HeroBannerItem } from '../../types';
 
 export const HeroBanner: React.FC = () => {
@@ -51,7 +52,22 @@ export const HeroBanner: React.FC = () => {
   };
   const primaryLink = isSafeHeroLink(banner.primaryButtonLink) ? banner.primaryButtonLink : '';
   const secondaryLink = isSafeHeroLink(banner.secondaryButtonLink) ? banner.secondaryButtonLink : '';
-  const imageUrl = banner.imageUrl || DEFAULT_HERO_IMAGE;
+  const originalImageUrl = banner.imageUrl || DEFAULT_HERO_IMAGE;
+  // Cloudinary and Unsplash can deliver device-sized variants. Other hosted URLs stay unchanged.
+  const imageUrl = getOptimizedImageUrl(originalImageUrl, {
+    width: 1440,
+    crop: 'fill',
+    gravity: 'auto',
+    format: 'auto',
+    quality: 'auto',
+  });
+  const imageSrcSet = generateSrcSet(originalImageUrl, [320, 480, 640, 768, 1024, 1280, 1440], {
+    crop: 'fill',
+    gravity: 'auto',
+  });
+  const mobileImageSrcSet = banner.mobileImageUrl && isSafeHeroLink(banner.mobileImageUrl)
+    ? generateSrcSet(banner.mobileImageUrl, [320, 480, 640, 768], { crop: 'fill', gravity: 'auto' })
+    : '';
   const renderPrimaryButton = () => primaryLink ? (
     <a
       href={primaryLink}
@@ -91,7 +107,7 @@ export const HeroBanner: React.FC = () => {
     <section
       aria-label="Featured promotions"
       aria-roledescription={banners.length > 1 ? 'carousel' : undefined}
-      className="relative isolate overflow-hidden bg-slate-900 py-10 text-white sm:py-16 lg:py-20"
+      className="relative isolate overflow-hidden bg-slate-900 py-6 text-white sm:py-10 lg:py-12"
       onTouchStart={(event) => { touchStartX.current = event.changedTouches[0]?.clientX ?? null; }}
       onTouchEnd={(event) => {
         if (touchStartX.current === null || banners.length < 2) return;
@@ -109,7 +125,7 @@ export const HeroBanner: React.FC = () => {
       <div aria-hidden="true" className="pointer-events-none absolute -right-24 -top-24 h-96 w-96 rounded-full bg-indigo-500/10 blur-3xl" />
 
       <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 items-center gap-8 sm:gap-10 lg:grid-cols-12 lg:gap-12">
+        <div className="grid grid-cols-1 items-center gap-6 sm:gap-8 lg:grid-cols-12 lg:gap-10">
           <div className="min-w-0 space-y-5 lg:col-span-7">
             <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-indigo-300">
               <span>{banner.tagline || 'Zelux Atelier'}</span>
@@ -134,17 +150,24 @@ export const HeroBanner: React.FC = () => {
           </div>
 
           <div className="relative min-w-0 lg:col-span-5">
-            <div className="group relative mx-auto aspect-[4/3] w-full max-w-xl overflow-hidden rounded-2xl border border-slate-700/80 bg-slate-800 shadow-2xl">
-              <picture>
+            <div className="group relative mx-auto aspect-[4/3] w-full max-w-xl overflow-hidden rounded-2xl border border-slate-700/80 bg-slate-800 shadow-2xl sm:aspect-[4/3] lg:aspect-[5/4]">
+              <picture className="absolute inset-0 block h-full w-full">
                 {banner.mobileImageUrl && isSafeHeroLink(banner.mobileImageUrl) && (
-                  <source media="(max-width: 639px)" srcSet={banner.mobileImageUrl} />
+                  <source
+                    media="(max-width: 639px)"
+                    srcSet={mobileImageSrcSet || banner.mobileImageUrl}
+                    sizes="(max-width: 639px) calc(100vw - 2rem), 40vw"
+                  />
                 )}
                 <img
                   src={imageUrl}
+                  srcSet={imageSrcSet || undefined}
+                  sizes="(max-width: 639px) calc(100vw - 2rem), (max-width: 1023px) calc(100vw - 3rem), 40vw"
                   alt={banner.highlightSubtitle || banner.headline || 'Featured Zelux collection'}
                   fetchPriority="high"
+                  loading="eager"
                   decoding="async"
-                  className="block h-auto max-h-[70vh] w-full object-contain"
+                  className="absolute inset-0 block h-full w-full object-cover object-center"
                 />
               </picture>
               {(banner.highlightTitle || banner.highlightSubtitle || banner.highlightPrice) && (
@@ -166,7 +189,7 @@ export const HeroBanner: React.FC = () => {
         </div>
 
         {banners.length > 1 && (
-          <div className="mt-7 flex flex-wrap items-center justify-between gap-3 sm:mt-8">
+          <div className="mt-5 flex flex-wrap items-center justify-between gap-3 sm:mt-6">
             <div className="flex items-center gap-2" aria-label="Choose featured promotion">
               {banners.map((item: HeroBannerItem, index: number) => (
                 <button
