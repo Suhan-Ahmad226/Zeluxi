@@ -72,6 +72,12 @@ function validateStoreSettings(value: unknown): string | null {
     }
   }
 
+  if (settings.footerPaymentMethods !== undefined &&
+      (!Array.isArray(settings.footerPaymentMethods) || settings.footerPaymentMethods.length > 8 ||
+       settings.footerPaymentMethods.some((method) => typeof method !== 'string' || method.trim().length > 24))) {
+    return 'Footer payment methods must contain up to 8 labels of 24 characters or fewer.';
+  }
+
   for (const field of ['showPhoneInFooter', 'showEmailInFooter', 'showAddressInFooter', 'showSocialLinksInFooter', 'showPaymentBadgesInFooter']) {
     if (settings[field] !== undefined && typeof settings[field] !== 'boolean') {
       return `${field} must be a boolean.`;
