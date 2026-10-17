@@ -68,7 +68,7 @@ export const Footer: React.FC = () => {
               <span className="rounded bg-indigo-500/20 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-indigo-200">Store</span>
             </a>
             <p className="max-w-sm break-words text-sm leading-6 text-slate-400">
-              {settings.footerDescription?.trim() || settings.tagline?.trim() || 'Thoughtfully selected essentials for everyday living.'}
+              {settings.footerDescription?.trim() || settings.tagline?.trim() || ''}
             </p>
 
             {showContact && (address || phone || email) && (
