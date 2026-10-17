@@ -1252,7 +1252,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
       const nextCategories = categories.map((item) => item.id === existing.id ? updatedCategory : item);
       void (async () => {
         const [image] = await persistProductImageUrls([updatedCategory.image || ''], updatedCategory.id, 'categories');
-        const persistedCategory = { ...updatedCategory, image };
+        const persistedCategory = { ...updatedCategory, image, imagePublicId: getCloudinaryPublicId(image) };
         const resolvedCategories = nextCategories.map((item) => item.id === persistedCategory.id ? persistedCategory : item);
         await saveAdminContent('categories', resolvedCategories);
         setCategories(resolvedCategories);
@@ -1275,7 +1275,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
     const nextCategories = [...categories, newCategory];
     void (async () => {
       const [image] = await persistProductImageUrls([newCategory.image || ''], newCategory.id, 'categories');
-      const persistedCategory = { ...newCategory, image };
+      const persistedCategory = { ...newCategory, image, imagePublicId: getCloudinaryPublicId(image) };
       const resolvedCategories = [...categories, persistedCategory];
       await saveAdminContent('categories', resolvedCategories);
       setCategories(resolvedCategories);
