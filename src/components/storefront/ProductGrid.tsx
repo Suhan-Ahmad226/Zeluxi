@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useStore } from '../../context/StoreContext';
 import { ProductCard } from './ProductCard';
 import { X, Sparkles, Flame, Check, ArrowUpDown } from 'lucide-react';
@@ -30,6 +30,12 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
   const [sortBy, setSortBy] = useState<'featured' | 'price-low' | 'price-high' | 'rating'>('featured');
   const [priceRange, setPriceRange] = useState<'all' | 'under-2000' | '2000-5000' | 'above-5000'>('all');
   const [inStockOnly, setInStockOnly] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(limit ?? 8);
+
+  // Reset pagination whenever filters change.
+  useEffect(() => {
+    setVisibleCount(limit ?? 8);
+  }, [limit, featuredOnly, selectedCategoryFilter, activeFilterTab, inStockOnly, priceRange, searchQuery, sortBy]);
 
   const filteredProducts = useMemo(() => {
     const categoryMatches = (product: (typeof products)[number]) => {
@@ -81,7 +87,9 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
     });
   }, [products, categories, selectedCategoryFilter, activeFilterTab, inStockOnly, priceRange, searchQuery, featuredOnly, sortBy]);
 
-  const displayList = limit ? filteredProducts.slice(0, limit) : filteredProducts;
+  const effectiveLimit = featuredOnly ? Math.min(limit ?? 4, 4) : visibleCount;
+  const displayList = filteredProducts.slice(0, effectiveLimit);
+  const hasMoreProducts = !featuredOnly && displayList.length < filteredProducts.length;
 
   return (
     <section className="py-12 bg-white" id="main-product-grid">
@@ -287,6 +295,18 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
             {displayList.map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}
+          </div>
+        )}
+        {hasMoreProducts && (
+          <div className="mt-8 flex justify-center">
+            <button
+              type="button"
+              onClick={() => setVisibleCount((current) => Math.min(current + 8, filteredProducts.length))}
+              className="min-h-11 rounded-lg border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-900 transition-colors hover:border-slate-900 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+            >
+              Load More
+              <span className="ml-2 text-slate-500">({filteredProducts.length - displayList.length} remaining)</span>
+            </button>
           </div>
         )}
       </div>
