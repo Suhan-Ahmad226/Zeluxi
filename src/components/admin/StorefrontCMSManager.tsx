@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useStore } from '../../context/StoreContext';
-import { StorefrontCMS } from '../../types';
+import { StorefrontCMS, HeroBannerItem } from '../../types';
+import { getHeroBanners, heroContentFromBanner } from '../../lib/heroBanners';
 import { compressImageFile } from '../../utils/imageCompressor';
 import {
   Palette,
@@ -19,15 +20,30 @@ import {
   Trash2,
   FolderUp,
   Loader2,
+  Plus,
+  ChevronUp,
+  ChevronDown,
 } from 'lucide-react';
 
 export const StorefrontCMSManager: React.FC = () => {
   const { storefrontCMS, updateStorefrontCMS, language, showToast, setActiveView } = useStore();
 
-  // Local editing state initialized from storefrontCMS
-  const [formData, setFormData] = useState<StorefrontCMS>(() => JSON.parse(JSON.stringify(storefrontCMS)));
+  // Normalize legacy single-hero records into the new editable banner collection.
+  const buildEditorState = (cms: StorefrontCMS): StorefrontCMS => {
+    const cloned = JSON.parse(JSON.stringify(cms)) as StorefrontCMS;
+    const banners = getHeroBanners(cloned);
+    return {
+      ...cloned,
+      banners,
+      hero: banners[0] ? heroContentFromBanner(banners[0]) : cloned.hero,
+    };
+  };
+  const [formData, setFormData] = useState<StorefrontCMS>(() => buildEditorState(storefrontCMS));
+  const [selectedBannerId, setSelectedBannerId] = useState<string>(() => getHeroBanners(storefrontCMS)[0]?.id || '');
   const [activeTab, setActiveTab] = useState<'hero' | 'announcement' | 'visibility'>('hero');
   const [showLivePreview, setShowLivePreview] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const selectedBanner = formData.banners?.find((banner) => banner.id === selectedBannerId);
 
   // Banner image upload state
   const bannerFileInputRef = useRef<HTMLInputElement>(null);
@@ -73,12 +89,97 @@ export const StorefrontCMSManager: React.FC = () => {
   };
 
   const handleHeroChange = (field: keyof StorefrontCMS['hero'], val: string) => {
+    setFormData((prev) => {
+      const hero = { ...prev.hero, [field]: val };
+      return {
+        ...prev,
+        hero,
+        banners: (prev.banners || []).map((banner) =>
+          banner.id === selectedBannerId ? { ...banner, ...hero } : banner,
+        ),
+      };
+    });
+  };
+
+  const handleSelectBanner = (banner: HeroBannerItem) => {
+    setSelectedBannerId(banner.id);
+    setFormData((prev) => ({ ...prev, hero: heroContentFromBanner(banner) }));
+  };
+
+  const handleAddBanner = () => {
+    const currentBanners = [...(formData.banners || [])].sort((a, b) => a.order - b.order);
+    if (currentBanners.length >= 10) {
+      showToast('You can manage up to 10 hero banners.', 'error');
+      return;
+    }
+    const id = typeof crypto !== 'undefined' && 'randomUUID' in crypto
+      ? crypto.randomUUID()
+      : `hero-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const banner: HeroBannerItem = {
+      id,
+      order: currentBanners.length,
+      active: true,
+      tagline: 'New collection',
+      headline: 'Add your campaign headline',
+      description: '',
+      primaryButtonText: 'Shop now',
+      secondaryButtonText: '',
+      imageUrl: '',
+      highlightTitle: '',
+      highlightSubtitle: '',
+      highlightPrice: '',
+      primaryButtonLink: '/shop',
+      secondaryButtonLink: '',
+      mobileImageUrl: '',
+    };
     setFormData((prev) => ({
       ...prev,
-      hero: {
-        ...prev.hero,
-        [field]: val,
-      },
+      banners: [...(prev.banners || []), banner],
+      hero: heroContentFromBanner(banner),
+    }));
+    setSelectedBannerId(id);
+    setBannerUploadMode('upload');
+  };
+
+  const handleDeleteBanner = (id: string) => {
+    const banners = [...(formData.banners || [])].sort((a, b) => a.order - b.order);
+    if (banners.length <= 1) {
+      showToast('Keep at least one banner. You can hide the Hero section instead.', 'error');
+      return;
+    }
+    const next = banners.filter((banner) => banner.id !== id).map((banner, order) => ({ ...banner, order }));
+    const nextSelected = next.find((banner) => banner.id === selectedBannerId) || next[0];
+    setFormData((prev) => ({
+      ...prev,
+      banners: next,
+      hero: heroContentFromBanner(nextSelected),
+    }));
+    setSelectedBannerId(nextSelected.id);
+  };
+
+  const handleMoveBanner = (id: string, direction: -1 | 1) => {
+    setFormData((prev) => {
+      const banners = [...(prev.banners || [])].sort((a, b) => a.order - b.order);
+      const index = banners.findIndex((banner) => banner.id === id);
+      const target = index + direction;
+      if (index < 0 || target < 0 || target >= banners.length) return prev;
+      [banners[index], banners[target]] = [banners[target], banners[index]];
+      return { ...prev, banners: banners.map((banner, order) => ({ ...banner, order })) };
+    });
+  };
+
+  const handleToggleBanner = (id: string) => {
+    const banners = formData.banners || [];
+    const target = banners.find((banner) => banner.id === id);
+    if (target?.active && banners.filter((banner) => banner.active).length <= 1) {
+      showToast('At least one hero banner must remain active.', 'error');
+      return;
+    }
+    setFormData((prev) => ({
+      ...prev,
+      banners: (prev.banners || []).map((banner) =>
+        banner.id === id ? { ...banner, active: !banner.active } : banner,
+      ),
     }));
   };
 
@@ -102,14 +203,37 @@ export const StorefrontCMSManager: React.FC = () => {
     }));
   };
 
-  const handleSave = () => {
-    updateStorefrontCMS(formData);
-    showToast('Storefront appearance and homepage configuration published!', 'success');
+  const handleSave = async () => {
+    if (isSaving || isCompressingBanner) return;
+    const banners = formData.banners || [];
+    if (banners.length > 10) {
+      showToast('You can publish up to 10 hero banners.', 'error');
+      return;
+    }
+    if (banners.some((banner) => banner.active && !banner.headline.trim())) {
+      showToast('Every active banner needs a headline before publishing.', 'error');
+      return;
+    }
+    setIsSaving(true);
+    try {
+      const saved = await updateStorefrontCMS(formData);
+      setFormData(buildEditorState(saved));
+      const savedBanners = getHeroBanners(saved);
+      if (!savedBanners.some((banner) => banner.id === selectedBannerId)) {
+        setSelectedBannerId(savedBanners[0]?.id || '');
+      }
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Storefront changes could not be saved.', 'error');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleResetToCurrent = () => {
-    setFormData(JSON.parse(JSON.stringify(storefrontCMS)));
-    showToast('Reverted to current live storefront settings', 'info');
+    const current = buildEditorState(storefrontCMS);
+    setFormData(current);
+    setSelectedBannerId(current.banners?.[0]?.id || '');
+    showToast('Unsaved changes discarded.', 'info');
   };
 
   return (
@@ -145,11 +269,13 @@ export const StorefrontCMSManager: React.FC = () => {
           </button>
 
           <button
+            type="button"
             onClick={handleSave}
-            className="flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-xs active:scale-95 transition-all"
+            disabled={isSaving || isCompressingBanner}
+            className="flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60 text-white rounded-xl text-xs font-bold shadow-xs active:scale-95 transition-all"
           >
-            <Save className="w-4 h-4" />
-            <span>Save & Publish</span>
+            {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+            <span>{isSaving ? 'Publishing…' : 'Save & Publish'}</span>
           </button>
         </div>
       </div>
@@ -194,10 +320,34 @@ export const StorefrontCMSManager: React.FC = () => {
           {/* TAB 1: HERO SECTION CONFIG */}
           {activeTab === 'hero' && (
             <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-2xs space-y-5 text-xs">
-              <h4 className="font-bold text-sm text-slate-900 flex items-center gap-2">
-                <Palette className="w-4 h-4 text-indigo-600" />
-                <span>Hero Banner Content & Call to Actions</span>
-              </h4>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <h4 className="font-bold text-sm text-slate-900 flex items-center gap-2">
+                  <Palette className="w-4 h-4 text-indigo-600" />
+                  <span>Hero Banner Content & Call to Actions</span>
+                </h4>
+                <button type="button" onClick={handleAddBanner} className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-bold text-white hover:bg-indigo-700">
+                  <Plus className="h-3.5 w-3.5" /> Add banner
+                </button>
+              </div>
+
+              <div className="space-y-2">
+                <p className="font-semibold text-slate-700">Manage banners <span className="font-normal text-slate-500">({(formData.banners || []).length}/10)</span></p>
+                <div className="space-y-2">
+                  {[...(formData.banners || [])].sort((a, b) => a.order - b.order).map((banner, index, all) => (
+                    <div key={banner.id} className={`flex items-center gap-2 rounded-xl border p-2 ${banner.id === selectedBannerId ? 'border-indigo-400 bg-indigo-50/60' : 'border-slate-200 bg-white'}`}>
+                      <button type="button" onClick={() => handleSelectBanner(banner)} className="min-w-0 flex-1 text-left">
+                        <span className="block truncate text-xs font-bold text-slate-800">{banner.headline || `Banner ${index + 1}`}</span>
+                        <span className="mt-0.5 block text-[10px] text-slate-500">Slide {index + 1} · {banner.active ? 'Active' : 'Hidden'}</span>
+                      </button>
+                      <button type="button" onClick={() => handleToggleBanner(banner.id)} aria-label={banner.active ? 'Hide banner' : 'Publish banner'} className={`rounded-md px-2 py-1 text-[10px] font-semibold ${banner.active ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600'}`}>{banner.active ? 'Live' : 'Hidden'}</button>
+                      <button type="button" onClick={() => handleMoveBanner(banner.id, -1)} disabled={index === 0} aria-label="Move banner up" className="rounded-md p-1 text-slate-500 hover:bg-slate-100 disabled:opacity-30"><ChevronUp className="h-4 w-4" /></button>
+                      <button type="button" onClick={() => handleMoveBanner(banner.id, 1)} disabled={index === all.length - 1} aria-label="Move banner down" className="rounded-md p-1 text-slate-500 hover:bg-slate-100 disabled:opacity-30"><ChevronDown className="h-4 w-4" /></button>
+                      <button type="button" onClick={() => handleDeleteBanner(banner.id)} aria-label="Delete banner" className="rounded-md p-1 text-rose-600 hover:bg-rose-50"><Trash2 className="h-4 w-4" /></button>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-[11px] text-slate-500">Select a banner to edit it. At least one banner must stay active. Changes go live only after Save & Publish.</p>
+              </div>
 
               <div>
                 <label className="block font-semibold text-slate-700 mb-1">Tagline</label>
@@ -247,6 +397,22 @@ export const StorefrontCMSManager: React.FC = () => {
                     onChange={(e) => handleHeroChange('secondaryButtonText', e.target.value)}
                     className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
                   />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Primary Button Link</label>
+                  <input type="text" value={formData.hero.primaryButtonLink || ''} onChange={(e) => handleHeroChange('primaryButtonLink', e.target.value)} placeholder="/shop or https://example.com" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500" />
+                </div>
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Secondary Button Link</label>
+                  <input type="text" value={formData.hero.secondaryButtonLink || ''} onChange={(e) => handleHeroChange('secondaryButtonLink', e.target.value)} placeholder="/about or https://example.com" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500" />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="block font-semibold text-slate-700 mb-1">Optional Mobile Image URL</label>
+                  <input type="url" value={formData.hero.mobileImageUrl || ''} onChange={(e) => handleHeroChange('mobileImageUrl', e.target.value)} placeholder="https://... (optional)" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500" />
+                  <p className="mt-1 text-[10px] text-slate-500">Use a portrait-friendly image for small screens. Leave empty to reuse the main image.</p>
                 </div>
               </div>
 
@@ -307,7 +473,7 @@ export const StorefrontCMSManager: React.FC = () => {
                   className="hidden"
                   onChange={(e) => {
                     const file = e.target.files?.[0];
-                    if (file) handleBannerFile(file);
+                    if (file) void handleBannerFile(file);\n                    e.currentTarget.value = '';
                   }}
                 />
 
@@ -327,7 +493,7 @@ export const StorefrontCMSManager: React.FC = () => {
                       const file = e.dataTransfer.files?.[0];
                       if (file) handleBannerFile(file);
                     }}
-                    onClick={() => !isCompressingBanner && bannerFileInputRef.current?.click()}
+                    onClick={() => !isCompressingBanner && !isSaving && bannerFileInputRef.current?.click()}
                     className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all ${
                       isDraggingBanner
                         ? 'border-indigo-500 bg-indigo-50/70 scale-[1.01]'
@@ -622,11 +788,17 @@ export const StorefrontCMSManager: React.FC = () => {
                 </div>
 
                 <div className="mt-4 rounded-lg overflow-hidden border border-slate-800 aspect-video relative bg-slate-900">
-                  <img
-                    src={formData.hero.imageUrl}
-                    alt="Preview"
-                    className="w-full h-full object-cover"
-                  />
+                  {formData.hero.imageUrl ? (
+                    <img
+                      src={formData.hero.imageUrl}
+                      alt={formData.hero.headline ? `Preview: ${formData.hero.headline}` : 'Hero banner preview'}
+                      width={1200}
+                      height={675}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-full items-center justify-center p-6 text-center text-xs text-slate-500">Choose or upload an image to preview this banner.</div>
+                  )}
                   <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent" />
                   <div className="absolute bottom-2.5 left-2.5 right-2.5 text-left text-[11px]">
                     <p className="text-amber-400 font-bold text-[10px]">{formData.hero.highlightTitle}</p>
