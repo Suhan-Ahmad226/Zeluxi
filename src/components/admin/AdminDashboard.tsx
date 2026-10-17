@@ -265,6 +265,7 @@ export const AdminDashboard: React.FC = () => {
   const [showAddressInFooter, setShowAddressInFooter] = useState(settings.showAddressInFooter !== false);
   const [showSocialLinksInFooter, setShowSocialLinksInFooter] = useState(settings.showSocialLinksInFooter !== false);
   const [showPaymentBadgesInFooter, setShowPaymentBadgesInFooter] = useState(settings.showPaymentBadgesInFooter !== false);
+  const [paymentMethodsInput, setPaymentMethodsInput] = useState((settings.footerPaymentMethods || ['Cash on delivery']).join(', '));
   const [footerContactVisible, setFooterContactVisible] = useState(settings.footerShowContact !== false);
   const [footerNavigationVisible, setFooterNavigationVisible] = useState(settings.footerShowNavigation !== false);
   const [footerCustomerCareVisible, setFooterCustomerCareVisible] = useState(settings.footerShowCustomerCare !== false);
@@ -295,6 +296,7 @@ export const AdminDashboard: React.FC = () => {
     setShowAddressInFooter(settings.showAddressInFooter !== false);
     setShowSocialLinksInFooter(settings.showSocialLinksInFooter !== false);
     setShowPaymentBadgesInFooter(settings.showPaymentBadgesInFooter !== false);
+    setPaymentMethodsInput((settings.footerPaymentMethods || ['Cash on delivery']).join(', '));
     setFooterContactVisible(settings.footerShowContact !== false);
     setFooterNavigationVisible(settings.footerShowNavigation !== false);
     setFooterCustomerCareVisible(settings.footerShowCustomerCare !== false);
@@ -434,6 +436,7 @@ export const AdminDashboard: React.FC = () => {
       showAddressInFooter,
       showSocialLinksInFooter,
       showPaymentBadgesInFooter,
+      footerPaymentMethods: paymentMethodsInput.split(',').map((method) => method.trim()).filter(Boolean).slice(0, 8),
       footerShowContact: footerContactVisible,
       footerShowNavigation: footerNavigationVisible,
       footerShowCustomerCare: footerCustomerCareVisible,
