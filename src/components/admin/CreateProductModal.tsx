@@ -397,7 +397,10 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
   const handleAddExternalImage = () => {
     if (!externalImageUrl.trim()) return;
     try {
-      new URL(externalImageUrl);
+      const parsedUrl = new URL(externalImageUrl.trim());
+      if (parsedUrl.protocol !== 'https:' && parsedUrl.protocol !== 'http:') {
+        throw new Error('Only HTTP or HTTPS image URLs are supported.');
+      }
       setImages((prev) => [
         ...prev,
         {
@@ -576,7 +579,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
 
       const newProductData: Omit<Product, 'id' | 'rating' | 'reviewCount'> = {
         name: name.trim(),
-        slug: slug.trim() || name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
+        slug: (slug.trim() || name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')).toLowerCase().replace(/[^a-z0-9-]+/g, '').replace(/-+/g, '-').replace(/(^-|-$)/g, '') || `product-${Date.now()}`,
         sku: sku.trim().toUpperCase(),
         barcode: barcode.trim() || undefined,
         category,
@@ -632,6 +635,8 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
         videoUrl: uploadedVideo?.url || newProductData.videoUrl,
         videoPublicId: uploadedVideo?.publicId || (newProductData.videoUrl ? getCloudinaryPublicId(newProductData.videoUrl) : undefined),
         imagePublicIds: newProductData.images.map(getCloudinaryPublicId).filter((id): id is string => Boolean(id)),
+        // SEO/social previews must use the durable hosted image, never the temporary browser data URL.
+        ogImageUrl: newProductData.images[0] || undefined,
         id: productId,
         rating: productToEdit?.rating ?? 0,
         reviewCount: productToEdit?.reviewCount ?? 0,
@@ -1391,7 +1396,10 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
                         multiple
                         accept="image/jpeg,image/png,image/webp,image/avif"
                         onChange={(e) => {
-                          if (e.target.files) processImageFiles(e.target.files);
+                          const selectedFiles = e.target.files;
+                          if (selectedFiles?.length) void processImageFiles(selectedFiles);
+                          // Allow choosing the same file again after an upload/save failure.
+                          e.currentTarget.value = '';
                         }}
                         className="hidden"
                       />
