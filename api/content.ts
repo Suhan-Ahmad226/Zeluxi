@@ -78,7 +78,7 @@ function validateStoreSettings(value: unknown): string | null {
     return 'Footer payment methods must contain up to 8 labels of 24 characters or fewer.';
   }
 
-  for (const field of ['showPhoneInFooter', 'showEmailInFooter', 'showAddressInFooter', 'showSocialLinksInFooter', 'showPaymentBadgesInFooter']) {
+  for (const field of ['showPhoneInFooter', 'showEmailInFooter', 'showAddressInFooter', 'showSocialLinksInFooter', 'showPaymentBadgesInFooter', 'footerShowContact', 'footerShowNavigation', 'footerShowCustomerCare', 'footerShowPaymentDelivery', 'footerShowPwaInstall']) {
     if (settings[field] !== undefined && typeof settings[field] !== 'boolean') {
       return `${field} must be a boolean.`;
     }
