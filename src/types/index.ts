@@ -263,6 +263,7 @@ export interface StoreSettings {
   showAddressInFooter?: boolean;
   showSocialLinksInFooter?: boolean;
   showPaymentBadgesInFooter?: boolean;
+  footerPaymentMethods?: string[];
   currencySymbol: string;
   freeShippingThreshold: number;
   shippingDhaka: number;
