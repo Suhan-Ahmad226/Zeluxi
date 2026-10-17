@@ -1,6 +1,7 @@
 import React from 'react';
 import { useStore } from '../../context/StoreContext';
 import { ArrowRight } from 'lucide-react';
+import { StoreImage } from '../common/StoreImage';
 
 export const CategoryList: React.FC = () => {
   const { categories, products, setSelectedCategoryFilter, setActiveView } = useStore();
@@ -49,7 +50,7 @@ export const CategoryList: React.FC = () => {
               className="group text-left rounded-xl overflow-hidden bg-white border border-slate-200 hover:border-slate-300 transition-all hover:shadow-md cursor-pointer flex flex-col"
             >
               <div className="relative aspect-[4/3] overflow-hidden bg-slate-100">
-                <img
+                <StoreImage
                   src={cat.image}
                   alt={cat.name}
                   loading="lazy"
