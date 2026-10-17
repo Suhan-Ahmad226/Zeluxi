@@ -271,7 +271,7 @@ export const AdminDashboard: React.FC = () => {
   const [footerCustomerCareVisible, setFooterCustomerCareVisible] = useState(settings.footerShowCustomerCare !== false);
   const [footerPaymentDeliveryVisible, setFooterPaymentDeliveryVisible] = useState(settings.footerShowPaymentDelivery !== false);
   const [footerPwaVisible, setFooterPwaVisible] = useState(settings.footerShowPwaInstall !== false);
-  const [footerPaymentMethodsInput, setFooterPaymentMethodsInput] = useState((settings.footerPaymentMethods || ['COD']).join('\n'));
+  const [footerPaymentMethodsInput, setFooterPaymentMethodsInput] = useState((settings.footerPaymentMethods || ['Cash on delivery']).join('\n'));
   const [shippingDhakaInput, setShippingDhakaInput] = useState(settings.shippingDhaka);
   const [shippingOutsideInput, setShippingOutsideInput] = useState(settings.shippingOutsideDhaka);
   const [freeThresholdInput, setFreeThresholdInput] = useState(settings.freeShippingThreshold);
@@ -302,7 +302,7 @@ export const AdminDashboard: React.FC = () => {
     setFooterCustomerCareVisible(settings.footerShowCustomerCare !== false);
     setFooterPaymentDeliveryVisible(settings.footerShowPaymentDelivery !== false);
     setFooterPwaVisible(settings.footerShowPwaInstall !== false);
-    setFooterPaymentMethodsInput((settings.footerPaymentMethods || ['COD']).join('\n'));
+    setFooterPaymentMethodsInput((settings.footerPaymentMethods || ['Cash on delivery']).join('\n'));
     setShippingDhakaInput(settings.shippingDhaka);
     setShippingOutsideInput(settings.shippingOutsideDhaka);
     setFreeThresholdInput(settings.freeShippingThreshold);
