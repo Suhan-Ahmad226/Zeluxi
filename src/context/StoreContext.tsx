@@ -137,7 +137,7 @@ interface StoreContextType {
   addPage: (page: StaticPageContent) => void;
   updatePage: (page: StaticPageContent) => void;
   deletePage: (slug: string) => void;
-  updateStorefrontCMS: (cms: Partial<StorefrontCMS>) => Promise<void>;
+  updateStorefrontCMS: (cms: Partial<StorefrontCMS>) => Promise<StorefrontCMS>;
   updateCustomer: (customer: CustomerRecord) => void;
   updateCustomerStatus: (customerId: string, status: 'ACTIVE' | 'SUSPENDED') => void;
   updateCustomerNotes: (customerId: string, notes: string) => void;
@@ -1371,6 +1371,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
     await removeProductImageUrls(previousImageUrls, 'storefront', nextImageUrls);
     addAuditLog('STOREFRONT_CMS_UPDATED', 'Published homepage hero banners and storefront appearance settings');
     showToast('Storefront appearance saved and published.', 'success');
+    return merged;
   };
 
   const updateCustomer = (customer: CustomerRecord) => {
