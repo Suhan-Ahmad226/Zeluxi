@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useStore } from '../../context/StoreContext';
-import { MessageSquare, Phone, X, ArrowUpRight, HelpCircle } from 'lucide-react';
+import { MessageSquare, Phone, X, ArrowUpRight, Truck } from 'lucide-react';
 
 export const WhatsAppConcierge: React.FC = () => {
   const { settings, setActiveView } = useStore();
@@ -91,7 +91,7 @@ export const WhatsAppConcierge: React.FC = () => {
               }}
               className="w-full text-left hover:text-indigo-600 flex items-center gap-1.5 py-1"
             >
-              <HelpCircle className="w-3.5 h-3.5 text-indigo-500" />
+              <Truck className="w-3.5 h-3.5 text-indigo-500" />
               <span>Track your courier parcel</span>
             </button>
           </div>
