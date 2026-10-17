@@ -1250,8 +1250,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
         itemCount: categoryData.itemCount ?? existing.itemCount,
       };
       const nextCategories = categories.map((item) => item.id === existing.id ? updatedCategory : item);
+      let uploadedCategoryImage = '';
       void (async () => {
         const [image] = await persistProductImageUrls([updatedCategory.image || ''], updatedCategory.id, 'categories');
+        if (updatedCategory.image?.startsWith('data:')) uploadedCategoryImage = image;
         const persistedCategory = { ...updatedCategory, image, imagePublicId: getCloudinaryPublicId(image) };
         const resolvedCategories = nextCategories.map((item) => item.id === persistedCategory.id ? persistedCategory : item);
         await saveAdminContent('categories', resolvedCategories);
@@ -1259,7 +1261,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
         await removeProductImageUrls(existing.image ? [existing.image] : [], existing.id, [image], 'categories');
         addAuditLog('CATEGORY_UPDATED', `Updated category "${persistedCategory.name}"`);
         showToast(`Category "${persistedCategory.name}" saved`, 'success');
-      })().catch((error) => showToast(error instanceof Error ? error.message : 'Category could not be saved.', 'error'));
+      })().catch(async (error) => {
+        if (uploadedCategoryImage) await removeProductImageUrls([uploadedCategoryImage], existing.id, [], 'categories');
+        showToast(error instanceof Error ? error.message : 'Category could not be saved.', 'error');
+      });
       return updatedCategory;
     }
 
@@ -1273,30 +1278,40 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
       order: categoryData.order ?? (categories.length + 1),
     };
     const nextCategories = [...categories, newCategory];
+    let uploadedCategoryImage = '';
     void (async () => {
       const [image] = await persistProductImageUrls([newCategory.image || ''], newCategory.id, 'categories');
+      if (newCategory.image?.startsWith('data:')) uploadedCategoryImage = image;
       const persistedCategory = { ...newCategory, image, imagePublicId: getCloudinaryPublicId(image) };
       const resolvedCategories = [...categories, persistedCategory];
       await saveAdminContent('categories', resolvedCategories);
       setCategories(resolvedCategories);
       addAuditLog('CATEGORY_CREATED', `Created category "${persistedCategory.name}"`);
       showToast(`Category "${persistedCategory.name}" saved`, 'success');
-    })().catch((error) => showToast(error instanceof Error ? error.message : 'Category could not be saved.', 'error'));
+    })().catch(async (error) => {
+      if (uploadedCategoryImage) await removeProductImageUrls([uploadedCategoryImage], newCategory.id, [], 'categories');
+      showToast(error instanceof Error ? error.message : 'Category could not be saved.', 'error');
+    });
     return newCategory;
   };
   const updateCategory = (updated: Category) => {
     const nextCategories = categories.map((c) => (c.id === updated.id ? updated : c));
     const previous = categories.find((c) => c.id === updated.id);
+    let uploadedCategoryImage = '';
     void (async () => {
       const [image] = await persistProductImageUrls([updated.image || ''], updated.id, 'categories');
-      const persistedCategory = { ...updated, image };
+      if (updated.image?.startsWith('data:')) uploadedCategoryImage = image;
+      const persistedCategory = { ...updated, image, imagePublicId: getCloudinaryPublicId(image) };
       const resolvedCategories = nextCategories.map((item) => item.id === updated.id ? persistedCategory : item);
       await saveAdminContent('categories', resolvedCategories);
       setCategories(resolvedCategories);
       await removeProductImageUrls(previous?.image ? [previous.image] : [], updated.id, [image], 'categories');
       addAuditLog('CATEGORY_UPDATED', `Updated category "${persistedCategory.name}"`);
       showToast(`Category "${persistedCategory.name}" saved`, 'success');
-    })().catch((error) => showToast(error instanceof Error ? error.message : 'Category could not be saved.', 'error'));
+    })().catch(async (error) => {
+      if (uploadedCategoryImage) await removeProductImageUrls([uploadedCategoryImage], updated.id, [], 'categories');
+      showToast(error instanceof Error ? error.message : 'Category could not be saved.', 'error');
+    });
   };
 
   const deleteCategory = (categoryId: string): { success: boolean; message: string } => {
