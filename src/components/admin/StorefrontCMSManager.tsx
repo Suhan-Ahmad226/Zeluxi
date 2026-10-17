@@ -78,7 +78,7 @@ export const StorefrontCMSManager: React.FC = () => {
       handleHeroChange('imageUrl', compressed.dataUrl);
       const kbSize = Math.round(compressed.size / 1024);
       showToast(
-        `Banner photo uploaded from local device (${compressed.width}x${compressed.height}, ${kbSize} KB)`,
+        `Banner image optimized and ready to publish (${compressed.width}x${compressed.height}, ${kbSize} KB). Select Save & Publish to upload it.`,
         'success'
       );
     } catch (err) {
