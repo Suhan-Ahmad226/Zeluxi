@@ -3040,6 +3040,12 @@ export const AdminDashboard: React.FC = () => {
               </div>
 
               <div className="border-t border-slate-200 pt-5">
+                <h4 className="mb-1 text-sm font-bold text-slate-900">Payment Badges</h4>
+                <p className="mb-3 text-xs text-slate-500">Comma-separated labels shown in the footer, e.g. COD, bKash, Nagad. Add only payment methods that your store actually supports.</p>
+                <input type="text" maxLength={200} value={paymentMethodsInput} onChange={(e) => setPaymentMethodsInput(e.target.value)} placeholder="COD, bKash" className="w-full rounded-lg border px-3 py-2 focus:border-indigo-600 focus:outline-none" />
+              </div>
+
+              <div className="border-t border-slate-200 pt-5">
                 <h4 className="mb-3 text-sm font-bold text-slate-900">Footer Visibility</h4>
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   {[
