@@ -1311,7 +1311,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
     }).catch((error) => showToast(error instanceof Error ? error.message : 'Page could not be deleted.', 'error'));
   };
 
-  const updateStorefrontCMS = async (cmsUpdate: Partial<StorefrontCMS>): Promise<void> => {
+  const updateStorefrontCMS = async (cmsUpdate: Partial<StorefrontCMS>): Promise<StorefrontCMS> => {
     const merged: StorefrontCMS = {
       ...storefrontCMS,
       ...cmsUpdate,
