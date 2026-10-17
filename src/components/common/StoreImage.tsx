@@ -23,6 +23,7 @@ export const StoreImage: React.FC<StoreImageProps> = ({
   const candidate = typeof src === 'string' ? src.trim() : '';
   const isSafeImageSource =
     candidate.startsWith('/') && !candidate.startsWith('//') ||
+    candidate.startsWith('blob:') ||
     /^https?:\/\//i.test(candidate) ||
     /^data:image\/(?:png|jpe?g|webp|avif|gif);base64,/i.test(candidate);
   const resolvedSource = isSafeImageSource ? candidate : fallbackSrc;
