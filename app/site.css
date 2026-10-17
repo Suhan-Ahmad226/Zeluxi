@@ -52,3 +52,18 @@ button, a, input, select { touch-action: manipulation; }
     animation: none;
   }
 }
+
+.announcement-measure-text {
+  position: absolute;
+  left: -100000px;
+  top: 0;
+  display: inline-block;
+  width: max-content;
+  max-width: none;
+  white-space: nowrap;
+  visibility: hidden;
+  pointer-events: none;
+  font: inherit;
+  letter-spacing: inherit;
+}
+
