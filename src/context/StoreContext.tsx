@@ -126,6 +126,8 @@ interface StoreContextType {
   updateOrderStatus: (orderId: string, status: OrderStatus, note: string, trackingCode?: string) => void;
   refundOrder: (orderId: string, amount: number, reason: string, adminActor?: string) => Promise<{ success: boolean; message: string }>;
   addProduct: (product: Omit<Product, 'id' | 'rating' | 'reviewCount'> & { id?: string; slug?: string }) => Product;
+  /** Update in-memory catalog after a component has already persisted the product through the API. */
+  syncProduct: (product: Product) => void;
   updateProduct: (product: Product) => void;
   deleteProduct: (productId: string) => void;
   duplicateProduct: (productId: string) => Product | null;
@@ -1107,6 +1109,12 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
     return newProduct;
   };
 
+  const syncProduct = (product: Product) => {
+    setProducts((prev) => prev.some((item) => item.id === product.id)
+      ? prev.map((item) => item.id === product.id ? product : item)
+      : [product, ...prev]);
+  };
+
   const updateProduct = (updated: Product) => {
     const previous = products.find((p) => p.id === updated.id);
     setProducts((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
@@ -1596,6 +1604,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
         answerQuestion,
         updateOrderStatus,
         addProduct,
+        syncProduct,
         updateProduct,
         deleteProduct,
         duplicateProduct,
