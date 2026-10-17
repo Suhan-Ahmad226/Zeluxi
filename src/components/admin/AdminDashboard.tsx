@@ -2480,62 +2480,7 @@ export const AdminDashboard: React.FC = () => {
         {/* TAB 5: LOGISTICS & COURIERS */}
         {activeTab === 'logistics' && (
           <div className="space-y-6">
-            <div className="bg-white rounded-xl border border-slate-200 p-6 space-y-6">
-              <div>
-                <h3 className="text-base font-bold text-slate-900">Courier Gateway Integrations</h3>
-                <p className="text-xs text-slate-500">Courier integrations are not configured; booking and tracking are unavailable</p>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Pathao Logistics Card */}
-                <div className="p-5 border border-slate-200 rounded-xl space-y-4 bg-emerald-50/30">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="font-bold text-sm text-slate-900">Pathao Logistics API</h4>
-                      <p className="text-xs text-slate-500">Dhaka Metro & Express Same-Day Partner</p>
-                    </div>
-                    <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 text-xs font-bold rounded">
-                      Not configured
-                    </span>
-                  </div>
-                  <div className="space-y-1 text-xs text-slate-600">
-                    <p>Merchant Store ID: <strong className="font-mono">Not configured</strong></p>
-                    <p>Pickup Hub: <strong>Not configured</strong></p>
-                    <p>Automated booking: <strong>Unavailable until API setup</strong></p>
-                  </div>
-                  <button
-                    onClick={() => showToast('Pathao integration is not configured. No API request was sent.', 'error')}
-                    className="px-3 py-1.5 bg-slate-900 text-white text-xs font-semibold rounded-lg hover:bg-slate-800"
-                  >
-                    Check Integration Status
-                  </button>
-                </div>
-
-                {/* Steadfast Courier Card */}
-                <div className="p-5 border border-slate-200 rounded-xl space-y-4 bg-blue-50/30">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="font-bold text-sm text-slate-900">Steadfast Courier API</h4>
-                      <p className="text-xs text-slate-500">Nationwide 64 Districts Parcel Delivery</p>
-                    </div>
-                    <span className="px-2 py-0.5 bg-blue-100 text-blue-800 text-xs font-bold rounded">
-                      Not configured
-                    </span>
-                  </div>
-                  <div className="space-y-1 text-xs text-slate-600">
-                    <p>API Key: <strong className="font-mono">Not configured</strong></p>
-                    <p>Coverage: <strong>Not verified</strong></p>
-                    <p>COD Settlement: <strong>Check merchant agreement</strong></p>
-                  </div>
-                  <button
-                    onClick={() => showToast('Steadfast integration is not configured. No API request was sent.', 'error')}
-                    className="px-3 py-1.5 bg-slate-900 text-white text-xs font-semibold rounded-lg hover:bg-slate-800"
-                  >
-                    Check Integration Status
-                  </button>
-                </div>
-              </div>
-            </div>
+            <PathaoCourierManager />
           </div>
         )}
 
