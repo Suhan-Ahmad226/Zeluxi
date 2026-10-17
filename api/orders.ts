@@ -139,6 +139,24 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
         }
       }
 
+      if (['SHIPPED', 'OUT_FOR_DELIVERY', 'DELIVERED', 'RETURNED'].includes(parsed.data.status)) {
+        return res.status(409).json({
+          error: 'Courier-managed status must be synchronized from Pathao. Manual status changes are blocked to keep tracking accurate.',
+          code: 'COURIER_STATUS_SYNC_REQUIRED',
+        });
+      }
+      if (parsed.data.status === 'CANCELLED') {
+        const { data: shipment, error: shipmentError } = await admin.from('courier_shipments')
+          .select('status,consignment_id').eq('order_id', parsed.data.orderId).maybeSingle();
+        if (shipmentError) return res.status(503).json({ error: 'Courier status could not be checked before cancellation.' });
+        if (shipment?.consignment_id || ['BOOKING', 'UNKNOWN', 'BULK_SUBMITTED'].includes(String(shipment?.status || ''))) {
+          return res.status(409).json({
+            error: 'This order has a Pathao booking or unresolved booking attempt. The supplied Pathao API specification has no cancellation endpoint, so it cannot be safely cancelled here.',
+            code: 'PATHAO_CANCELLATION_UNAVAILABLE',
+          });
+        }
+      }
+
       const { data, error } = await admin.from('store_orders')
         .update({ status: parsed.data.status })
         .eq('id', parsed.data.orderId)
