@@ -44,7 +44,7 @@ async function requireAdmin(request: NextRequest) {
 }
 function mapPathaoStatus(raw: string): string | null {
   const s = raw.toLowerCase().replace(/[\s-]+/g, '_');
-  if (['delivered', 'delivered_successfully', 'partial_delivered', 'partially_delivered'].includes(s)) return 'DELIVERED';
+  if (['delivered', 'delivered_successfully'].includes(s)) return 'DELIVERED';
   if (['in_transit', 'picked', 'picked_up', 'received_at_hub', 'transferred_to_hub'].includes(s)) return 'SHIPPED';
   if (['out_for_delivery', 'assigned_for_delivery', 'on_the_way'].includes(s)) return 'OUT_FOR_DELIVERY';
   if (['cancelled', 'canceled'].includes(s)) return 'CANCELLED';
