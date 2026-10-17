@@ -79,6 +79,14 @@ function getHeader(req: ApiRequest, name: string): string {
   return Array.isArray(value) ? value[0] ?? '' : value ?? '';
 }
 
+function resolveProductImages(stored: Record<string, unknown>, imageUrl: unknown): string[] {
+  const storedImages = Array.isArray(stored.images)
+    ? stored.images.filter((image): image is string => typeof image === 'string' && image.trim().length > 0).map((image) => image.trim())
+    : [];
+  if (storedImages.length) return storedImages;
+  return typeof imageUrl === 'string' && imageUrl.trim() ? [imageUrl.trim()] : [];
+}
+
 function getConfig() {
   const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '';
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
@@ -125,7 +133,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
               stock: row.stock,
               published: row.published,
               archived: row.archived,
-              images: Array.isArray(stored.images) ? stored.images : row.image_url ? [row.image_url] : [],
+              images: resolveProductImages(stored, row.image_url),
             };
           });
           return res.status(200).json({ products });
@@ -162,9 +170,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
           stock: row.stock,
           published: row.published,
           archived: row.archived,
-          images: Array.isArray(stored.images)
-            ? stored.images
-            : row.image_url ? [row.image_url] : [],
+          images: resolveProductImages(stored, row.image_url),
         };
       });
       const total = count ?? offset + products.length;
