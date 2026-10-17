@@ -76,14 +76,14 @@ interface StoreContextType {
   isCheckoutOpen: boolean;
   lastCreatedOrder: Order | null;
   activeTrackingId: string | null;
-  activeStaticPage: 'about' | 'support' | 'faq' | 'shipping' | 'refund' | 'privacy' | 'terms' | null;
+  activeStaticPage: string | null;
   toast: ToastNotification | null;
 
   // Actions
   setLanguage: (lang: Language) => void;
   setActiveView: (view: 'store' | 'shop' | 'tracking' | 'account' | 'admin' | 'about' | 'verify-email') => void;
   setActiveFilterTab: (tab: 'all' | 'new-arrivals' | 'best-sellers' | 'deals' | 'featured') => void;
-  setActiveStaticPage: (page: 'about' | 'support' | 'faq' | 'shipping' | 'refund' | 'privacy' | 'terms' | null) => void;
+  setActiveStaticPage: (page: string | null) => void;
   setSelectedCategoryFilter: (cat: string | null) => void;
   setSearchQuery: (q: string) => void;
   setSelectedProduct: (prod: Product | null) => void;
@@ -222,7 +222,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
   const [isCheckoutOpen, setIsCheckoutOpen] = useState<boolean>(false);
   const [lastCreatedOrder, setLastCreatedOrder] = useState<Order | null>(null);
   const [activeTrackingId, setActiveTrackingId] = useState<string | null>(null);
-  const [activeStaticPage, setActiveStaticPage] = useState<'about' | 'support' | 'faq' | 'shipping' | 'refund' | 'privacy' | 'terms' | null>(null);
+  const [activeStaticPage, setActiveStaticPage] = useState<string | null>(null);
   const [toast, setToast] = useState<ToastNotification | null>(null);
 
   // Browser persistence is restored after hydration to keep server and client markup deterministic.
