@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useStore } from '../../context/StoreContext';
 import { formatPrice } from '../../utils/formatters';
+import { StoreImage } from '../common/StoreImage';
 import {
   X,
   Star,
@@ -189,11 +190,12 @@ export const ProductModal: React.FC = () => {
           {/* Left: Gallery */}
           <div className="space-y-4">
             <div className="relative aspect-[4/3] bg-slate-100 rounded-xl overflow-hidden border border-slate-200">
-              <img
-                src={selectedProduct.images[activeImageIndex] || selectedProduct.images[0]}
+              <StoreImage
+                src={selectedProduct.images?.[activeImageIndex] || selectedProduct.images?.[0]}
                 alt={selectedProduct.name}
                 className="w-full h-full object-cover"
-                referrerPolicy="no-referrer"
+                loading="eager"
+                decoding="async"
               />
               {selectedProduct.compareAtPrice && (
                 <div className="absolute top-3 left-3 bg-amber-500 text-white text-[11px] font-bold px-2 py-0.5 rounded shadow-sm">
@@ -213,7 +215,7 @@ export const ProductModal: React.FC = () => {
                       activeImageIndex === idx ? 'border-indigo-600 ring-2 ring-indigo-100' : 'border-slate-200 opacity-70 hover:opacity-100'
                     }`}
                   >
-                    <img src={img} alt="Thumbnail" className="w-full h-full object-cover" />
+                    <StoreImage src={img} alt={`Thumbnail of ${selectedProduct.name}`} className="w-full h-full object-cover" loading="lazy" decoding="async" />
                   </button>
                 ))}
               </div>
