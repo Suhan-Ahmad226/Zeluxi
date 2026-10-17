@@ -37,7 +37,14 @@ export async function bookPathaoOrderFromDatabase(
     .select('*').eq('order_id', orderId).maybeSingle();
   if (existingError) throw new PathaoBookingError('Courier shipment status could not be checked. Apply the courier migration.', 503, 'SHIPMENT_READ_FAILED');
   if (existing && ['BOOKED', 'IN_TRANSIT', 'DELIVERED'].includes(String(existing.status)) && existing.consignment_id) {
+    if (String(order.status) !== 'SHIPPED' && String(order.status) !== 'OUT_FOR_DELIVERY' && String(order.status) !== 'DELIVERED') {
+      const { error: orderRepairError } = await db.from('store_orders').update({ status: 'SHIPPED' }).eq('id', orderId);
+      if (orderRepairError) throw new PathaoBookingError('Pathao booking exists, but the local order status could not be reconciled. Sync the shipment before retrying.', 503, 'BOOKING_PERSISTENCE_PARTIAL');
+    }
     return { alreadyBooked: true, orderId, consignmentId: existing.consignment_id, status: existing.pathao_order_status || existing.status, deliveryFee: Number(existing.delivery_fee || 0) };
+  }
+  if (String(order.status) === 'SHIPPED' || String(order.status) === 'OUT_FOR_DELIVERY' || String(order.status) === 'DELIVERED') {
+    throw new PathaoBookingError('Order is already marked as shipped/delivered but has no confirmed Pathao consignment. Reconcile manually; do not create another parcel.', 409, 'ORDER_SHIPMENT_STATE_MISMATCH');
   }
   if (existing && ['UNKNOWN', 'BULK_SUBMITTED', 'BOOKING'].includes(String(existing.status))) {
     throw new PathaoBookingError('Booking is in progress or its outcome is unresolved. Reconcile this order in Pathao before retrying.', 409, 'BOOKING_OUTCOME_UNRESOLVED');
