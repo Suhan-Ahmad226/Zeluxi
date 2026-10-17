@@ -32,9 +32,17 @@ export async function POST(request: NextRequest) {
   try { body = await request.json(); } catch { return fail('A valid JSON body is required.', 400); }
   const publicId = typeof body.publicId === 'string' ? body.publicId : '';
   const resourceType = body.resourceType === 'video' ? 'video' : body.resourceType === 'image' ? 'image' : '';
-  // Only delete assets managed by this application. Never accept arbitrary Cloudinary IDs.
-  if (!resourceType || !/^zelux\/[a-zA-Z0-9_-]+\/[a-zA-Z0-9_.\/-]{1,180}$/.test(publicId) || publicId.includes('..')) {
-    return fail('Only valid Zelux-managed media assets can be deleted.', 400);
+  const ownerId = typeof body.ownerId === 'string' ? body.ownerId : '';
+  const scope = typeof body.scope === 'string' ? body.scope : '';
+  const allowedScopes = new Set(['products', 'storefront', 'categories', 'pages', 'settings', 'media']);
+  const expectedPrefix = scope === 'storefront' && ownerId === 'storefront'
+    ? 'zelux/storefront/storefront/'
+    : `zelux/${scope}/${ownerId}/`;
+  // Ensure a cleanup request cannot target another record's managed asset.
+  if (!resourceType || !allowedScopes.has(scope) || !/^[a-zA-Z0-9_-]{1,100}$/.test(ownerId) ||
+      !/^zelux\/[a-zA-Z0-9_-]+\/[a-zA-Z0-9_.\/-]{1,180}$/.test(publicId) ||
+      publicId.includes('..') || !publicId.startsWith(expectedPrefix)) {
+    return fail('Only media owned by the specified Zelux record can be deleted.', 400);
   }
 
   const timestamp = Math.floor(Date.now() / 1000);
