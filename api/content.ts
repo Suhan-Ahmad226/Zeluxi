@@ -27,6 +27,7 @@ function isSafeLink(value: unknown): boolean {
   }
 }
 
+// Validate admin-managed footer/contact fields before persisting public storefront settings.
 function validateStoreSettings(value: unknown): string | null {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return 'Store settings must be an object.';
   const settings = value as Record<string, unknown>;
