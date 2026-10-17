@@ -42,7 +42,7 @@ export const AnnouncementBar: React.FC = () => {
     observer.observe(viewport);
     observer.observe(textElement);
     return () => observer.disconnect();
-  }, [text, reducedMotion]);
+  }, [text, reducedMotion, isOverflowing]);
 
   if (!isEnabled || dismissed) return null;
 
