@@ -6,6 +6,9 @@ import { supabase } from '@/src/lib/supabase';
 import { useStore } from '@/src/context/StoreContext';
 
 type MerchantStore = { store_id: number; store_name: string; store_address: string; is_active: number; city_id: number; zone_id: number; hub_id: number };
+type City = { city_id: number; city_name: string };
+type Zone = { zone_id: number; zone_name: string };
+type Area = { area_id: number; area_name: string; home_delivery_available: boolean; pickup_available: boolean };
 type Overview = { configured: boolean; environment: string; storeIdConfigured: boolean; message: string; stores?: MerchantStore[]; shipments?: Array<{ order_id: string; status: string; consignment_id: string | null; delivery_fee: number | null; updated_at: string }> };
 async function token() {
   const { data, error } = await supabase.auth.getSession();
@@ -20,6 +23,14 @@ export default function PathaoCourierManager() {
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [lastChecked, setLastChecked] = useState('');
+  const [cities, setCities] = useState<City[]>([]);
+  const [zones, setZones] = useState<Zone[]>([]);
+  const [areas, setAreas] = useState<Area[]>([]);
+  const [selectedCity, setSelectedCity] = useState('');
+  const [selectedZone, setSelectedZone] = useState('');
+  const [weightKg, setWeightKg] = useState('0.5');
+  const [deliveryType, setDeliveryType] = useState<'48' | '12'>('48');
+  const [quote, setQuote] = useState<{ final_price: number; price: number; discount: number; cod_percentage: number; additional_charge: number } | null>(null);
   const load = useCallback(async () => {
     try {
       const accessToken = await token();
@@ -30,14 +41,18 @@ export default function PathaoCourierManager() {
     } catch (e) { setError(e instanceof Error ? e.message : 'Courier status could not be loaded.'); }
   }, []);
   useEffect(() => { void load(); }, [load]);
-  const runAction = async (action: string) => {
+  const runAction = async (action: string, extra: Record<string, unknown> = {}) => {
     setBusy(true); setError(''); setMessage('');
     try {
       const accessToken = await token();
-      const response = await fetch('/api/admin/courier', { method: 'POST', headers: { Authorization: 'Bearer ' + accessToken, 'Content-Type': 'application/json' }, body: JSON.stringify({ action }), cache: 'no-store' });
+      const response = await fetch('/api/admin/courier', { method: 'POST', headers: { Authorization: 'Bearer ' + accessToken, 'Content-Type': 'application/json' }, body: JSON.stringify({ action, ...extra }), cache: 'no-store' });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(typeof data.error === 'string' ? data.error : 'Courier request failed.');
       setMessage(data.message || 'Request completed.');
+      if (Array.isArray(data.cities)) setCities(data.cities);
+      if (Array.isArray(data.zones)) setZones(data.zones);
+      if (Array.isArray(data.areas)) setAreas(data.areas);
+      if (data.quote) setQuote(data.quote);
       if (Array.isArray(data.stores)) setOverview((old) => ({ ...(old || { configured: false, environment: 'unconfigured', storeIdConfigured: false, message: '' }), stores: data.stores }));
       await load();
     } catch (e) { setError(e instanceof Error ? e.message : 'Courier request failed.'); }
@@ -79,6 +94,39 @@ export default function PathaoCourierManager() {
     <section className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6">
       <div className="flex items-start gap-3"><div className="rounded-xl bg-indigo-50 p-2 text-indigo-700"><PackageCheck className="h-5 w-5" /></div><div><h3 className="font-bold text-slate-900">Merchant stores</h3><p className="mt-1 text-sm text-slate-500">Synced directly from Pathao after the connection is tested.</p></div></div>
       {overview?.stores?.length ? <div className="mt-4 divide-y divide-slate-100 rounded-xl border border-slate-200">{overview.stores.map((store) => <div key={store.store_id} className="flex flex-col gap-1 p-4 sm:flex-row sm:items-center sm:justify-between"><div><p className="font-semibold text-slate-900">{store.store_name} <span className="ml-1 text-xs font-normal text-slate-500">#{store.store_id}</span></p><p className="mt-1 text-xs text-slate-500">{store.store_address}</p></div><span className={'w-fit rounded-full px-2.5 py-1 text-xs font-semibold ' + (store.is_active ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-600')}>{store.is_active ? 'Active' : 'Inactive'}</span></div>)}</div> : <p className="mt-4 rounded-xl border border-dashed border-slate-300 p-5 text-sm text-slate-500">No merchant store data loaded. Test the connection and sync stores.</p>}
+    </section>
+    <section className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6">
+      <h3 className="font-bold text-slate-900">Delivery locations & price calculator</h3>
+      <p className="mt-1 text-sm text-slate-500">Fetch official Pathao city and zone IDs, then request a merchant price plan for the configured pickup store.</p>
+      <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <label className="text-xs font-semibold text-slate-600">City
+          <select value={selectedCity} onChange={(e) => { setSelectedCity(e.target.value); setSelectedZone(''); setZones([]); setAreas([]); setQuote(null); if (e.target.value) void runAction('zones', { cityId: Number(e.target.value) }); }} className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm">
+            <option value="">Select city</option>{cities.map((city) => <option key={city.city_id} value={city.city_id}>{city.city_name}</option>)}
+          </select>
+        </label>
+        <label className="text-xs font-semibold text-slate-600">Zone
+          <select value={selectedZone} onChange={(e) => { setSelectedZone(e.target.value); setAreas([]); setQuote(null); if (e.target.value) void runAction('areas', { zoneId: Number(e.target.value) }); }} className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm" disabled={!zones.length}>
+            <option value="">Select zone</option>{zones.map((zone) => <option key={zone.zone_id} value={zone.zone_id}>{zone.zone_name}</option>)}
+          </select>
+        </label>
+        <label className="text-xs font-semibold text-slate-600">Parcel weight (kg)
+          <input type="number" min="0.5" max="10" step="0.1" value={weightKg} onChange={(e) => setWeightKg(e.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+        </label>
+        <label className="text-xs font-semibold text-slate-600">Delivery type
+          <select value={deliveryType} onChange={(e) => setDeliveryType(e.target.value as '48' | '12')} className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"><option value="48">Normal delivery</option><option value="12">On-demand delivery</option></select>
+        </label>
+      </div>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <button disabled={busy} onClick={() => void runAction('cities')} className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 disabled:opacity-50">Load cities</button>
+        <button disabled={busy || !selectedCity || !selectedZone || !overview?.storeIdConfigured} onClick={() => void runAction('price', { cityId: Number(selectedCity), zoneId: Number(selectedZone), weightKg: Number(weightKg), deliveryType: Number(deliveryType) })} className="rounded-lg bg-indigo-600 px-3 py-2 text-sm font-semibold text-white disabled:opacity-50">Calculate Pathao price</button>
+      </div>
+      {quote && <div className="mt-4 grid grid-cols-2 gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 sm:grid-cols-4">
+        <div><p className="text-xs text-emerald-800">Final estimated fee</p><p className="mt-1 text-xl font-bold text-emerald-950">৳{Number(quote.final_price).toLocaleString()}</p></div>
+        <div><p className="text-xs text-emerald-800">Base price</p><p className="mt-1 font-semibold text-emerald-950">৳{Number(quote.price).toLocaleString()}</p></div>
+        <div><p className="text-xs text-emerald-800">Discount</p><p className="mt-1 font-semibold text-emerald-950">৳{Number(quote.discount).toLocaleString()}</p></div>
+        <div><p className="text-xs text-emerald-800">COD percentage</p><p className="mt-1 font-semibold text-emerald-950">{Number(quote.cod_percentage) * 100}%</p></div>
+      </div>}
+      {areas.length > 0 && <p className="mt-3 text-xs text-slate-500">Loaded {areas.length} areas for this zone; home delivery is available in {areas.filter((area) => area.home_delivery_available).length} of them.</p>}
     </section>
     <section className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6">
       <h3 className="font-bold text-slate-900">Orders ready for courier</h3><p className="mt-1 text-sm text-slate-500">Booking sends a real request to Pathao. If the outcome is unknown, reconcile it in Pathao before retrying.</p>

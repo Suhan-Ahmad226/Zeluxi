@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { z } from 'zod';
 import {
-  calculatePathaoPrice, createPathaoOrder, getPathaoCities, getPathaoConfigStatus,
+  calculatePathaoPrice, createPathaoOrder, createPathaoStore, getPathaoCities, getPathaoConfigStatus,
   getPathaoOrderInfo, getPathaoStores, getPathaoZones, getPathaoAreas, PathaoApiError, testPathaoConnection,
 } from '@/src/lib/shipping/pathao-server';
 
@@ -12,6 +12,8 @@ export const dynamic = 'force-dynamic';
 const actionSchema = z.discriminatedUnion('action', [
   z.object({ action: z.literal('test') }).strict(),
   z.object({ action: z.literal('stores') }).strict(),
+
+  z.object({ action: z.literal('createStore'), name: z.string().trim().min(3).max(50), contactName: z.string().trim().min(3).max(50), contactNumber: z.string().regex(/^01[3-9]\d{8}$/), secondaryContact: z.string().regex(/^01[3-9]\d{8}$/).optional(), otpNumber: z.string().regex(/^01[3-9]\d{8}$/).optional(), address: z.string().trim().min(15).max(120), cityId: z.number().int().positive(), zoneId: z.number().int().positive(), areaId: z.number().int().positive() }).strict(),
   z.object({ action: z.literal('cities') }).strict(),
   z.object({ action: z.literal('zones'), cityId: z.number().int().positive() }).strict(),
   z.object({ action: z.literal('areas'), zoneId: z.number().int().positive() }).strict(),
@@ -73,6 +75,10 @@ export async function POST(request: NextRequest) {
     if (input.action === 'stores') {
       const stores = await getPathaoStores();
       return NextResponse.json({ success: true, message: stores.length + ' merchant store(s) loaded from Pathao.', stores }, { headers: { 'Cache-Control': 'no-store' } });
+    }
+    if (input.action === 'createStore') {
+      const result = await createPathaoStore({ name: input.name, contactName: input.contactName, contactNumber: input.contactNumber, secondaryContact: input.secondaryContact, otpNumber: input.otpNumber, address: input.address, cityId: input.cityId, zoneId: input.zoneId, areaId: input.areaId });
+      return NextResponse.json({ success: true, message: result.message, storeName: result.storeName }, { status: 201, headers: { 'Cache-Control': 'no-store' } });
     }
     if (input.action === 'cities') return NextResponse.json({ cities: await getPathaoCities() }, { headers: { 'Cache-Control': 'no-store' } });
     if (input.action === 'zones') return NextResponse.json({ zones: await getPathaoZones(input.cityId) }, { headers: { 'Cache-Control': 'no-store' } });

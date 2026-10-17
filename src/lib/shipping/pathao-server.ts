@@ -119,6 +119,24 @@ export async function getPathaoStores() {
   const result = await request<any>('/stores'); const data: any = unwrap(result.data);
   return (Array.isArray(data?.data) ? data.data : []) as Array<{ store_id: number; store_name: string; store_address: string; is_active: number; city_id: number; zone_id: number; hub_id: number }>;
 }
+export async function createPathaoStore(input: {
+  name: string; contactName: string; contactNumber: string; secondaryContact?: string; otpNumber?: string;
+  address: string; cityId: number; zoneId: number; areaId: number;
+}) {
+  if (input.name.trim().length < 3 || input.name.trim().length > 50) throw new PathaoApiError('Store name must be 3 to 50 characters.', 400, 'VALIDATION_ERROR');
+  if (input.contactName.trim().length < 3 || input.contactName.trim().length > 50) throw new PathaoApiError('Contact name must be 3 to 50 characters.', 400, 'VALIDATION_ERROR');
+  if (!/^01[3-9]\d{8}$/.test(input.contactNumber)) throw new PathaoApiError('Contact number must be an 11-digit Bangladesh mobile number.', 400, 'VALIDATION_ERROR');
+  if (input.secondaryContact && !/^01[3-9]\d{8}$/.test(input.secondaryContact)) throw new PathaoApiError('Secondary contact must be an 11-digit Bangladesh mobile number.', 400, 'VALIDATION_ERROR');
+  if (input.otpNumber && !/^01[3-9]\d{8}$/.test(input.otpNumber)) throw new PathaoApiError('OTP number must be an 11-digit Bangladesh mobile number.', 400, 'VALIDATION_ERROR');
+  if (input.address.trim().length < 15 || input.address.trim().length > 120) throw new PathaoApiError('Store address must be 15 to 120 characters.', 400, 'VALIDATION_ERROR');
+  for (const id of [input.cityId, input.zoneId, input.areaId]) if (!Number.isSafeInteger(id) || id <= 0) throw new PathaoApiError('Valid city, zone and area IDs are required.', 400, 'VALIDATION_ERROR');
+  const body: Record<string, unknown> = { name: input.name.trim(), contact_name: input.contactName.trim(), contact_number: input.contactNumber, address: input.address.trim(), city_id: input.cityId, zone_id: input.zoneId, area_id: input.areaId };
+  if (input.secondaryContact) body.secondary_contact = input.secondaryContact;
+  if (input.otpNumber) body.otp_number = input.otpNumber;
+  const result = await request<any>('/stores', { method: 'POST', body: JSON.stringify(body) }, false);
+  const data: any = unwrap(result.data);
+  return { message: typeof result.data?.message === 'string' ? result.data.message : 'Store creation request submitted.', storeName: data?.store_name || input.name, accepted: result.status >= 200 && result.status < 300 };
+}
 export async function getPathaoCities() {
   const result = await request<any>('/city-list'); const data: any = unwrap(result.data);
   return (Array.isArray(data?.data) ? data.data : []) as Array<{ city_id: number; city_name: string }>;
