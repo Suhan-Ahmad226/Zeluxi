@@ -21,7 +21,7 @@ function header(req: ApiRequest, name: string): string {
 function config() {
   return {
     url: process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-    anon: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
+    anon: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || '',
     service: process.env.SUPABASE_SERVICE_ROLE_KEY || '',
   };
 }
@@ -58,7 +58,15 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     const db = createClient(url, service, { auth: { persistSession: false, autoRefreshToken: false } });
     if (req.method === 'GET') {
       const { data, error } = await db.from('store_content').select('content_key,content_value');
-      if (error) return res.status(503).json({ error: 'Saved storefront content could not be loaded.' });
+      if (error) {
+        const missingTable = error.code === '42P01' || error.code === 'PGRST205';
+        return res.status(503).json({
+          error: missingTable
+            ? 'Store content database table is missing. Apply supabase/migrations/20261017000000_store_content.sql to the configured Supabase project.'
+            : 'Saved storefront content could not be loaded. Check the Supabase service-role key and database permissions.',
+          code: error.code || 'CONTENT_LOAD_FAILED',
+        });
+      }
       const content: Record<string, unknown> = {};
       for (const row of data || []) {
         if (isAdmin || PUBLIC_KEYS.has(row.content_key)) content[row.content_key] = row.content_value;
@@ -79,7 +87,15 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
       content_value: body.value,
       updated_at: new Date().toISOString(),
     }, { onConflict: 'content_key' });
-    if (error) return res.status(503).json({ error: 'Content could not be saved to the database.' });
+    if (error) {
+      const missingTable = error.code === '42P01' || error.code === 'PGRST205';
+      return res.status(503).json({
+        error: missingTable
+          ? 'Store content database table is missing. Apply supabase/migrations/20261017000000_store_content.sql to the configured Supabase project.'
+          : 'Content could not be saved to the database. Check the Supabase project URL, service-role key, and store_content table permissions.',
+        code: error.code || 'CONTENT_SAVE_FAILED',
+      });
+    }
     return res.status(200).json({ saved: true, key: body.key });
   } catch {
     return res.status(500).json({ error: 'Content request failed unexpectedly.' });
