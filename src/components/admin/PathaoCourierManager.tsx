@@ -28,6 +28,8 @@ export default function PathaoCourierManager() {
   const [areas, setAreas] = useState<Area[]>([]);
   const [selectedCity, setSelectedCity] = useState('');
   const [selectedZone, setSelectedZone] = useState('');
+  const [selectedArea, setSelectedArea] = useState('');
+  const [newStore, setNewStore] = useState({ name: '', contactName: '', contactNumber: '', address: '' });
   const [weightKg, setWeightKg] = useState('0.5');
   const [deliveryType, setDeliveryType] = useState<'48' | '12'>('48');
   const [quote, setQuote] = useState<{ final_price: number; price: number; discount: number; cod_percentage: number; additional_charge: number } | null>(null);
@@ -100,12 +102,12 @@ export default function PathaoCourierManager() {
       <p className="mt-1 text-sm text-slate-500">Fetch official Pathao city and zone IDs, then request a merchant price plan for the configured pickup store.</p>
       <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <label className="text-xs font-semibold text-slate-600">City
-          <select value={selectedCity} onChange={(e) => { setSelectedCity(e.target.value); setSelectedZone(''); setZones([]); setAreas([]); setQuote(null); if (e.target.value) void runAction('zones', { cityId: Number(e.target.value) }); }} className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm">
+          <select value={selectedCity} onChange={(e) => { setSelectedCity(e.target.value); setSelectedZone(''); setSelectedArea(''); setZones([]); setAreas([]); setQuote(null); if (e.target.value) void runAction('zones', { cityId: Number(e.target.value) }); }} className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm">
             <option value="">Select city</option>{cities.map((city) => <option key={city.city_id} value={city.city_id}>{city.city_name}</option>)}
           </select>
         </label>
         <label className="text-xs font-semibold text-slate-600">Zone
-          <select value={selectedZone} onChange={(e) => { setSelectedZone(e.target.value); setAreas([]); setQuote(null); if (e.target.value) void runAction('areas', { zoneId: Number(e.target.value) }); }} className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm" disabled={!zones.length}>
+          <select value={selectedZone} onChange={(e) => { setSelectedZone(e.target.value); setSelectedArea(''); setAreas([]); setQuote(null); if (e.target.value) void runAction('areas', { zoneId: Number(e.target.value) }); }} className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm" disabled={!zones.length}>
             <option value="">Select zone</option>{zones.map((zone) => <option key={zone.zone_id} value={zone.zone_id}>{zone.zone_name}</option>)}
           </select>
         </label>
@@ -127,6 +129,20 @@ export default function PathaoCourierManager() {
         <div><p className="text-xs text-emerald-800">COD percentage</p><p className="mt-1 font-semibold text-emerald-950">{Number(quote.cod_percentage) * 100}%</p></div>
       </div>}
       {areas.length > 0 && <p className="mt-3 text-xs text-slate-500">Loaded {areas.length} areas for this zone; home delivery is available in {areas.filter((area) => area.home_delivery_available).length} of them.</p>}
+    </section>
+    <section className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6">
+      <h3 className="font-bold text-slate-900">Create a Pathao merchant store</h3>
+      <p className="mt-1 text-sm text-slate-500">Choose a city, zone and area above first. Pathao may require approval before a new store can be used for pickup.</p>
+      <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <label className="text-xs font-semibold text-slate-600">Store name<input value={newStore.name} onChange={(e) => setNewStore({ ...newStore, name: e.target.value })} maxLength={50} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" /></label>
+        <label className="text-xs font-semibold text-slate-600">Contact person<input value={newStore.contactName} onChange={(e) => setNewStore({ ...newStore, contactName: e.target.value })} maxLength={50} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" /></label>
+        <label className="text-xs font-semibold text-slate-600">Contact number<input value={newStore.contactNumber} onChange={(e) => setNewStore({ ...newStore, contactNumber: e.target.value })} placeholder="01XXXXXXXXX" maxLength={11} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" /></label>
+        <label className="text-xs font-semibold text-slate-600">Area
+          <select value={selectedArea} onChange={(e) => setSelectedArea(e.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm" disabled={!areas.length}><option value="">Select area</option>{areas.map((area) => <option key={area.area_id} value={area.area_id}>{area.area_name}</option>)}</select>
+        </label>
+        <label className="text-xs font-semibold text-slate-600 sm:col-span-2">Full store address<textarea value={newStore.address} onChange={(e) => setNewStore({ ...newStore, address: e.target.value })} minLength={15} maxLength={120} rows={2} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" /></label>
+      </div>
+      <button disabled={busy || !overview?.configured || !selectedCity || !selectedZone || !selectedArea || newStore.name.trim().length < 3 || newStore.contactName.trim().length < 3 || !/^01[3-9]\d{8}$/.test(newStore.contactNumber) || newStore.address.trim().length < 15} onClick={() => void runAction('createStore', { name: newStore.name, contactName: newStore.contactName, contactNumber: newStore.contactNumber, address: newStore.address, cityId: Number(selectedCity), zoneId: Number(selectedZone), areaId: Number(selectedArea) })} className="mt-4 rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50">Submit store for Pathao approval</button>
     </section>
     <section className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6">
       <h3 className="font-bold text-slate-900">Orders ready for courier</h3><p className="mt-1 text-sm text-slate-500">Booking sends a real request to Pathao. If the outcome is unknown, reconcile it in Pathao before retrying.</p>
