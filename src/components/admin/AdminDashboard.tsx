@@ -1,6 +1,7 @@
 import PathaoCourierManager from './PathaoCourierManager';
 import React, { useState } from 'react';
 import { useStore } from '../../context/StoreContext';
+import { StoreImage } from '../common/StoreImage';
 import { useAuth } from '../../context/AuthContext';
 import { formatPrice } from '../../utils/formatters';
 import {
@@ -1918,10 +1919,12 @@ export const AdminDashboard: React.FC = () => {
                             </button>
                           </td>
                           <td className="p-3 flex items-center gap-3">
-                            <img
-                              src={p.images[0]}
+                            <StoreImage
+                              src={p.images?.[0]}
                               alt={p.name}
                               className="w-10 h-10 rounded object-cover border border-slate-200 bg-white shrink-0"
+                              loading="lazy"
+                              decoding="async"
                             />
                             <div className="min-w-0">
                               <p className="font-semibold text-slate-900 truncate max-w-xs">{p.name}</p>
@@ -2293,7 +2296,7 @@ export const AdminDashboard: React.FC = () => {
                   {selectedAdminOrder.items.map((item, idx) => (
                     <div key={idx} className="p-3 flex items-center justify-between gap-3">
                       <div className="flex items-center gap-3">
-                        <img src={item.image} alt={item.productName} className="w-10 h-10 rounded object-cover border bg-white" />
+                        <StoreImage src={item.image} alt={item.productName} className="w-10 h-10 rounded object-cover border bg-white" loading="lazy" decoding="async" />
                         <div>
                           <p className="font-semibold text-slate-900">{item.productName}</p>
                           {item.variantLabel && <p className="text-[11px] text-slate-400">{item.variantLabel}</p>}
