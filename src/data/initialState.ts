@@ -53,13 +53,6 @@ export const INITIAL_SETTINGS: StoreSettings = {
   footerShowCustomerCare: true,
   footerShowPaymentDelivery: true,
   footerShowPwaInstall: true,
-  footerShowSocialLinks: true,
-  footerFacebookUrl: '',
-  footerInstagramUrl: '',
-  footerTikTokUrl: '',
-  footerYouTubeUrl: '',
-  footerWhatsAppNumber: '',
-  footerCopyrightText: '',
 };
 
 export const INITIAL_CATEGORIES: Category[] = [];
