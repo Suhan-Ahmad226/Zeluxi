@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
   if (error || !data.user) return fail('Your session is invalid or expired.', 401);
   if (String(data.user.app_metadata?.role || '').toUpperCase() !== 'ADMIN') return fail('Administrator access is required.', 403);
 
-  let body: { publicId?: unknown; resourceType?: unknown };
+  let body: { publicId?: unknown; resourceType?: unknown; ownerId?: unknown; scope?: unknown };
   try { body = await request.json(); } catch { return fail('A valid JSON body is required.', 400); }
   const publicId = typeof body.publicId === 'string' ? body.publicId : '';
   const resourceType = body.resourceType === 'video' ? 'video' : body.resourceType === 'image' ? 'image' : '';
