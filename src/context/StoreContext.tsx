@@ -800,7 +800,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
       const payload = await response.json().catch(() => ({}));
       if (!response.ok || !payload.success || !payload.shipment?.consignmentId) {
         const message = typeof payload.error === 'string' ? payload.error : 'Pathao booking failed or needs reconciliation.';
-        setOrders((previous) => previous.map((o) => o.id === orderId ? { ...o, courier: { ...o.courier, bookingStatus: 'BOOKING_FAILED', bookingError: message } } : o));
+        const uncertain = ['BOOKING_OUTCOME_UNRESOLVED', 'BOOKING_PERSISTENCE_UNKNOWN', 'BOOKING_PERSISTENCE_PARTIAL', 'BOOKING_STATE_PERSISTENCE_FAILED', 'PATHAO_OUTCOME_UNKNOWN', 'ORDER_SHIPMENT_STATE_MISMATCH'].includes(String(payload.code || '')) || response.status >= 500;
+        setOrders((previous) => previous.map((o) => o.id === orderId ? { ...o, courier: { ...o.courier, bookingStatus: uncertain ? 'BOOKING_UNKNOWN' : 'BOOKING_FAILED', bookingError: message } } : o));
         showToast(message, 'error');
         return { success: false, message };
       }
@@ -814,8 +815,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
       showToast('Pathao shipment booked. Consignment: ' + shipment.consignmentId, 'success');
       return { success: true, message: 'Pathao shipment booked successfully.', trackingCode: shipment.consignmentId, consignmentId: shipment.consignmentId };
     } catch {
-      const message = 'Courier request could not be confirmed. Check Pathao before retrying.';
-      setOrders((previous) => previous.map((o) => o.id === orderId ? { ...o, courier: { ...o.courier, bookingStatus: 'BOOKING_FAILED', bookingError: message } } : o));
+      // A network failure can happen after Pathao has accepted the parcel.
+      // Never make a blind retry when the remote outcome is unknown.
+      const message = 'Booking outcome is unknown. Check the Pathao merchant panel before retrying.';
+      setOrders((previous) => previous.map((o) => o.id === orderId ? { ...o, courier: { ...o.courier, bookingStatus: 'BOOKING_UNKNOWN', bookingError: message } } : o));
       showToast(message, 'error');
       return { success: false, message };
     }
