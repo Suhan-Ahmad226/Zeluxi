@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useStore } from '../../context/StoreContext';
 import { X, Sparkles } from 'lucide-react';
 
@@ -8,7 +8,7 @@ export const AnnouncementBar: React.FC = () => {
   const [isOverflowing, setIsOverflowing] = useState(false);
   const [reducedMotion, setReducedMotion] = useState(false);
   const viewportRef = useRef<HTMLDivElement>(null);
-  const textRef = useRef<HTMLSpanElement>(null);
+  const measureRef = useRef<HTMLSpanElement>(null);
 
   const announcement = storefrontCMS?.announcement;
   const isEnabled = announcement?.active !== undefined ? announcement.active : settings.announcementActive;
@@ -22,32 +22,40 @@ export const AnnouncementBar: React.FC = () => {
     return () => mediaQuery.removeEventListener('change', updateMotionPreference);
   }, []);
 
-  useEffect(() => {
+  const measureOverflow = useCallback(() => {
     const viewport = viewportRef.current;
-    const textElement = textRef.current;
-    if (!viewport || !textElement) return;
+    const measure = measureRef.current;
+    if (!viewport || !measure) return;
 
-    const measure = () => {
-      const overflowing = textElement.scrollWidth > viewport.clientWidth + 1;
-      setIsOverflowing(overflowing && !reducedMotion);
-    };
+    // Measure the full, untruncated text rather than the visible ellipsis element.
+    const availableWidth = viewport.getBoundingClientRect().width;
+    const naturalTextWidth = measure.getBoundingClientRect().width;
+    setIsOverflowing(naturalTextWidth > availableWidth + 1 && !reducedMotion);
+  }, [reducedMotion]);
 
-    measure();
-    if (typeof ResizeObserver === 'undefined') {
-      window.addEventListener('resize', measure);
-      return () => window.removeEventListener('resize', measure);
+  useEffect(() => {
+    measureOverflow();
+    const viewport = viewportRef.current;
+    const measure = measureRef.current;
+    if (!viewport || !measure) return;
+
+    if (typeof ResizeObserver !== 'undefined') {
+      const observer = new ResizeObserver(measureOverflow);
+      observer.observe(viewport);
+      observer.observe(measure);
+      document.fonts?.ready.then(measureOverflow);
+      return () => observer.disconnect();
     }
 
-    const observer = new ResizeObserver(measure);
-    observer.observe(viewport);
-    observer.observe(textElement);
-    return () => observer.disconnect();
-  }, [text, reducedMotion, isOverflowing]);
+    window.addEventListener('resize', measureOverflow);
+    document.fonts?.ready.then(measureOverflow);
+    return () => window.removeEventListener('resize', measureOverflow);
+  }, [measureOverflow, text]);
 
   if (!isEnabled || dismissed) return null;
 
-  // Keep the marquee speed calm and consistent on both small and large screens.
-  const textWidth = textRef.current?.scrollWidth ?? 0;
+  // Keep speed calm and proportional to the full message length.
+  const textWidth = measureRef.current?.getBoundingClientRect().width ?? 0;
   const durationSeconds = Math.max(12, Math.min(40, textWidth / 28));
 
   return (
@@ -60,14 +68,22 @@ export const AnnouncementBar: React.FC = () => {
               className="announcement-marquee-track"
               style={{ animationDuration: `${durationSeconds}s` }}
             >
-              <span ref={textRef} className="shrink-0 whitespace-nowrap">{text}</span>
+              <span className="shrink-0 whitespace-nowrap">{text}</span>
               <span aria-hidden="true" className="shrink-0 whitespace-nowrap">{text}</span>
             </div>
           ) : (
-            <span ref={textRef} className="block truncate text-center">{text}</span>
+            <span className="block whitespace-nowrap text-center">{text}</span>
           )}
         </div>
       </div>
+
+      <span
+        ref={measureRef}
+        aria-hidden="true"
+        className="announcement-measure-text"
+      >
+        {text}
+      </span>
 
       <button
         type="button"
