@@ -83,7 +83,11 @@ export async function uploadCloudinaryMedia(
 }
 
 /** Convert inline image data to Cloudinary-hosted URLs. Hosted URLs are preserved. */
-export async function persistProductImageUrls(imageUrls: string[], productId: string): Promise<string[]> {
+export async function persistProductImageUrls(
+  imageUrls: string[],
+  productId: string,
+  scope = productId === 'storefront' ? 'storefront' : 'products',
+): Promise<string[]> {
   const result: string[] = [];
   const uploaded: string[] = [];
   try {
@@ -100,13 +104,13 @@ export async function persistProductImageUrls(imageUrls: string[], productId: st
       }
       const extension = blob.type.split('/')[1] || 'jpg';
       const file = new File([blob], `image-${index}.${extension}`, { type: blob.type });
-      const asset = await uploadCloudinaryMedia(file, productId, 'image', productId === 'storefront' ? 'storefront' : 'products');
+      const asset = await uploadCloudinaryMedia(file, productId, 'image', scope);
       result.push(asset.url);
       uploaded.push(asset.url);
     }
     return result;
   } catch (error) {
-    await removeProductImageUrls(uploaded, productId);
+    await removeProductImageUrls(uploaded, productId, [], scope);
     throw error;
   }
 }
@@ -119,6 +123,7 @@ export async function removeProductImageUrls(
   imageUrls: string[],
   ownerId: string,
   keepUrls: string[] = [],
+  scopeOverride?: string,
 ): Promise<void> {
   const keep = new Set(keepUrls);
   const oldUrls = [...new Set(imageUrls.filter((url) => url && !keep.has(url)))];
@@ -136,10 +141,8 @@ export async function removeProductImageUrls(
   for (const url of oldUrls) {
     const cloudinaryAsset = getCloudinaryAsset(url);
     if (cloudinaryAsset) {
-      const scope = ownerId === 'storefront' ? 'storefront' : 'products';
-      const ownedPrefix = scope === 'storefront'
-        ? 'zelux/storefront/storefront/'
-        : `zelux/products/${ownerId}/`;
+      const scope = scopeOverride || (ownerId === 'storefront' ? 'storefront' : 'products');
+      const ownedPrefix = `zelux/${scope}/${ownerId}/`;
       // A duplicated product can reference another product's media. Never delete shared assets.
       if (!cloudinaryAsset.publicId.startsWith(ownedPrefix)) continue;
       try {
