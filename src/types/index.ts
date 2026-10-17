@@ -39,7 +39,10 @@ export interface Product {
   stock: number;
   lowStockThreshold: number;
   images: string[];
+  /** Stable Cloudinary identifiers for safe replacement and cleanup. */
+  imagePublicIds?: string[];
   videoUrl?: string;
+  videoPublicId?: string;
   featured: boolean;
   isNewArrival?: boolean;
   isBestSeller?: boolean;
@@ -280,6 +283,9 @@ export interface HeroBannerContent {
   primaryButtonText: string;
   secondaryButtonText: string;
   imageUrl: string;
+  /** Cloudinary asset identifiers stored with CMS metadata. */
+  imagePublicId?: string;
+  mobileImagePublicId?: string;
   highlightTitle: string;
   highlightSubtitle: string;
   highlightPrice: string;
