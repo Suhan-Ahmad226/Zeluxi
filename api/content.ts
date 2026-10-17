@@ -14,10 +14,16 @@ type ApiResponse = {
 const PUBLIC_KEYS = new Set(['storefront_cms', 'categories', 'pages', 'settings']);
 
 function isSafeLink(value: unknown): boolean {
-  if (typeof value !== 'string' || !value.trim()) return true;
+  if (value === undefined || value === null || value === '') return true;
+  if (typeof value !== 'string') return false;
   const link = value.trim();
-  return (link.startsWith('/') && !link.startsWith('//') && !link.includes(String.fromCharCode(92))) ||
-    /^https:\/\//i.test(link);
+  if (!link || /[\\u0000-\\u001f]/.test(link)) return false;
+  if (link.startsWith('/')) return !link.startsWith('//') && !link.includes(String.fromCharCode(92));
+  try {
+    return new URL(link).protocol === 'https:' && Boolean(new URL(link).hostname);
+  } catch {
+    return false;
+  }
 }
 
 function validateHeroCMS(value: unknown): string | null {
