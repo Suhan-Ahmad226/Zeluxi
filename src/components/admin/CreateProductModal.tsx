@@ -50,6 +50,7 @@ interface CreateProductModalProps {
   productToEdit?: Product | null;
   onProductCreated?: (product: Product) => void;
   onProductUpdated?: (product: Product) => void;
+  presentation?: 'modal' | 'page';
 }
 
 interface ImageUploadItem {
@@ -85,6 +86,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
   productToEdit,
   onProductCreated,
   onProductUpdated,
+  presentation = 'modal',
 }) => {
   const { syncProduct, categories, addCategory, language, showToast } = useStore();
 
@@ -798,7 +800,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
   const completionPercentage = Math.round((completedChecks / formChecks.length) * 100);
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/70 backdrop-blur-sm flex items-stretch sm:items-center justify-center p-0 sm:p-5 animate-in fade-in duration-200">
+    <div className={presentation === 'page' ? "relative w-full min-h-full bg-slate-50" : "fixed inset-0 z-50 overflow-y-auto bg-slate-950/70 backdrop-blur-sm flex items-stretch sm:items-center justify-center p-0 sm:p-5 animate-in fade-in duration-200"}>
       {/* Hidden file replacement input */}
       <input
         ref={replaceImageInputRef}
@@ -845,7 +847,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
       )}
 
       {/* Main Dialog Container */}
-      <div className="relative w-full max-w-6xl bg-white rounded-none sm:rounded-2xl shadow-2xl overflow-hidden border-0 sm:border border-slate-200/80 h-[100dvh] sm:h-auto max-h-[100dvh] sm:max-h-[94vh] flex flex-col">
+      <div className={presentation === 'page' ? "relative w-full max-w-6xl mx-auto bg-white rounded-2xl shadow-sm overflow-hidden border border-slate-200 flex flex-col" : "relative w-full max-w-6xl bg-white rounded-none sm:rounded-2xl shadow-2xl overflow-hidden border-0 sm:border border-slate-200/80 h-[100dvh] sm:h-auto max-h-[100dvh] sm:max-h-[94vh] flex flex-col"}>
         {/* Top gradient accent line */}
         <div className="h-1 w-full bg-indigo-600" />
 
