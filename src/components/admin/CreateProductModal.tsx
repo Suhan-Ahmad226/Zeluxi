@@ -872,7 +872,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
                   </span>
                 )}
               </div>
-              <p className="text-xs text-slate-500 truncate mt-0.5 hidden sm:block">
+              <p className="text-xs text-slate-500 truncate mt-0.5 hidden sm:block hidden sm:block">
                 Bilingual descriptions, local photo compression, category taxonomy, profit margin architecture, and live storefront view.
               </p>
             </div>
@@ -948,7 +948,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
 
           <button
             onClick={() => setActiveTab('media')}
-            className={`py-3 px-3.5 border-b-2 flex items-center gap-2 transition-colors whitespace-nowrap ${
+            className={`py-3 px-3 sm:px-4 border-b-2 flex items-center gap-2 transition-colors whitespace-nowrap ${
               activeTab === 'media'
                 ? 'border-indigo-600 text-indigo-600 font-bold'
                 : 'border-transparent text-slate-500 hover:text-slate-900'
@@ -1850,7 +1850,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
 
               {/* TAB 4: SHIPPING, TAX & SPECS */}
               {activeTab === 'specs' && (
-                <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-xs space-y-5 text-xs">
+                <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-6 shadow-sm space-y-5 text-sm">
                   <div>
                     <h3 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
                       <Truck className="w-4 h-4 text-indigo-600" />
