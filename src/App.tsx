@@ -11,6 +11,7 @@ import { HeroBanner } from './components/storefront/HeroBanner';
 import { TrustBadges } from './components/storefront/TrustBadges';
 import { CategoryList } from './components/storefront/CategoryList';
 import { ProductGrid } from './components/storefront/ProductGrid';
+import { ProductDetailsPage } from './components/storefront/ProductDetailsPage';
 import { DealsBanner } from './components/storefront/DealsBanner';
 import { ProductModal } from './components/storefront/ProductModal';
 import { RecentlyViewedBar } from './components/storefront/RecentlyViewedBar';
@@ -30,7 +31,7 @@ import { StaticPagesModal } from './components/common/StaticPagesModal';
 import { OfflineIndicator } from './components/common/OfflineIndicator';
 import { SlidersHorizontal } from 'lucide-react';
 
-const MainStoreContent: React.FC = () => {
+const MainStoreContent: React.FC<{ productSlug?: string }> = ({ productSlug }) => {
   const { activeView, language, compareList, setIsCompareOpen, activeStaticPage, setActiveStaticPage, storefrontCMS } = useStore();
 
   // Admin Dashboard has its own dedicated sidebar and compact top header
@@ -84,6 +85,8 @@ const MainStoreContent: React.FC = () => {
           </div>
         )}
 
+        {activeView === 'product' && <ProductDetailsPage slug={productSlug || ''} />}
+
         {activeView === 'tracking' && <OrderTrackingView />}
 
         {activeView === 'account' && <CustomerAccountView />}
@@ -124,11 +127,11 @@ const MainStoreContent: React.FC = () => {
   );
 };
 
-export default function App({ initialView = 'store' }: { initialView?: 'store' | 'shop' | 'tracking' | 'account' | 'admin' | 'about' | 'verify-email' }) {
+export default function App({ initialView = 'store', productSlug }: { initialView?: 'store' | 'shop' | 'tracking' | 'account' | 'admin' | 'about' | 'verify-email' | 'product'; productSlug?: string }) {
   return (
     <AuthProvider>
       <StoreProvider initialView={initialView}>
-        <MainStoreContent />
+        <MainStoreContent productSlug={productSlug} />
       </StoreProvider>
     </AuthProvider>
   );
