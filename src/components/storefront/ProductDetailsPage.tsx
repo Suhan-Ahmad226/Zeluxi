@@ -164,8 +164,8 @@ export const ProductDetailsPage: React.FC<ProductDetailsPageProps> = ({ slug }) 
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-14">
           <section className="min-w-0">
-            <div className="relative aspect-square sm:aspect-[4/3] rounded-2xl overflow-hidden bg-slate-50 border border-slate-100">
-              {activeImage ? <StoreImage src={activeImage} alt={product.name} preset="product-detail" className="w-full h-full object-contain" loading="eager" fetchPriority="high" decoding="async" /> : <div className="w-full h-full flex items-center justify-center text-slate-400">No product image available</div>}
+            <div className="relative aspect-[4/5] rounded-2xl overflow-hidden bg-white border border-slate-100">
+              {activeImage ? <StoreImage src={activeImage} alt={product.name} preset="product-detail" className="block w-full h-full object-cover" loading="eager" fetchPriority="high" decoding="async" /> : <div className="w-full h-full flex items-center justify-center text-slate-400">No product image available</div>}
               {product.compareAtPrice && product.compareAtPrice > currentPrice && (
                 <span className="absolute left-4 top-4 rounded-full bg-rose-600 px-3 py-1 text-xs font-bold text-white">
                   Save {Math.round(((product.compareAtPrice - currentPrice) / product.compareAtPrice) * 100)}%
