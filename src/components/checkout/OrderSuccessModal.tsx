@@ -9,13 +9,23 @@ export const OrderSuccessModal: React.FC = () => {
     setLastCreatedOrder,
     settings,
     setActiveView,
+    activeView,
     setActiveTrackingId,
   } = useStore();
 
   if (!lastCreatedOrder) return null;
+  const isAdminInvoice = activeView === 'admin';
 
   const handlePrint = () => {
-    window.print();
+    const invoice = document.getElementById('zeluxi-order-invoice');
+    if (!invoice) return;
+    const popup = window.open('', '_blank', 'width=900,height=720');
+    if (!popup) { window.alert('Allow pop-ups to print or save your invoice as PDF.'); return; }
+    const safeOrderId = String(lastCreatedOrder.id).replace(/[&<>"']/g, '');
+    const styles = Array.from(document.querySelectorAll('link[rel="stylesheet"], style')).map((node) => node.outerHTML).join('');
+    popup.onload = () => { popup.focus(); popup.print(); };
+    popup.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Invoice ' + safeOrderId + '</title>' + styles + '<style>body{background:#fff!important;padding:24px!important}.invoice-print{display:block!important;max-width:900px;margin:auto}.invoice-print table{width:100%;border-collapse:collapse}.invoice-print th,.invoice-print td{padding:8px;border-bottom:1px solid #ddd;text-align:left}.invoice-print img{max-width:56px;max-height:56px;object-fit:contain}@media print{body{padding:0!important}}</style></head><body><main class="invoice-print">' + invoice.innerHTML + '</main></body></html>');
+    popup.document.close();
   };
 
   const handleTrack = () => {
@@ -46,10 +56,10 @@ export const OrderSuccessModal: React.FC = () => {
               <CheckCircle2 className="w-8 h-8" />
             </div>
             <h2 className="text-2xl font-bold text-slate-900">
-              Order Placed Successfully!
+              {isAdminInvoice ? 'Order Invoice' : 'Order Placed Successfully!'}
             </h2>
             <p className="text-xs text-slate-500 max-w-md mx-auto">
-              Thank you, {lastCreatedOrder.customer.fullName}. Your order has been registered and is being prepared for dispatch.
+              {isAdminInvoice ? `Invoice for ${lastCreatedOrder.customer.fullName}` : `Thank you, ${lastCreatedOrder.customer.fullName}. Your order has been registered and is being prepared for dispatch.`}
             </p>
           </div>
 
@@ -86,7 +96,7 @@ export const OrderSuccessModal: React.FC = () => {
           </div>
 
           {/* Printable Invoice Container */}
-          <div className="border border-slate-200 rounded-xl p-5 bg-white space-y-4 print:border-none print:p-0">
+          <div id="zeluxi-order-invoice" className="invoice-print border border-slate-200 rounded-xl p-5 bg-white space-y-4 print:border-none print:p-0">
             {/* Invoice Header */}
             <div className="flex justify-between items-start border-b border-slate-100 pb-4">
               <div>
@@ -117,8 +127,9 @@ export const OrderSuccessModal: React.FC = () => {
                 <span className="text-slate-400 block text-[11px]">Destination & Delivery:</span>
                 <p className="text-slate-700">{lastCreatedOrder.customer.addressDetails}</p>
                 <p className="text-slate-700 font-medium">
-                  {lastCreatedOrder.customer.thanaCity}, {lastCreatedOrder.customer.division}
+                  {[lastCreatedOrder.customer.thanaCity, lastCreatedOrder.customer.district, lastCreatedOrder.customer.division, lastCreatedOrder.customer.postalCode].filter(Boolean).join(', ')}
                 </p>
+                {lastCreatedOrder.customer.notes && <p className="text-slate-500">Delivery notes: {lastCreatedOrder.customer.notes}</p>}
               </div>
             </div>
 
@@ -139,6 +150,7 @@ export const OrderSuccessModal: React.FC = () => {
                       <td className="py-2">
                         <span className="font-semibold text-slate-900 block">{it.productName}</span>
                         {it.variantLabel && <span className="text-[10px] text-slate-500 block">{it.variantLabel}</span>}
+                        {Object.keys(it.variantAttributes || {}).length > 0 && <span className="text-[10px] text-slate-500 block">{Object.entries(it.variantAttributes || {}).map(([key, value]) => `${key}: ${value}`).join(' · ')}</span>}
                         {it.variantSku && <span className="text-[10px] text-slate-400 block">SKU: {it.variantSku}</span>}
                       </td>
                       <td className="py-2 text-center tabular-nums">{it.quantity}</td>
@@ -182,14 +194,14 @@ export const OrderSuccessModal: React.FC = () => {
               <span>Print Invoice</span>
             </button>
 
-            <button
+            {!isAdminInvoice && <button
               onClick={handleTrack}
               className="w-full sm:flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold rounded-xl transition-colors"
             >
               <Truck className="w-4 h-4 text-indigo-400" />
               <span>Track Order in Real-Time</span>
               <ArrowRight className="w-4 h-4" />
-            </button>
+            </button>}
           </div>
         </div>
       </div>
