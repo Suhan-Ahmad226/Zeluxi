@@ -92,6 +92,8 @@ export interface CartItem {
   quantity: number;
   image: string;
   variantLabel?: string;
+  variantSku?: string;
+  variantAttributes?: Record<string, string>;
   stock: number;
 }
 
@@ -155,6 +157,9 @@ export interface OrderItem {
   productId: string;
   productName: string;
   variantLabel?: string;
+  variantId?: string;
+  variantSku?: string;
+  variantAttributes?: Record<string, string>;
   price: number;
   quantity: number;
   image: string;

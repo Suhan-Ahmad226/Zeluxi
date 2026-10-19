@@ -35,3 +35,24 @@ test('browser Supabase config uses public Next.js environment variables, never V
   assert.match(client, /NEXT_PUBLIC_SUPABASE_ANON_KEY/);
   assert.doesNotMatch(client, /import\\.meta|VITE_/);
 });
+
+
+test('variant checkout persists immutable invoice snapshots and requires a selected variant', () => {
+  const migration = read('supabase/migrations/20261019000000_variant_order_invoice.sql');
+  const orderApi = read('api/orders.ts');
+  const productDetails = read('src/components/storefront/ProductDetailsPage.tsx');
+  const invoice = read('src/components/checkout/OrderSuccessModal.tsx');
+
+  for (const column of ['variant_id', 'variant_label', 'variant_sku', 'variant_attributes', 'image_url']) {
+    assert.match(migration, new RegExp('add column if not exists ' + column));
+  }
+  assert.match(migration, /Please select a product variant/);
+  assert.match(migration, /variantId/);
+  assert.match(orderApi, /variantId: z\.string\(\)/);
+  assert.match(orderApi, /variant_label/);
+  assert.match(orderApi, /variant_sku/);
+  assert.match(productDetails, /Select an option/);
+  assert.match(productDetails, /requiresVariantSelection/);
+  assert.match(invoice, /variantSku/);
+  assert.match(invoice, /Print Invoice/);
+});

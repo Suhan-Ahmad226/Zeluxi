@@ -516,6 +516,14 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
     const price = variant ? variant.price : product.price;
     const availableStock = variant ? variant.stock : product.stock;
 
+    if (product.variants.length > 0 && !variant) {
+      showToast('Please choose a product option before adding it to your cart.', 'info');
+      return;
+    }
+    if (!Number.isInteger(quantity) || quantity < 1) {
+      showToast('Please choose a valid quantity.', 'error');
+      return;
+    }
     if (availableStock < 1) {
       showToast('Item is out of stock', 'error');
       return;
@@ -546,7 +554,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
           price,
           quantity,
           image: product.images[0] || '',
-          variantLabel: variant?.name,
+          variantLabel: variant ? [variant.name, ...Object.entries(variant.attributes || {}).map(([key, value]) => `${key}: ${value}`)].filter(Boolean).join(' · ') : undefined,
+          variantSku: variant?.sku,
+          variantAttributes: variant?.attributes,
           stock: availableStock,
         },
       ];
@@ -732,7 +742,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
       body: JSON.stringify({
         customer,
         paymentMethod: 'COD',
-        items: cart.map((item) => ({ productId: item.productId, quantity: item.quantity })),
+        items: cart.map((item) => ({ productId: item.productId, variantId: item.variantId, quantity: item.quantity })),
       }),
       cache: 'no-store',
     });
@@ -740,22 +750,28 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
     if (!response.ok || !payload?.order?.orderId) {
       throw new Error(typeof payload?.error === 'string' ? payload.error : 'Order could not be placed. Please retry.');
     }
-    const createdAt = new Date().toISOString();
+    if (!Array.isArray(payload.order.items) || payload.order.items.length === 0) {
+      throw new Error('The server did not return the saved order items. Please check your order history before retrying.');
+    }
+    const createdAt = typeof payload.order.createdAt === 'string' ? payload.order.createdAt : new Date().toISOString();
     const order: Order = {
       id: String(payload.order.orderId),
       createdAt,
       customer,
-      items: cart.map((item) => ({
-        productId: item.productId,
-        productName: item.name,
-        variantLabel: item.variantLabel,
-        price: item.price,
-        quantity: item.quantity,
-        image: item.image,
+      items: payload.order.items.map((item: any) => ({
+        productId: String(item.productId),
+        productName: String(item.productName),
+        variantId: item.variantId ? String(item.variantId) : undefined,
+        variantLabel: item.variantLabel ? String(item.variantLabel) : undefined,
+        variantSku: item.variantSku ? String(item.variantSku) : undefined,
+        variantAttributes: item.variantAttributes && typeof item.variantAttributes === 'object' ? item.variantAttributes as Record<string, string> : undefined,
+        price: Number(item.price),
+        quantity: Number(item.quantity),
+        image: typeof item.image === 'string' ? item.image : '',
       })),
-      subtotal: cart.reduce((sum, item) => sum + item.price * item.quantity, 0),
-      shippingFee: Math.max(0, Number(payload.order.grandTotal) - cart.reduce((sum, item) => sum + item.price * item.quantity, 0)),
-      discount: 0,
+      subtotal: Number(payload.order.subtotal),
+      shippingFee: Number(payload.order.shippingFee),
+      discount: Number(payload.order.discount || 0),
       grandTotal: Number(payload.order.grandTotal),
       status: 'PENDING',
       paymentMethod: 'COD',

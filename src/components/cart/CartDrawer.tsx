@@ -136,10 +136,9 @@ export const CartDrawer: React.FC = () => {
                       {item.name}
                     </h4>
                     {item.variantLabel && (
-                      <p className="text-[11px] text-slate-500 font-medium">
-                        {item.variantLabel}
-                      </p>
+                      <p className="text-[11px] text-slate-500 font-medium">{item.variantLabel}</p>
                     )}
+                    {item.variantSku && <p className="text-[10px] text-slate-400">SKU: {item.variantSku}</p>}
                     <p className="text-xs font-bold text-slate-900 tabular-nums mt-0.5">
                       {formatPrice(item.price)}
                     </p>

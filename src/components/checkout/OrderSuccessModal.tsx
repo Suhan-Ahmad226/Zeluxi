@@ -138,9 +138,8 @@ export const OrderSuccessModal: React.FC = () => {
                     <tr key={idx} className="py-2">
                       <td className="py-2">
                         <span className="font-semibold text-slate-900 block">{it.productName}</span>
-                        {it.variantLabel && (
-                          <span className="text-[10px] text-slate-500 block">{it.variantLabel}</span>
-                        )}
+                        {it.variantLabel && <span className="text-[10px] text-slate-500 block">{it.variantLabel}</span>}
+                        {it.variantSku && <span className="text-[10px] text-slate-400 block">SKU: {it.variantSku}</span>}
                       </td>
                       <td className="py-2 text-center tabular-nums">{it.quantity}</td>
                       <td className="py-2 text-right tabular-nums">{formatPrice(it.price)}</td>
