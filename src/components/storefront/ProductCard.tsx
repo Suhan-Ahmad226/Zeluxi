@@ -1,4 +1,5 @@
 import React from 'react';
+import { useRouter } from 'next/navigation';
 
 import { Product } from '../../types';
 import { useStore } from '../../context/StoreContext';
@@ -11,12 +12,12 @@ interface ProductCardProps {
 }
 
 export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
+  const router = useRouter();
   const {
     addToCart,
     addRecentlyViewed,
     wishlist,
     toggleWishlist,
-    setSelectedProduct,
   } = useStore();
 
   const isWishlisted = wishlist.includes(product.id);
@@ -31,7 +32,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
 
   const handleCardClick = () => {
     addRecentlyViewed(product.id);
-    setSelectedProduct(product);
+    const slug = product.slug || product.name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    router.push(`/products/${encodeURIComponent(slug)}`);
   };
 
   return (
