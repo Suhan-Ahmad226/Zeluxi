@@ -162,6 +162,7 @@ export const HeroBanner: React.FC = () => {
                 )}
                 <StoreImage
                   src={imageUrl}
+                  preset="hero"
                   srcSet={imageSrcSet || undefined}
                   sizes="(max-width: 639px) calc(100vw - 2rem), (max-width: 1023px) calc(100vw - 3rem), 40vw"
                   alt={banner.highlightSubtitle || banner.headline || 'Featured Zelux collection'}
