@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Check, Heart, Minus, Plus, Share2, ShieldCheck, ShoppingBag, Star, Truck } from 'lucide-react';
+import { ArrowLeft, Check, Heart, Minus, Play, Plus, Share2, ShieldCheck, ShoppingBag, Star, Truck } from 'lucide-react';
 import { useStore } from '../../context/StoreContext';
 import { Product } from '../../types';
 import { formatPrice } from '../../utils/formatters';
@@ -28,6 +28,7 @@ export const ProductDetailsPage: React.FC<ProductDetailsPageProps> = ({ slug }) 
   const [isLoadingProduct, setIsLoadingProduct] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [isVideoActive, setIsVideoActive] = useState(false);
   const [selectedVariantId, setSelectedVariantId] = useState('');
   const [quantity, setQuantity] = useState(1);
 
@@ -85,6 +86,7 @@ export const ProductDetailsPage: React.FC<ProductDetailsPageProps> = ({ slug }) 
   useEffect(() => {
     if (!product) return;
     setActiveImageIndex(0);
+    setIsVideoActive(false);
     setSelectedVariantId('');
     setQuantity(Math.max(1, product.minOrderQuantity || 1));
     addRecentlyViewed(product.id);
@@ -150,6 +152,7 @@ export const ProductDetailsPage: React.FC<ProductDetailsPageProps> = ({ slug }) 
 
   const images = product.images?.filter(Boolean) || [];
   const activeImage = images[activeImageIndex] || images[0] || '';
+  const hasProductVideo = Boolean(product.videoUrl?.trim());
   const specs = Object.entries(product.specifications || {});
   const minQuantity = Math.max(1, product.minOrderQuantity || 1);
   const maxQuantity = Math.max(minQuantity, product.maxOrderQuantity || 99);
@@ -165,21 +168,33 @@ export const ProductDetailsPage: React.FC<ProductDetailsPageProps> = ({ slug }) 
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-14">
           <section className="min-w-0">
-            <div className="relative aspect-[4/5] rounded-2xl overflow-hidden bg-white border border-slate-100">
-              {activeImage ? <StoreImage src={activeImage} alt={product.name} preset="product-detail" className="block w-full h-full object-cover" loading="eager" fetchPriority="high" decoding="async" /> : <div className="w-full h-full flex items-center justify-center text-slate-400">No product image available</div>}
-              {product.compareAtPrice && product.compareAtPrice > currentPrice && (
+            <div className="relative aspect-[4/5] rounded-2xl overflow-hidden bg-slate-950 border border-slate-100">
+              {isVideoActive && hasProductVideo ? (
+                <video key={product.videoUrl} src={product.videoUrl} controls playsInline preload="none" aria-label={`${product.name} product video`} className="block w-full h-full object-contain" />
+              ) : activeImage ? (
+                <StoreImage src={activeImage} alt={product.name} preset="product-detail" className="block w-full h-full object-cover" loading="eager" fetchPriority="high" decoding="async" />
+              ) : hasProductVideo ? (
+                <button type="button" onClick={() => setIsVideoActive(true)} className="flex h-full w-full flex-col items-center justify-center gap-3 text-white" aria-label={`View ${product.name} product video`}><Play className="h-12 w-12" /><span className="text-sm">Play product video</span></button>
+              ) : <div className="w-full h-full flex items-center justify-center bg-white text-slate-400">No product image available</div>}
+              {!isVideoActive && product.compareAtPrice && product.compareAtPrice > currentPrice && (
                 <span className="absolute left-4 top-4 rounded-full bg-rose-600 px-3 py-1 text-xs font-bold text-white">
                   Save {Math.round(((product.compareAtPrice - currentPrice) / product.compareAtPrice) * 100)}%
                 </span>
               )}
             </div>
-            {images.length > 1 && (
+            {(images.length > 1 || hasProductVideo) && (
               <div className="mt-3 grid grid-cols-5 sm:grid-cols-6 gap-2">
                 {images.map((image, index) => (
-                  <button key={image + index} type="button" onClick={() => setActiveImageIndex(index)} aria-label={`View product image ${index + 1}`} aria-pressed={activeImageIndex === index} className={`aspect-square overflow-hidden rounded-lg border-2 bg-slate-50 ${activeImageIndex === index ? 'border-slate-900' : 'border-transparent hover:border-slate-300'}`}>
+                  <button key={image + index} type="button" onClick={() => { setActiveImageIndex(index); setIsVideoActive(false); }} aria-label={`View product image ${index + 1}`} aria-pressed={!isVideoActive && activeImageIndex === index} className={`aspect-square overflow-hidden rounded-lg border-2 bg-slate-50 ${!isVideoActive && activeImageIndex === index ? 'border-slate-900' : 'border-transparent hover:border-slate-300'}`}>
                     <StoreImage src={image} alt={`${product.name}, image ${index + 1}`} preset="thumbnail" className="w-full h-full object-cover" loading="lazy" decoding="async" />
                   </button>
                 ))}
+                {hasProductVideo && (
+                  <button type="button" onClick={() => setIsVideoActive(true)} aria-label={`View ${product.name} product video`} aria-pressed={isVideoActive} className={`relative aspect-square overflow-hidden rounded-lg border-2 bg-slate-950 ${isVideoActive ? 'border-slate-900' : 'border-transparent hover:border-slate-300'}`}>
+                    {activeImage ? <StoreImage src={activeImage} alt="" preset="thumbnail" className="h-full w-full object-cover opacity-70" loading="lazy" decoding="async" /> : <span className="absolute inset-0" />}
+                    <span className="absolute inset-0 flex flex-col items-center justify-center gap-1 text-white"><Play className="h-5 w-5 fill-current" /><span className="text-[10px] font-semibold">VIDEO</span></span>
+                  </button>
+                )}
               </div>
             )}
           </section>
