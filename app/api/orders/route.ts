@@ -13,6 +13,7 @@ async function invoke(request: NextRequest) {
   }
 
   const headers = Object.fromEntries(request.headers.entries());
+  const query = Object.fromEntries(request.nextUrl.searchParams.entries());
   let status = 200;
   const responseHeaders = new Headers();
   let payload: unknown = { error: 'Order service did not return a response.' };
@@ -23,7 +24,7 @@ async function invoke(request: NextRequest) {
     json(data: unknown) { payload = data; },
   };
 
-  await orderHandler({ method: request.method, headers, body }, responseAdapter);
+  await orderHandler({ method: request.method, headers, body, query }, responseAdapter);
   return NextResponse.json(payload, { status, headers: responseHeaders });
 }
 
