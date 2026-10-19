@@ -87,7 +87,7 @@ const MainStoreContent: React.FC<{ productSlug?: string }> = ({ productSlug }) =
 
         {activeView === 'product' && <ProductDetailsPage slug={productSlug || ''} />}
 
-        {activeView === 'tracking' && <OrderTrackingView />
+        {activeView === 'tracking' && <OrderTrackingView />}
 
         {activeView === 'account' && <CustomerAccountView />}
 
