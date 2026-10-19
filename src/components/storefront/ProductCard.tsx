@@ -92,7 +92,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         <div className="absolute inset-0 bg-slate-900/15 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 pointer-events-none">
           <span className="flex items-center gap-1.5 px-3 py-1.5 bg-white text-slate-900 text-xs font-medium rounded-lg shadow-xs">
             <Eye className="w-3.5 h-3.5" />
-            <span>Quick view</span>
+            <span>View details</span>
           </span>
         </div>
       </div>
