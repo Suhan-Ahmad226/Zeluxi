@@ -75,7 +75,8 @@ export function getOptimizedImageUrl(
       if (options.width) url.searchParams.set('w', String(Math.round(options.width)));
       if (options.height) url.searchParams.set('h', String(Math.round(options.height)));
       url.searchParams.set('auto', 'format');
-      url.searchParams.set('fit', options.crop ? 'crop' : 'max');
+      // Unsplash uses fit=crop for fill/thumb presets and fit=max to preserve the full image.
+      url.searchParams.set('fit', options.crop === 'fill' || options.crop === 'thumb' ? 'crop' : 'max');
       url.searchParams.set('q', String(typeof options.quality === 'number' ? options.quality : 80));
       return url.toString();
     } catch {
