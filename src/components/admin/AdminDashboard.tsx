@@ -2332,7 +2332,8 @@ export const AdminDashboard: React.FC = () => {
                         <StoreImage src={item.image} alt={item.productName} className="w-10 h-10 rounded object-cover border bg-white" loading="lazy" decoding="async" />
                         <div>
                           <p className="font-semibold text-slate-900">{item.productName}</p>
-                          {item.variantLabel && <p className="text-[11px] text-slate-400">{item.variantLabel}</p>}
+                          {item.variantLabel && <p className="text-[11px] text-slate-500">{item.variantLabel}</p>}
+                          {item.variantSku && <p className="text-[10px] text-slate-400">Variant SKU: {item.variantSku}</p>}
                         </div>
                       </div>
                       <div className="text-right">
