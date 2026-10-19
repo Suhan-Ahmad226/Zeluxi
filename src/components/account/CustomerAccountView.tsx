@@ -590,7 +590,7 @@ export const CustomerAccountView: React.FC = () => {
           <div className="space-y-4">
             {accountOrders.length === 0 ? (
               <div className="text-center py-12 bg-slate-50 rounded-xl border border-slate-200">
-                <p className="text-sm font-semibold text-slate-700">No accountOrders placed yet.</p>
+                <p className="text-sm font-semibold text-slate-700">No orders placed yet.</p>
               </div>
             ) : (
               accountOrders.map((ord) => (
@@ -784,7 +784,7 @@ export const CustomerAccountView: React.FC = () => {
               </div>
             </div>
 
-            {/* List of customer's active accountOrders */}
+            {/* List of customer's active orders */}
             <div className="space-y-3">
               <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
                 'Your Recent Shipments'
@@ -1217,7 +1217,7 @@ export const CustomerAccountView: React.FC = () => {
                     'WhatsApp Concierge'
                   </h4>
                   <p className="text-slate-600 text-[11px] mt-0.5">
-                    'Instant assistance for accountOrders, returns, and questions'
+                    'Instant assistance for orders, returns, and questions'
                   </p>
                 </div>
                 <a
