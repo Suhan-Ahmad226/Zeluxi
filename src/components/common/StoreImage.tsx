@@ -80,7 +80,7 @@ function isTransformableImage(url: string): boolean {
   try {
     const parsed = new URL(url);
     return parsed.protocol === 'https:' && (
-      (parsed.hostname === 'res.cloudinary.com' && /\\/image\\/upload\\//.test(parsed.pathname)) ||
+      (parsed.hostname === 'res.cloudinary.com' && /\/image\/upload\//.test(parsed.pathname)) ||
       parsed.hostname === 'images.unsplash.com' ||
       parsed.hostname === 'plus.unsplash.com'
     );
@@ -108,8 +108,8 @@ export const StoreImage: React.FC<StoreImageProps> = ({
   const isSafeImageSource =
     (candidate.startsWith('/') && !candidate.startsWith('//')) ||
     candidate.startsWith('blob:') ||
-    /^https?:\\/\\//i.test(candidate) ||
-    /^data:image\\/(?:png|jpe?g|webp|avif|gif);base64,/i.test(candidate);
+    /^https?:\/\//i.test(candidate) ||
+    /^data:image\/(?:png|jpe?g|webp|avif|gif);base64,/i.test(candidate);
   const resolvedSource = isSafeImageSource ? candidate : fallbackSrc;
   const config = IMAGE_PRESETS[preset];
 
