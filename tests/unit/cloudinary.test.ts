@@ -51,3 +51,11 @@ test('Unsplash image URLs receive dimension and format optimization', () => {
   assert.equal(parsed.searchParams.get('auto'), 'format');
   assert.equal(parsed.searchParams.get('fit'), 'crop');
 });
+
+test('Unsplash fit preset preserves the full image instead of cropping', () => {
+  const url = getOptimizedImageUrl('https://images.unsplash.com/photo-123', {
+    width: 640,
+    crop: 'fit',
+  });
+  assert.equal(new URL(url).searchParams.get('fit'), 'max');
+});
