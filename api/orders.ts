@@ -12,6 +12,7 @@ const addressSchema = z.object({
   district: z.string().trim().min(1).max(100),
   thanaCity: z.string().trim().min(1).max(100),
   addressDetails: z.string().trim().min(5).max(1000),
+  postalCode: z.string().trim().max(20).optional(),
   notes: z.string().trim().max(300).optional(),
 });
 const checkoutSchema = z.object({
