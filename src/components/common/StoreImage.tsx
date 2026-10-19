@@ -32,7 +32,7 @@ const IMAGE_PRESETS: Record<StoreImagePreset, ImagePresetConfig> = {
     sizes: '(max-width: 639px) 50vw, (max-width: 1023px) 33vw, 25vw',
   },
   'product-detail': {
-    width: 1200, height: 1500, crop: 'fit',
+    width: 1200, height: 1500, crop: 'fill', gravity: 'auto',
     widths: [320, 480, 640, 800, 1000, 1200],
     sizes: '(max-width: 767px) 100vw, (max-width: 1199px) 55vw, 600px',
   },
