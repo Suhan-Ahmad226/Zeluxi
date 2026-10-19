@@ -792,7 +792,7 @@ export const StorefrontCMSManager: React.FC = () => {
 
                 <div className="mt-4 flex min-h-40 items-center justify-center overflow-hidden rounded-lg border border-slate-800 bg-slate-900">
                   {formData.hero.imageUrl ? (
-                    <img
+                    <StoreImage
                       src={formData.hero.imageUrl}
                       alt={formData.hero.headline ? `Preview: ${formData.hero.headline}` : 'Hero banner preview'}
                       className="block h-auto max-h-[50vh] w-full object-contain"

@@ -72,6 +72,20 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
         .order('created_at', { ascending: false })
         .limit(500);
       if (error) return res.status(503).json({ error: 'Orders could not be loaded.' });
+      const productIds = Array.from(new Set((data || []).flatMap((row: any) => (row.store_order_items || []).map((item: any) => String(item.product_id || '')).filter(Boolean))));
+      const productImageById = new Map<string, string>();
+      if (productIds.length) {
+        const { data: productRows } = await admin.from('store_products')
+          .select('id,image_url,product_data')
+          .in('id', productIds);
+        for (const productRow of productRows || []) {
+          const productData = productRow.product_data && typeof productRow.product_data === 'object' ? productRow.product_data as Record<string, unknown> : {};
+          const storedImages = Array.isArray(productData.images) ? productData.images : [];
+          const firstStoredImage = storedImages.find((value: unknown) => typeof value === 'string' && value.trim()) as string | undefined;
+          const image = firstStoredImage?.trim() || (typeof productRow.image_url === 'string' ? productRow.image_url.trim() : '');
+          if (image) productImageById.set(String(productRow.id), image);
+        }
+      }
       const orders = (data || []).map((row: any) => {
         const status = row.status || 'PENDING';
         return {
@@ -83,7 +97,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
             productName: item.product_name,
             price: Number(item.unit_price),
             quantity: Number(item.quantity),
-            image: '',
+            image: (typeof item.image_url === 'string' && item.image_url.trim()) || (typeof item.image === 'string' && item.image.trim()) || productImageById.get(String(item.product_id || '')) || '',
           })),
           subtotal: Number(row.subtotal),
           shippingFee: Number(row.shipping_fee),

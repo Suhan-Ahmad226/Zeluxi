@@ -177,7 +177,6 @@ export const CategoriesManager: React.FC<CategoriesManagerProps> = ({
         isActive,
         parentId: resolvedParentId,
       });
-      showToast(`Category "${name}" updated`, 'success');
     } else {
       addCategory({
         name: name.trim(),
@@ -188,13 +187,7 @@ export const CategoriesManager: React.FC<CategoriesManagerProps> = ({
         isActive,
         parentId: resolvedParentId,
       });
-      showToast(
-        isSubCategory
-          ? `Sub-Category "${name}" created successfully`
-          : `Main Category "${name}" created successfully`,
-        'success'
-      );
-    }
+}
 
     setIsModalOpen(false);
   };
@@ -357,7 +350,7 @@ export const CategoriesManager: React.FC<CategoriesManagerProps> = ({
                 {/* Parent Category Header Row */}
                 <div className="p-4 sm:p-5 bg-gradient-to-r from-slate-50 to-white border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
-                    <img
+                    <StoreImage
                       src={mainCat.image || 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=400&q=80'}
                       alt={mainCat.name}
                       className="w-12 h-12 rounded-xl object-cover border border-slate-200 bg-white shrink-0 shadow-2xs"
@@ -430,7 +423,7 @@ export const CategoriesManager: React.FC<CategoriesManagerProps> = ({
                             className="bg-white p-3.5 rounded-xl border border-slate-200/90 shadow-2xs hover:border-indigo-300 transition-all flex items-center justify-between gap-3 group"
                           >
                             <div className="flex items-center gap-2.5 min-w-0">
-                              <img
+                              <StoreImage
                                 src={sub.image || 'https://images.unsplash.com/photo-1627123424574-724758594e93?auto=format&fit=crop&w=300&q=80'}
                                 alt={sub.name}
                                 className="w-10 h-10 rounded-lg object-cover border border-slate-200 bg-slate-100 shrink-0"
@@ -503,7 +496,7 @@ export const CategoriesManager: React.FC<CategoriesManagerProps> = ({
                 className="bg-white rounded-2xl border border-slate-200 shadow-2xs hover:shadow-sm transition-all overflow-hidden flex flex-col group"
               >
                 <div className="h-36 w-full relative bg-slate-100 overflow-hidden">
-                  <img
+                  <StoreImage
                     src={cat.image || 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=800&q=80'}
                     alt={cat.name}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
@@ -810,7 +803,7 @@ export const CategoriesManager: React.FC<CategoriesManagerProps> = ({
 
                 {image && (
                   <div className="flex items-center gap-3 pt-1">
-                    <img
+                    <StoreImage
                       src={image}
                       alt="Preview"
                       className="w-14 h-12 rounded-lg object-cover border bg-white shrink-0"
