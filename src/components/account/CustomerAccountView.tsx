@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useStore } from '../../context/StoreContext';
 import { StoreImage } from '../common/StoreImage';
 import { useAuth } from '../../context/AuthContext';
-import { formatPrice } from '../../utils/formatters';
+import { formatPrice, formatDate } from '../../utils/formatters';
 import {
   Package,
   Heart,
@@ -35,7 +35,22 @@ import {
   Clock,
   RotateCcw,
   Search,
+  FileText,
+  Download,
 } from 'lucide-react';
+
+function escapeInvoiceText(value: unknown): string {
+  return String(value ?? '').replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch] || ch);
+}
+function openOrderInvoice(order: import('../../types').Order, settings: import('../../types').StoreSettings, language: import('../../types').Language) {
+  const popup = window.open('', '_blank', 'width=900,height=720');
+  if (!popup) { window.alert('Allow pop-ups to print or save your invoice as PDF.'); return; }
+  const rows = order.items.map((item) => '<tr><td>' + escapeInvoiceText(item.productName) + (item.variantLabel ? '<div>' + escapeInvoiceText(item.variantLabel) + '</div>' : '') + (item.variantSku ? '<div>SKU: ' + escapeInvoiceText(item.variantSku) + '</div>' : '') + '</td><td>' + item.quantity + '</td><td>' + escapeInvoiceText(formatPrice(item.price, language)) + '</td><td>' + escapeInvoiceText(formatPrice(item.price * item.quantity, language)) + '</td></tr>').join('');
+  const customer = order.customer;
+  const address = [customer.addressDetails, customer.thanaCity, customer.district, customer.division, customer.postalCode].filter(Boolean).join(', ');
+  popup.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Invoice ' + escapeInvoiceText(order.id) + '</title><style>body{font:14px Arial;color:#0f172a;padding:24px;max-width:850px;margin:auto}header{display:flex;justify-content:space-between;border-bottom:2px solid;padding-bottom:16px}section{margin:20px 0}table{width:100%;border-collapse:collapse}td,th{padding:10px 6px;border-bottom:1px solid #ddd;text-align:left}.totals{max-width:330px;margin-left:auto}.total{display:flex;justify-content:space-between;padding:5px 0}.grand{border-top:1px solid #aaa;font-size:18px;font-weight:bold;padding-top:12px}@media print{.no-print{display:none}}@media(max-width:600px){header{display:block}td,th{font-size:11px;padding:5px 2px}}</style></head><body><header><div><h1>' + escapeInvoiceText(settings.storeName || 'Zeluxi') + '</h1><div>' + escapeInvoiceText(settings.address || '') + '</div><div>' + escapeInvoiceText(settings.phone || '') + ' · ' + escapeInvoiceText(settings.email || '') + '</div></div><div><h2>INVOICE</h2><strong>Order #' + escapeInvoiceText(order.id) + '</strong><div>' + escapeInvoiceText(formatDate(order.createdAt, language)) + '</div><div>Status: ' + escapeInvoiceText(order.status) + '</div></div></header><section><h2>Customer & delivery</h2><strong>' + escapeInvoiceText(customer.fullName) + '</strong><div>' + escapeInvoiceText(customer.phone) + ' · ' + escapeInvoiceText(customer.email || '') + '</div><div>' + escapeInvoiceText(address) + '</div></section><table><thead><tr><th>Item</th><th>Qty</th><th>Unit price</th><th>Total</th></tr></thead><tbody>' + rows + '</tbody></table><section class="totals"><div class="total"><span>Subtotal</span><strong>' + escapeInvoiceText(formatPrice(order.subtotal, language)) + '</strong></div><div class="total"><span>Shipping</span><strong>' + escapeInvoiceText(formatPrice(order.shippingFee, language)) + '</strong></div>' + (order.discount > 0 ? '<div class="total"><span>Discount</span><strong>-' + escapeInvoiceText(formatPrice(order.discount, language)) + '</strong></div>' : '') + '<div class="total"><span>Payment</span><strong>' + escapeInvoiceText(order.paymentMethod) + '</strong></div><div class="total grand"><span>Grand total</span><strong>' + escapeInvoiceText(formatPrice(order.grandTotal, language)) + '</strong></div></section><p>Thank you for shopping with ' + escapeInvoiceText(settings.storeName || 'Zeluxi') + '.</p><button class="no-print" onclick="window.print()">Print / Save as PDF</button></body></html>');
+  popup.document.close(); popup.focus();
+}
 
 export const CustomerAccountView: React.FC = () => {
   const {
@@ -44,6 +59,7 @@ export const CustomerAccountView: React.FC = () => {
     products,
     coupons,
     language,
+    settings,
     setActiveView,
     setActiveTrackingId,
     addToCart,
@@ -71,6 +87,7 @@ export const CustomerAccountView: React.FC = () => {
 
   const [quickTrackInput, setQuickTrackInput] = useState('');
   const [ordersFilter, setOrdersFilter] = useState<'ALL' | 'ACTIVE' | 'DELIVERED' | 'CANCELLED'>('ALL');
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
 
   // Password Change Form States
   const [currentPassword, setCurrentPassword] = useState('');
@@ -572,6 +589,8 @@ export const CustomerAccountView: React.FC = () => {
                           {formatPrice(ord.grandTotal, language)}
                         </span>
                       </div>
+                      <button onClick={() => setSelectedOrderId((current) => current === ord.id ? null : ord.id)} className="flex items-center gap-1 px-3 py-1.5 bg-white border border-slate-200 text-slate-800 rounded-lg text-xs font-semibold"><FileText className="w-3.5 h-3.5" />Order Details</button>
+                      <button onClick={() => openOrderInvoice(ord, settings, language)} className="flex items-center gap-1 px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-semibold"><Download className="w-3.5 h-3.5" />Invoice / PDF</button>
                       <button
                         onClick={() => {
                           setActiveTrackingId(ord.id);
@@ -605,6 +624,19 @@ export const CustomerAccountView: React.FC = () => {
                       </div>
                     ))}
                   </div>
+
+                  {selectedOrderId === ord.id && (
+                    <section className="rounded-xl border border-indigo-100 bg-indigo-50/40 p-4 space-y-4">
+                      <div><h3 className="text-sm font-bold text-slate-900">Order details</h3><p className="mt-1 text-xs text-slate-500">Placed {formatDate(ord.createdAt, language)} · {ord.status.replaceAll('_', ' ')}</p></div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="rounded-lg bg-white border border-slate-200 p-3"><h4 className="text-xs font-bold mb-2">Delivery address</h4><p className="text-xs font-semibold">{ord.customer.fullName}</p><p className="text-xs mt-1">{ord.customer.phone}</p><p className="text-xs mt-1">{ord.customer.addressDetails}</p><p className="text-xs">{[ord.customer.thanaCity, ord.customer.district, ord.customer.division, ord.customer.postalCode].filter(Boolean).join(', ')}</p></div>
+                        <div className="rounded-lg bg-white border border-slate-200 p-3"><h4 className="text-xs font-bold mb-2">Payment & delivery</h4><p className="text-xs">Method: <strong>{ord.paymentMethod}</strong></p><p className="text-xs mt-1">Payment status: <strong>{ord.paymentStatus}</strong></p><p className="text-xs mt-1">Courier: <strong>{ord.courier.provider}</strong></p><p className="text-xs mt-1">ETA: <strong>{ord.courier.estimatedDelivery || 'Not available yet'}</strong></p>{ord.courier.trackingCode && <p className="text-xs mt-1">Tracking code: <strong className="font-mono">{ord.courier.trackingCode}</strong></p>}{ord.courier.consignmentId && <p className="text-xs mt-1">Consignment: <strong className="font-mono">{ord.courier.consignmentId}</strong></p>}</div>
+                      </div>
+                      <div className="rounded-lg bg-white border border-slate-200 p-3 space-y-2 text-xs"><h4 className="font-bold">Price summary</h4><div className="flex justify-between"><span>Subtotal</span><strong>{formatPrice(ord.subtotal, language)}</strong></div><div className="flex justify-between"><span>Shipping</span><strong>{formatPrice(ord.shippingFee, language)}</strong></div>{ord.discount > 0 && <div className="flex justify-between text-emerald-700"><span>Discount</span><strong>−{formatPrice(ord.discount, language)}</strong></div>}<div className="flex justify-between border-t pt-2 text-sm"><strong>Grand total</strong><strong className="text-indigo-700">{formatPrice(ord.grandTotal, language)}</strong></div></div>
+                      {ord.statusHistory.length > 0 && <div className="rounded-lg bg-white border border-slate-200 p-3"><h4 className="text-xs font-bold mb-2">Order activity</h4><ol className="space-y-2">{ord.statusHistory.slice().reverse().map((event, index) => <li key={event.status + event.timestamp + index} className="text-xs"><strong>{event.status.replaceAll('_', ' ')}</strong><p className="text-slate-500">{event.timestamp}</p>{event.note && <p className="text-slate-600">{event.note}</p>}</li>)}</ol></div>}
+                      <button onClick={() => openOrderInvoice(ord, settings, language)} className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white"><Download className="h-4 w-4" />Print / Save invoice as PDF</button>
+                    </section>
+                  )}
 
                   {/* Courier dispatch note & Actions */}
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-slate-500 pt-3 border-t border-slate-100">
