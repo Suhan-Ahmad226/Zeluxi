@@ -19,6 +19,7 @@ const checkoutSchema = z.object({
   paymentMethod: z.literal('COD'),
   items: z.array(z.object({
     productId: z.string().trim().min(1).max(100),
+    variantId: z.string().trim().min(1).max(100).optional(),
     quantity: z.number().int().min(1).max(20),
   })).min(1).max(50),
 }).strict();
@@ -95,6 +96,10 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
           items: (row.store_order_items || []).map((item: any) => ({
             productId: item.product_id,
             productName: item.product_name,
+            variantId: item.variant_id || undefined,
+            variantLabel: item.variant_label || undefined,
+            variantSku: item.variant_sku || undefined,
+            variantAttributes: item.variant_attributes && typeof item.variant_attributes === 'object' ? item.variant_attributes : {},
             price: Number(item.unit_price),
             quantity: Number(item.quantity),
             image: (typeof item.image_url === 'string' && item.image_url.trim()) || (typeof item.image === 'string' && item.image.trim()) || productImageById.get(String(item.product_id || '')) || '',
@@ -195,12 +200,17 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     if (!parsed.success) {
       return res.status(400).json({ error: 'Invalid checkout data.', details: parsed.error.issues.map(i => ({ path: i.path, message: i.message })) });
     }
-    const merged = new Map<string, number>();
-    for (const item of parsed.data.items) merged.set(item.productId, (merged.get(item.productId) || 0) + item.quantity);
-    if ([...merged.values()].some(quantity => quantity > 20)) {
-      return res.status(400).json({ error: 'Maximum quantity per product is 20.' });
+    const merged = new Map<string, { productId: string; variantId?: string; quantity: number }>();
+    for (const item of parsed.data.items) {
+      const variantId = item.variantId || undefined;
+      const key = item.productId + '::' + (variantId || 'default');
+      const current = merged.get(key);
+      merged.set(key, { productId: item.productId, variantId, quantity: (current?.quantity || 0) + item.quantity });
     }
-    const items = [...merged].map(([productId, quantity]) => ({ productId, quantity }));
+    if ([...merged.values()].some(item => item.quantity > 20)) {
+      return res.status(400).json({ error: 'Maximum quantity per product variant is 20.' });
+    }
+    const items = [...merged.values()];
     const { data, error } = await admin.rpc('create_customer_order', {
       p_user_id: user.id,
       p_idempotency_key: idempotencyKey,
@@ -211,11 +221,48 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
       p_free_shipping_threshold: freeShippingThreshold,
     });
     if (error) {
-      const safeMessage = /Insufficient stock|unavailable|Invalid quantity|Invalid order|Invalid customer|Invalid shipping/i.test(error.message)
+      const safeMessage = /Insufficient stock|unavailable|Invalid quantity|Invalid order|Invalid customer|Invalid shipping|select a product variant/i.test(error.message)
         ? error.message : 'Order could not be created. Please retry safely.';
       return res.status(409).json({ error: safeMessage });
     }
-    return res.status(201).json({ order: data });
+
+    // Return the committed database snapshot, never the browser's claimed price or variant label.
+    const orderId = String(data?.orderId || '');
+    const { data: savedOrder, error: savedOrderError } = await admin
+      .from('store_orders')
+      .select('id,status,customer,subtotal,shipping_fee,discount,grand_total,created_at,store_order_items(*)')
+      .eq('id', orderId)
+      .eq('user_id', user.id)
+      .single();
+    if (savedOrderError || !savedOrder) {
+      return res.status(503).json({ error: 'Order was submitted but its invoice snapshot could not be loaded. Retry with the same checkout session or check order history.' });
+    }
+
+    const savedItems = (savedOrder.store_order_items || []).map((item: any) => ({
+      productId: String(item.product_id),
+      productName: String(item.product_name),
+      variantId: item.variant_id ? String(item.variant_id) : undefined,
+      variantLabel: item.variant_label ? String(item.variant_label) : undefined,
+      variantSku: item.variant_sku ? String(item.variant_sku) : undefined,
+      variantAttributes: item.variant_attributes && typeof item.variant_attributes === 'object' ? item.variant_attributes : {},
+      price: Number(item.unit_price),
+      quantity: Number(item.quantity),
+      image: typeof item.image_url === 'string' ? item.image_url : '',
+    }));
+    return res.status(201).json({
+      order: {
+        orderId: savedOrder.id,
+        status: savedOrder.status,
+        createdAt: savedOrder.created_at,
+        customer: savedOrder.customer,
+        subtotal: Number(savedOrder.subtotal),
+        shippingFee: Number(savedOrder.shipping_fee),
+        discount: Number(savedOrder.discount || 0),
+        grandTotal: Number(savedOrder.grand_total),
+        items: savedItems,
+        replayed: Boolean(data?.replayed),
+      },
+    });
   } catch {
     return res.status(500).json({ error: 'Unexpected order service error. No success is implied; check order status before retrying.' });
   }
