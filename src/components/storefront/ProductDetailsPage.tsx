@@ -2,7 +2,6 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { ArrowLeft, Check, Heart, Minus, Plus, Share2, ShieldCheck, ShoppingBag, Star, Truck } from 'lucide-react';
 import { useStore } from '../../context/StoreContext';
 import { Product } from '../../types';
@@ -15,7 +14,6 @@ interface ProductDetailsPageProps {
 }
 
 export const ProductDetailsPage: React.FC<ProductDetailsPageProps> = ({ slug }) => {
-  const router = useRouter();
   const {
     products,
     addToCart,
