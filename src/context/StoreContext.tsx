@@ -66,7 +66,7 @@ interface StoreContextType {
   isCompareOpen: boolean;
   isSizeGuideOpen: boolean;
   language: Language;
-  activeView: 'store' | 'shop' | 'tracking' | 'account' | 'admin' | 'about' | 'verify-email';
+  activeView: 'store' | 'shop' | 'tracking' | 'account' | 'admin' | 'about' | 'verify-email' | 'product';
   activeFilterTab: 'all' | 'new-arrivals' | 'best-sellers' | 'deals' | 'featured';
   selectedCategoryFilter: string | null;
   searchQuery: string;
@@ -80,7 +80,7 @@ interface StoreContextType {
 
   // Actions
   setLanguage: (lang: Language) => void;
-  setActiveView: (view: 'store' | 'shop' | 'tracking' | 'account' | 'admin' | 'about' | 'verify-email') => void;
+  setActiveView: (view: 'store' | 'shop' | 'tracking' | 'account' | 'admin' | 'about' | 'verify-email' | 'product') => void;
   setActiveFilterTab: (tab: 'all' | 'new-arrivals' | 'best-sellers' | 'deals' | 'featured') => void;
   setActiveStaticPage: (page: string | null) => void;
   setSelectedCategoryFilter: (cat: string | null) => void;
@@ -162,7 +162,7 @@ const pendingProductCreates = new Map<string, Product>();
 // New namespace intentionally ignores legacy browser-only commerce records during hardening.
 const LOCAL_STORAGE_KEY = 'ZELUX_ECOMMERCE_STATE_V3';
 
-type StoreView = 'store' | 'shop' | 'tracking' | 'account' | 'admin' | 'about' | 'verify-email';
+type StoreView = 'store' | 'shop' | 'tracking' | 'account' | 'admin' | 'about' | 'verify-email' | 'product';
 
 export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: StoreView }> = ({ children, initialView = 'store' }) => {
   const router = useRouter();
