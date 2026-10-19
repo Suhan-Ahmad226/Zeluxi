@@ -333,16 +333,16 @@ export const CustomerAccountView: React.FC = () => {
           </button>
 
           <button
-            onClick={() => setActiveTab('accountOrders')}
+            onClick={() => setActiveTab('orders')}
             className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold transition-colors whitespace-nowrap min-h-[40px] ${
-              activeTab === 'accountOrders' ? 'bg-slate-900 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+              activeTab === 'orders' ? 'bg-slate-900 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
             }`}
           >
             <Package className="w-3.5 h-3.5" />
             <span>'My Orders'</span>
             {accountOrders.length > 0 && (
               <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
-                activeTab === 'accountOrders' ? 'bg-indigo-500 text-white' : 'bg-slate-200 text-slate-700'
+                activeTab === 'orders' ? 'bg-indigo-500 text-white' : 'bg-slate-200 text-slate-700'
               }`}>
                 {accountOrders.length}
               </span>
@@ -431,10 +431,10 @@ export const CustomerAccountView: React.FC = () => {
                 </div>
                 <p className="text-2xl font-bold font-mono text-slate-900 mt-2">{accountOrders.length}</p>
                 <button
-                  onClick={() => setActiveTab('accountOrders')}
+                  onClick={() => setActiveTab('orders')}
                   className="text-[11px] text-indigo-600 font-semibold hover:underline mt-1 block"
                 >
-                  'View accountOrders →'
+                  'View orders →'
                 </button>
               </div>
 
@@ -544,7 +544,7 @@ export const CustomerAccountView: React.FC = () => {
             {/* Quick Navigation Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <button
-                onClick={() => setActiveTab('accountOrders')}
+                onClick={() => setActiveTab('orders')}
                 className="p-4 bg-white border border-slate-200 rounded-xl text-left hover:border-slate-400 hover:shadow-xs transition-all group"
               >
                 <div className="w-9 h-9 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
@@ -586,7 +586,7 @@ export const CustomerAccountView: React.FC = () => {
         )}
 
         {/* Tab 1: Orders List */}
-        {activeTab === 'accountOrders' && (
+        {activeTab === 'orders' && (
           <div className="space-y-4">
             {accountOrders.length === 0 ? (
               <div className="text-center py-12 bg-slate-50 rounded-xl border border-slate-200">
