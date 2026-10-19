@@ -36,6 +36,7 @@ export const ProductDetailsPage: React.FC<ProductDetailsPageProps> = ({ slug }) 
   const currentPrice = selectedVariant?.price ?? product?.price ?? 0;
   const currentStock = selectedVariant?.stock ?? product?.stock ?? 0;
   const isOutOfStock = currentStock <= 0;
+  const requiresVariantSelection = Boolean(product?.variants.length && !selectedVariant);
   const isWishlisted = product ? wishlist.includes(product.id) : false;
 
   useEffect(() => {
@@ -84,7 +85,7 @@ export const ProductDetailsPage: React.FC<ProductDetailsPageProps> = ({ slug }) 
   useEffect(() => {
     if (!product) return;
     setActiveImageIndex(0);
-    setSelectedVariantId(product.variants[0]?.id || '');
+    setSelectedVariantId('');
     setQuantity(Math.max(1, product.minOrderQuantity || 1));
     addRecentlyViewed(product.id);
   }, [product?.id]);
@@ -197,7 +198,7 @@ export const ProductDetailsPage: React.FC<ProductDetailsPageProps> = ({ slug }) 
 
             <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
               <span className="flex items-center gap-1 font-medium text-slate-700"><Star className="h-4 w-4 fill-amber-400 text-amber-400" /> {product.rating.toFixed(1)} <span className="text-slate-500">({product.reviewCount} reviews)</span></span>
-              <span className="text-slate-300">|</span><span className="text-slate-500">SKU: {product.sku}</span>
+              <span className="text-slate-300">|</span><span className="text-slate-500">SKU: {selectedVariant?.sku || product.sku}</span>
             </div>
 
             <div className="mt-5 flex flex-wrap items-baseline gap-3">
@@ -210,7 +211,8 @@ export const ProductDetailsPage: React.FC<ProductDetailsPageProps> = ({ slug }) 
               <div className="mt-6">
                 <label htmlFor="product-variant" className="block text-sm font-semibold text-slate-900 mb-2">Choose option</label>
                 <select id="product-variant" value={selectedVariantId} onChange={(event) => { setSelectedVariantId(event.target.value); setQuantity(Math.max(1, product.minOrderQuantity || 1)); }} className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm text-slate-900 focus:border-slate-900 focus:outline-none">
-                  {product.variants.map((variant) => <option key={variant.id} value={variant.id} disabled={variant.stock <= 0}>{variant.name}{variant.stock <= 0 ? ' (Out of stock)' : ''} · {formatPrice(variant.price)}</option>)}
+                  <option value="">Select an option</option>
+                  {product.variants.map((variant) => <option key={variant.id} value={variant.id} disabled={variant.stock <= 0}>{[variant.name, ...Object.entries(variant.attributes || {}).map(([key, value]) => `${key}: ${value}`)].filter(Boolean).join(' · ')}{variant.stock <= 0 ? ' (Out of stock)' : ''} · {formatPrice(variant.price)} · SKU: {variant.sku}</option>)}
                 </select>
               </div>
             )}
@@ -218,7 +220,7 @@ export const ProductDetailsPage: React.FC<ProductDetailsPageProps> = ({ slug }) 
             <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
               <div className={`flex items-center gap-2 text-sm font-medium ${isOutOfStock ? 'text-rose-600' : currentStock <= product.lowStockThreshold ? 'text-amber-700' : 'text-emerald-700'}`}>
                 <span className={`h-2 w-2 rounded-full ${isOutOfStock ? 'bg-rose-500' : currentStock <= product.lowStockThreshold ? 'bg-amber-500' : 'bg-emerald-500'}`} />
-                {isOutOfStock ? 'Out of stock' : currentStock <= product.lowStockThreshold ? `Only ${currentStock} left` : 'In stock'}
+                {requiresVariantSelection ? 'Choose an option to see stock' : isOutOfStock ? 'Out of stock' : currentStock <= product.lowStockThreshold ? `Only ${currentStock} left` : 'In stock'}
               </div>
               <div className="flex items-center rounded-lg border border-slate-200">
                 <button type="button" onClick={() => setQuantity((value) => Math.max(minQuantity, value - 1))} disabled={quantity <= minQuantity} aria-label="Decrease quantity" className="p-2.5 disabled:opacity-30"><Minus className="h-4 w-4" /></button>
@@ -228,7 +230,7 @@ export const ProductDetailsPage: React.FC<ProductDetailsPageProps> = ({ slug }) 
             </div>
 
             <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <button type="button" onClick={handleAddToCart} disabled={isOutOfStock || quantity > currentStock} className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-900 px-5 py-3.5 text-sm font-semibold text-slate-900 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"><ShoppingBag className="h-4 w-4" /> Add to cart</button>
+              <button type="button" onClick={handleAddToCart} disabled={requiresVariantSelection || isOutOfStock || quantity > currentStock} className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-900 px-5 py-3.5 text-sm font-semibold text-slate-900 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"><ShoppingBag className="h-4 w-4" /> Add to cart</button>
               <button type="button" onClick={handleBuyNow} disabled={isOutOfStock || quantity > currentStock} className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-5 py-3.5 text-sm font-semibold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40">Buy now <Check className="h-4 w-4" /></button>
             </div>
 
