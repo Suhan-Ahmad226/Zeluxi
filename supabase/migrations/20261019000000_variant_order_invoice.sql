@@ -5,7 +5,12 @@ alter table public.store_order_items
   add column if not exists variant_label text,
   add column if not exists variant_sku text,
   add column if not exists variant_attributes jsonb not null default '{}'::jsonb,
-  add column if not exists image_url text;
+  add column if not exists image_url text,
+  add column if not exists product_sku text,
+  add column if not exists product_brand text,
+  add column if not exists product_description text,
+  add column if not exists product_barcode text,
+  add column if not exists product_specifications jsonb not null default '{}'::jsonb;
 
 create index if not exists store_order_items_variant_id_idx
   on public.store_order_items (variant_id)
@@ -189,11 +194,17 @@ begin
 
     insert into public.store_order_items(
       order_id, product_id, product_name, unit_price, quantity,
-      variant_id, variant_label, variant_sku, variant_attributes, image_url
+      variant_id, variant_label, variant_sku, variant_attributes, image_url,
+      product_sku, product_brand, product_description, product_barcode, product_specifications
     )
     values (
       v_order.id, v_product.id, v_product.name, v_unit_price, v_qty,
-      v_variant_id, v_variant_label, v_variant_sku, v_variant_attributes, v_product.image_url
+      v_variant_id, v_variant_label, v_variant_sku, v_variant_attributes, v_product.image_url,
+      nullif(v_product.product_data->>'sku', ''),
+      nullif(v_product.product_data->>'brand', ''),
+      nullif(v_product.product_data->>'description', ''),
+      nullif(v_product.product_data->>'barcode', ''),
+      coalesce(v_product.product_data->'specifications', '{}'::jsonb)
     );
   end loop;
 
