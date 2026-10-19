@@ -160,6 +160,12 @@ export interface OrderItem {
   variantId?: string;
   variantSku?: string;
   variantAttributes?: Record<string, string>;
+  /** Product details captured at purchase time for historically accurate invoices. */
+  productSku?: string;
+  brand?: string;
+  description?: string;
+  barcode?: string;
+  specifications?: Record<string, string>;
   price: number;
   quantity: number;
   image: string;

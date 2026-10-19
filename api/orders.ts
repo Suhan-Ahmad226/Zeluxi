@@ -101,6 +101,11 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
             variantLabel: item.variant_label || undefined,
             variantSku: item.variant_sku || undefined,
             variantAttributes: item.variant_attributes && typeof item.variant_attributes === 'object' ? item.variant_attributes : {},
+            productSku: typeof item.product_sku === 'string' ? item.product_sku : undefined,
+            brand: typeof item.product_brand === 'string' ? item.product_brand : undefined,
+            description: typeof item.product_description === 'string' ? item.product_description : undefined,
+            barcode: typeof item.product_barcode === 'string' ? item.product_barcode : undefined,
+            specifications: item.product_specifications && typeof item.product_specifications === 'object' && !Array.isArray(item.product_specifications) ? item.product_specifications : {},
             price: Number(item.unit_price),
             quantity: Number(item.quantity),
             image: (typeof item.image_url === 'string' && item.image_url.trim()) || (typeof item.image === 'string' && item.image.trim()) || productImageById.get(String(item.product_id || '')) || '',
@@ -218,7 +223,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     // or decrement the wrong stock while silently dropping the chosen option.
     const { error: variantSchemaError } = await admin
       .from('store_order_items')
-      .select('variant_id,variant_label,variant_sku,variant_attributes,image_url')
+      .select('variant_id,variant_label,variant_sku,variant_attributes,image_url,product_sku,product_brand,product_description,product_barcode,product_specifications')
       .limit(0);
     if (variantSchemaError) {
       return res.status(503).json({

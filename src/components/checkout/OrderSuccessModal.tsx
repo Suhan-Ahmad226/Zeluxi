@@ -23,7 +23,19 @@ export const OrderSuccessModal: React.FC = () => {
     if (!popup) { window.alert('Allow pop-ups to print or save your invoice as PDF.'); return; }
     const safeOrderId = String(lastCreatedOrder.id).replace(/[&<>"']/g, '');
     const styles = Array.from(document.querySelectorAll('link[rel="stylesheet"], style')).map((node) => node.outerHTML).join('');
-    popup.onload = () => { popup.focus(); popup.print(); };
+    popup.onload = async () => {
+      popup.focus();
+      const images = Array.from(popup.document.images);
+      await Promise.all(images.map((image) => {
+        image.loading = 'eager';
+        if (image.complete) return Promise.resolve();
+        return new Promise<void>((resolve) => {
+          image.addEventListener('load', () => resolve(), { once: true });
+          image.addEventListener('error', () => resolve(), { once: true });
+        });
+      }));
+      popup.print();
+    };
     popup.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Invoice ' + safeOrderId + '</title>' + styles + '<style>body{background:#fff!important;padding:24px!important}.invoice-print{display:block!important;max-width:900px;margin:auto}.invoice-print table{width:100%;border-collapse:collapse}.invoice-print th,.invoice-print td{padding:8px;border-bottom:1px solid #ddd;text-align:left}.invoice-print img{max-width:56px;max-height:56px;object-fit:contain}@media print{body{padding:0!important}}</style></head><body><main class="invoice-print">' + invoice.innerHTML + '</main></body></html>');
     popup.document.close();
   };
@@ -152,7 +164,12 @@ export const OrderSuccessModal: React.FC = () => {
                         {it.image && <img src={it.image} alt={it.productName} loading="lazy" className="mt-1 h-12 w-12 rounded border border-slate-200 object-contain" />}
                         {it.variantLabel && <span className="text-[10px] text-slate-500 block">{it.variantLabel}</span>}
                         {Object.keys(it.variantAttributes || {}).length > 0 && <span className="text-[10px] text-slate-500 block">{Object.entries(it.variantAttributes || {}).map(([key, value]) => `${key}: ${value}`).join(' · ')}</span>}
-                        {it.variantSku && <span className="text-[10px] text-slate-400 block">SKU: {it.variantSku}</span>}
+                        {it.variantSku && <span className="text-[10px] text-slate-400 block">Variant SKU: {it.variantSku}</span>}
+                        {it.productSku && <span className="text-[10px] text-slate-500 block">Product SKU: {it.productSku}</span>}
+                        {it.brand && <span className="text-[10px] text-slate-500 block">Brand: {it.brand}</span>}
+                        {it.barcode && <span className="text-[10px] text-slate-500 block">Barcode: {it.barcode}</span>}
+                        {it.description && <span className="text-[10px] text-slate-500 block">{it.description}</span>}
+                        {Object.keys(it.specifications || {}).length > 0 && <span className="text-[10px] text-slate-500 block">{Object.entries(it.specifications || {}).map(([key, value]) => `${key}: ${value}`).join(' · ')}</span>}
                       </td>
                       <td className="py-2 text-center tabular-nums">{it.quantity}</td>
                       <td className="py-2 text-right tabular-nums">{formatPrice(it.price)}</td>
