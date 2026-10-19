@@ -49,7 +49,15 @@ function openOrderInvoice(order: import('../../types').Order, settings: import('
   const rows = order.items.map((item) => {
     const attributes = Object.entries(item.variantAttributes || {}).map(([key, value]) => escapeInvoiceText(key) + ': ' + escapeInvoiceText(value)).join(' · ');
     const image = item.image ? '<img class="item-image" src="' + escapeInvoiceText(item.image) + '" alt="' + escapeInvoiceText(item.productName) + '">' : '';
-    return '<tr><td><div class="item"><div>' + image + '</div><div><strong>' + escapeInvoiceText(item.productName) + '</strong>' + (item.variantLabel ? '<div>' + escapeInvoiceText(item.variantLabel) + '</div>' : '') + (attributes ? '<div>' + attributes + '</div>' : '') + (item.variantSku ? '<div>SKU: ' + escapeInvoiceText(item.variantSku) + '</div>' : '') + '</div></div></td><td>' + item.quantity + '</td><td>' + escapeInvoiceText(formatPrice(item.price, language)) + '</td><td>' + escapeInvoiceText(formatPrice(item.price * item.quantity, language)) + '</td></tr>';
+    const specifications = Object.entries(item.specifications || {}).map(([key, value]) => escapeInvoiceText(key) + ': ' + escapeInvoiceText(value)).join(' · ');
+    const details = [
+      item.productSku ? 'Product SKU: ' + escapeInvoiceText(item.productSku) : '',
+      item.brand ? 'Brand: ' + escapeInvoiceText(item.brand) : '',
+      item.barcode ? 'Barcode: ' + escapeInvoiceText(item.barcode) : '',
+      item.description ? escapeInvoiceText(item.description) : '',
+      specifications,
+    ].filter(Boolean).map((value) => '<div>' + value + '</div>').join('');
+    return '<tr><td><div class="item"><div>' + image + '</div><div><strong>' + escapeInvoiceText(item.productName) + '</strong>' + (item.variantLabel ? '<div>' + escapeInvoiceText(item.variantLabel) + '</div>' : '') + (attributes ? '<div>' + attributes + '</div>' : '') + (item.variantSku ? '<div>Variant SKU: ' + escapeInvoiceText(item.variantSku) + '</div>' : '') + details + '</div></div></td><td>' + item.quantity + '</td><td>' + escapeInvoiceText(formatPrice(item.price, language)) + '</td><td>' + escapeInvoiceText(formatPrice(item.price * item.quantity, language)) + '</td></tr>';
   }).join('');
   const customer = order.customer;
   const address = [customer.addressDetails, customer.thanaCity, customer.district, customer.division, customer.postalCode].filter(Boolean).join(', ');
