@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useStore } from '../../context/StoreContext';
 import { StoreImage } from '../common/StoreImage';
 import { useAuth } from '../../context/AuthContext';
+import { supabase } from '../../lib/supabase';
 import { formatPrice, formatDate } from '../../utils/formatters';
 import {
   Package,
@@ -45,10 +46,14 @@ function escapeInvoiceText(value: unknown): string {
 function openOrderInvoice(order: import('../../types').Order, settings: import('../../types').StoreSettings, language: import('../../types').Language) {
   const popup = window.open('', '_blank', 'width=900,height=720');
   if (!popup) { window.alert('Allow pop-ups to print or save your invoice as PDF.'); return; }
-  const rows = order.items.map((item) => '<tr><td>' + escapeInvoiceText(item.productName) + (item.variantLabel ? '<div>' + escapeInvoiceText(item.variantLabel) + '</div>' : '') + (item.variantSku ? '<div>SKU: ' + escapeInvoiceText(item.variantSku) + '</div>' : '') + '</td><td>' + item.quantity + '</td><td>' + escapeInvoiceText(formatPrice(item.price, language)) + '</td><td>' + escapeInvoiceText(formatPrice(item.price * item.quantity, language)) + '</td></tr>').join('');
+  const rows = order.items.map((item) => {
+    const attributes = Object.entries(item.variantAttributes || {}).map(([key, value]) => escapeInvoiceText(key) + ': ' + escapeInvoiceText(value)).join(' · ');
+    const image = item.image ? '<img class="item-image" src="' + escapeInvoiceText(item.image) + '" alt="' + escapeInvoiceText(item.productName) + '">' : '';
+    return '<tr><td><div class="item"><div>' + image + '</div><div><strong>' + escapeInvoiceText(item.productName) + '</strong>' + (item.variantLabel ? '<div>' + escapeInvoiceText(item.variantLabel) + '</div>' : '') + (attributes ? '<div>' + attributes + '</div>' : '') + (item.variantSku ? '<div>SKU: ' + escapeInvoiceText(item.variantSku) + '</div>' : '') + '</div></div></td><td>' + item.quantity + '</td><td>' + escapeInvoiceText(formatPrice(item.price, language)) + '</td><td>' + escapeInvoiceText(formatPrice(item.price * item.quantity, language)) + '</td></tr>';
+  }).join('');
   const customer = order.customer;
   const address = [customer.addressDetails, customer.thanaCity, customer.district, customer.division, customer.postalCode].filter(Boolean).join(', ');
-  popup.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Invoice ' + escapeInvoiceText(order.id) + '</title><style>body{font:14px Arial;color:#0f172a;padding:24px;max-width:850px;margin:auto}header{display:flex;justify-content:space-between;border-bottom:2px solid;padding-bottom:16px}section{margin:20px 0}table{width:100%;border-collapse:collapse}td,th{padding:10px 6px;border-bottom:1px solid #ddd;text-align:left}.totals{max-width:330px;margin-left:auto}.total{display:flex;justify-content:space-between;padding:5px 0}.grand{border-top:1px solid #aaa;font-size:18px;font-weight:bold;padding-top:12px}@media print{.no-print{display:none}}@media(max-width:600px){header{display:block}td,th{font-size:11px;padding:5px 2px}}</style></head><body><header><div><h1>' + escapeInvoiceText(settings.storeName || 'Zeluxi') + '</h1><div>' + escapeInvoiceText(settings.address || '') + '</div><div>' + escapeInvoiceText(settings.phone || '') + ' · ' + escapeInvoiceText(settings.email || '') + '</div></div><div><h2>INVOICE</h2><strong>Order #' + escapeInvoiceText(order.id) + '</strong><div>' + escapeInvoiceText(formatDate(order.createdAt, language)) + '</div><div>Status: ' + escapeInvoiceText(order.status) + '</div></div></header><section><h2>Customer & delivery</h2><strong>' + escapeInvoiceText(customer.fullName) + '</strong><div>' + escapeInvoiceText(customer.phone) + ' · ' + escapeInvoiceText(customer.email || '') + '</div><div>' + escapeInvoiceText(address) + '</div></section><table><thead><tr><th>Item</th><th>Qty</th><th>Unit price</th><th>Total</th></tr></thead><tbody>' + rows + '</tbody></table><section class="totals"><div class="total"><span>Subtotal</span><strong>' + escapeInvoiceText(formatPrice(order.subtotal, language)) + '</strong></div><div class="total"><span>Shipping</span><strong>' + escapeInvoiceText(formatPrice(order.shippingFee, language)) + '</strong></div>' + (order.discount > 0 ? '<div class="total"><span>Discount</span><strong>-' + escapeInvoiceText(formatPrice(order.discount, language)) + '</strong></div>' : '') + '<div class="total"><span>Payment</span><strong>' + escapeInvoiceText(order.paymentMethod) + '</strong></div><div class="total grand"><span>Grand total</span><strong>' + escapeInvoiceText(formatPrice(order.grandTotal, language)) + '</strong></div></section><p>Thank you for shopping with ' + escapeInvoiceText(settings.storeName || 'Zeluxi') + '.</p><button class="no-print" onclick="window.print()">Print / Save as PDF</button></body></html>');
+  popup.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Invoice ' + escapeInvoiceText(order.id) + '</title><style>body{font:14px Arial;color:#0f172a;padding:24px;max-width:850px;margin:auto}header{display:flex;justify-content:space-between;border-bottom:2px solid;padding-bottom:16px}section{margin:20px 0}table{width:100%;border-collapse:collapse}td,th{padding:10px 6px;border-bottom:1px solid #ddd;text-align:left;vertical-align:top}.item{display:flex;gap:10px;align-items:flex-start}.item-image{width:56px;height:56px;object-fit:contain;border:1px solid #e5e7eb;border-radius:6px}.totals{max-width:330px;margin-left:auto}.total{display:flex;justify-content:space-between;padding:5px 0}.grand{border-top:1px solid #aaa;font-size:18px;font-weight:bold;padding-top:12px}@media print{.no-print{display:none}}@media(max-width:600px){header{display:block}td,th{font-size:11px;padding:5px 2px}}</style></head><body><header><div><h1>' + escapeInvoiceText(settings.storeName || 'Zeluxi') + '</h1><div>' + escapeInvoiceText(settings.address || '') + '</div><div>' + escapeInvoiceText(settings.phone || '') + ' · ' + escapeInvoiceText(settings.email || '') + '</div></div><div><h2>INVOICE</h2><strong>Order #' + escapeInvoiceText(order.id) + '</strong><div>' + escapeInvoiceText(formatDate(order.createdAt, language)) + '</div><div>Status: ' + escapeInvoiceText(order.status) + '</div></div></header><section><h2>Customer & delivery</h2><strong>' + escapeInvoiceText(customer.fullName) + '</strong><div>' + escapeInvoiceText(customer.phone) + ' · ' + escapeInvoiceText(customer.email || '') + '</div><div>' + escapeInvoiceText(address) + '</div>' + (customer.notes ? '<div>Delivery notes: ' + escapeInvoiceText(customer.notes) + '</div>' : '') + '</section><table><thead><tr><th>Item</th><th>Qty</th><th>Unit price</th><th>Total</th></tr></thead><tbody>' + rows + '</tbody></table><section class="totals"><div class="total"><span>Subtotal</span><strong>' + escapeInvoiceText(formatPrice(order.subtotal, language)) + '</strong></div><div class="total"><span>Shipping</span><strong>' + escapeInvoiceText(formatPrice(order.shippingFee, language)) + '</strong></div>' + (order.discount > 0 ? '<div class="total"><span>Discount</span><strong>-' + escapeInvoiceText(formatPrice(order.discount, language)) + '</strong></div>' : '') + '<div class="total"><span>Payment method / status</span><strong>' + escapeInvoiceText(order.paymentMethod) + ' / ' + escapeInvoiceText(order.paymentStatus) + '</strong></div>' + (order.courier?.trackingCode ? '<div class="total"><span>Courier tracking</span><strong>' + escapeInvoiceText(order.courier.trackingCode) + '</strong></div>' : '') + '<div class="total grand"><span>Grand total</span><strong>' + escapeInvoiceText(formatPrice(order.grandTotal, language)) + '</strong></div></section><p>Thank you for shopping with ' + escapeInvoiceText(settings.storeName || 'Zeluxi') + '.</p><button class="no-print" onclick="window.print()">Print / Save as PDF</button></body></html>');
   popup.document.close(); popup.focus();
 }
 
@@ -88,6 +93,8 @@ export const CustomerAccountView: React.FC = () => {
   const [quickTrackInput, setQuickTrackInput] = useState('');
   const [ordersFilter, setOrdersFilter] = useState<'ALL' | 'ACTIVE' | 'DELIVERED' | 'CANCELLED'>('ALL');
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+  const [persistedOrders, setPersistedOrders] = useState<import('../../types').Order[] | null>(null);
+  const [ordersLoadError, setOrdersLoadError] = useState<string | null>(null);
 
   // Password Change Form States
   const [currentPassword, setCurrentPassword] = useState('');
@@ -137,6 +144,26 @@ export const CustomerAccountView: React.FC = () => {
     }
   }, [userProfile]);
 
+  useEffect(() => {
+    let cancelled = false;
+    const loadCustomerOrders = async () => {
+      if (!userProfile) { setPersistedOrders(null); return; }
+      try {
+        const { data, error } = await supabase.auth.getSession();
+        const token = data.session?.access_token;
+        if (error || !token) throw new Error('Please sign in again to load your order history.');
+        const response = await fetch('/api/orders?scope=mine', { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(typeof payload.error === 'string' ? payload.error : 'Order history could not be loaded.');
+        if (!cancelled) { setPersistedOrders(Array.isArray(payload.orders) ? payload.orders : []); setOrdersLoadError(null); }
+      } catch (error) {
+        if (!cancelled) { setOrdersLoadError(error instanceof Error ? error.message : 'Order history could not be loaded.'); setPersistedOrders([]); }
+      }
+    };
+    void loadCustomerOrders();
+    return () => { cancelled = true; };
+  }, [userProfile?.uid]);
+
   const [copiedCoupon, setCopiedCoupon] = useState<string | null>(null);
 
   if (authLoading) {
@@ -156,6 +183,7 @@ export const CustomerAccountView: React.FC = () => {
     );
   }
 
+  const accountOrders = persistedOrders ?? orders;
   const wishlistedProducts = products.filter((p) => wishlist.includes(p.id));
 
   const handleSaveProfile = (e: React.FormEvent) => {
@@ -312,11 +340,11 @@ export const CustomerAccountView: React.FC = () => {
           >
             <Package className="w-3.5 h-3.5" />
             <span>'My Orders'</span>
-            {orders.length > 0 && (
+            {accountOrders.length > 0 && (
               <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
                 activeTab === 'orders' ? 'bg-indigo-500 text-white' : 'bg-slate-200 text-slate-700'
               }`}>
-                {orders.length}
+                {accountOrders.length}
               </span>
             )}
           </button>
@@ -389,6 +417,8 @@ export const CustomerAccountView: React.FC = () => {
           </button>
         </div>
 
+        {activeTab === 'orders' && ordersLoadError && <div role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">{ordersLoadError}</div>}
+
         {/* TAB 0: ACCOUNT OVERVIEW */}
         {activeTab === 'overview' && (
           <div className="space-y-6">
@@ -399,7 +429,7 @@ export const CustomerAccountView: React.FC = () => {
                   <span className="text-xs text-slate-500 font-medium">'Total Orders'</span>
                   <Package className="w-4 h-4 text-indigo-600" />
                 </div>
-                <p className="text-2xl font-bold font-mono text-slate-900 mt-2">{orders.length}</p>
+                <p className="text-2xl font-bold font-mono text-slate-900 mt-2">{accountOrders.length}</p>
                 <button
                   onClick={() => setActiveTab('orders')}
                   className="text-[11px] text-indigo-600 font-semibold hover:underline mt-1 block"
@@ -414,7 +444,7 @@ export const CustomerAccountView: React.FC = () => {
                   <Truck className="w-4 h-4 text-amber-600" />
                 </div>
                 <p className="text-2xl font-bold font-mono text-slate-900 mt-2">
-                  {orders.filter(o => ['PENDING', 'CONFIRMED', 'SHIPPED'].includes(o.status)).length}
+                  {accountOrders.filter(o => ['PENDING', 'CONFIRMED', 'SHIPPED'].includes(o.status)).length}
                 </p>
                 <button
                   onClick={() => setActiveTab('tracking')}
@@ -454,7 +484,7 @@ export const CustomerAccountView: React.FC = () => {
             </div>
 
             {/* Latest Order Spotlight */}
-            {orders.length > 0 && (
+            {accountOrders.length > 0 && (
               <div className="bg-gradient-to-r from-slate-900 to-indigo-950 text-white rounded-2xl p-5 shadow-sm space-y-4">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/10 pb-3">
                   <div>
@@ -462,16 +492,16 @@ export const CustomerAccountView: React.FC = () => {
                       'Most Recent Order'
                     </span>
                     <h3 className="text-base font-bold font-mono text-white mt-0.5">
-                      Order #{orders[0].id}
+                      Order #{accountOrders[0].id}
                     </h3>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-white/20 text-white backdrop-blur-xs">
-                      {orders[0].status}
+                      {accountOrders[0].status}
                     </span>
                     <button
                       onClick={() => {
-                        setActiveTrackingId(orders[0].id);
+                        setActiveTrackingId(accountOrders[0].id);
                         setActiveView('tracking');
                       }}
                       className="flex items-center gap-1.5 px-3.5 py-1.5 bg-indigo-500 hover:bg-indigo-600 text-white text-xs font-semibold rounded-lg transition-colors shadow-xs"
@@ -486,25 +516,25 @@ export const CustomerAccountView: React.FC = () => {
                   <div>
                     <p className="text-slate-300 text-[11px]">
                       'Courier Service:'{' '}
-                      <strong className="text-white">{orders[0].courier.provider}</strong>
+                      <strong className="text-white">{accountOrders[0].courier.provider}</strong>
                     </p>
-                    {orders[0].courier.trackingCode && (
+                    {accountOrders[0].courier.trackingCode && (
                       <p className="font-mono text-indigo-300 text-[11px] mt-0.5">
-                        Code: {orders[0].courier.trackingCode}
+                        Code: {accountOrders[0].courier.trackingCode}
                       </p>
                     )}
                     <p className="text-slate-400 text-[11px] mt-0.5">
-                      'Est. Delivery:' {orders[0].courier.estimatedDelivery}
+                      'Est. Delivery:' {accountOrders[0].courier.estimatedDelivery}
                     </p>
                   </div>
 
                   <div className="sm:text-right">
                     <span className="text-[11px] text-slate-300 block">Total BDT</span>
                     <span className="text-lg font-bold font-mono text-white">
-                      {formatPrice(orders[0].grandTotal, language)}
+                      {formatPrice(accountOrders[0].grandTotal, language)}
                     </span>
                     <p className="text-[11px] text-slate-400 mt-0.5">
-                      {orders[0].items.length} {orders[0].items.length === 1 ? 'item' : 'items'} ({orders[0].paymentMethod})
+                      {accountOrders[0].items.length} {accountOrders[0].items.length === 1 ? 'item' : 'items'} ({accountOrders[0].paymentMethod})
                     </p>
                   </div>
                 </div>
@@ -558,12 +588,12 @@ export const CustomerAccountView: React.FC = () => {
         {/* Tab 1: Orders List */}
         {activeTab === 'orders' && (
           <div className="space-y-4">
-            {orders.length === 0 ? (
+            {accountOrders.length === 0 ? (
               <div className="text-center py-12 bg-slate-50 rounded-xl border border-slate-200">
                 <p className="text-sm font-semibold text-slate-700">No orders placed yet.</p>
               </div>
             ) : (
-              orders.map((ord) => (
+              accountOrders.map((ord) => (
                 <div
                   key={ord.id}
                   className="border border-slate-200 rounded-xl p-5 hover:border-slate-300 transition-colors bg-white shadow-sm space-y-4"
@@ -759,12 +789,12 @@ export const CustomerAccountView: React.FC = () => {
               <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
                 'Your Recent Shipments'
               </h4>
-              {orders.length === 0 ? (
+              {accountOrders.length === 0 ? (
                 <div className="p-8 text-center bg-white border border-slate-200 rounded-xl text-slate-500 text-xs">
                   'No active shipments found.'
                 </div>
               ) : (
-                orders.map((ord) => (
+                accountOrders.map((ord) => (
                   <div
                     key={ord.id}
                     className="p-4 bg-white border border-slate-200 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 hover:border-slate-300 transition-colors shadow-xs"
