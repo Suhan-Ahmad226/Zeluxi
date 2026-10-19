@@ -52,7 +52,14 @@ test('variant checkout persists immutable invoice snapshots and requires a selec
   assert.match(orderApi, /variant_label/);
   assert.match(orderApi, /variant_sku/);
   assert.match(orderApi, /VARIANT_ORDER_SCHEMA_NOT_READY/);
-  assert.match(orderApi, /select\('variant_id,variant_label,variant_sku,variant_attributes,image_url'\)/);
+  assert.match(orderApi, /select\('variant_id,variant_label,variant_sku,variant_attributes,image_url,product_sku,product_brand,product_description,product_barcode,product_specifications'\)/);
+  const invoiceSnapshots = read('supabase/migrations/20261019010000_invoice_product_detail_snapshots.sql');
+  for (const column of ['product_sku', 'product_brand', 'product_description', 'product_barcode', 'product_specifications']) {
+    assert.match(invoiceSnapshots, new RegExp('add column if not exists ' + column));
+  }
+  assert.match(invoiceSnapshots, /product_specifications/);
+  assert.match(invoice, /productSku/);
+  assert.match(invoice, /specifications/);
   assert.match(productDetails, /Select an option/);
   assert.match(productDetails, /requiresVariantSelection/);
   assert.match(invoice, /variantSku/);
