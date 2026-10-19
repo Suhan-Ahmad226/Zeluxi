@@ -223,7 +223,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     // or decrement the wrong stock while silently dropping the chosen option.
     const { error: variantSchemaError } = await admin
       .from('store_order_items')
-      .select('variant_id,variant_label,variant_sku,variant_attributes,image_url')
+      .select('variant_id,variant_label,variant_sku,variant_attributes,image_url,product_sku,product_brand,product_description,product_barcode,product_specifications')
       .limit(0);
     if (variantSchemaError) {
       return res.status(503).json({
