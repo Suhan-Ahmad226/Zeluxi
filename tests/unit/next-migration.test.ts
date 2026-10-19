@@ -51,6 +51,8 @@ test('variant checkout persists immutable invoice snapshots and requires a selec
   assert.match(orderApi, /variantId: z\.string\(\)/);
   assert.match(orderApi, /variant_label/);
   assert.match(orderApi, /variant_sku/);
+  assert.match(orderApi, /VARIANT_ORDER_SCHEMA_NOT_READY/);
+  assert.match(orderApi, /select\('variant_id,variant_label,variant_sku,variant_attributes,image_url'\)/);
   assert.match(productDetails, /Select an option/);
   assert.match(productDetails, /requiresVariantSelection/);
   assert.match(invoice, /variantSku/);

@@ -211,6 +211,21 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
       return res.status(400).json({ error: 'Maximum quantity per product variant is 20.' });
     }
     const items = [...merged.values()];
+
+    // Fail closed until the variant snapshot migration is applied. The previous
+    // RPC does not understand variant IDs and could otherwise charge base price
+    // or decrement the wrong stock while silently dropping the chosen option.
+    const { error: variantSchemaError } = await admin
+      .from('store_order_items')
+      .select('variant_id,variant_label,variant_sku,variant_attributes,image_url')
+      .limit(0);
+    if (variantSchemaError) {
+      return res.status(503).json({
+        error: 'Checkout is temporarily unavailable while the variant and invoice database migration is pending. Please try again later.',
+        code: 'VARIANT_ORDER_SCHEMA_NOT_READY',
+      });
+    }
+
     const { data, error } = await admin.rpc('create_customer_order', {
       p_user_id: user.id,
       p_idempotency_key: idempotencyKey,
