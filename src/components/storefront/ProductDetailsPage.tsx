@@ -165,7 +165,7 @@ export const ProductDetailsPage: React.FC<ProductDetailsPageProps> = ({ slug }) 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-14">
           <section className="min-w-0">
             <div className="relative aspect-square sm:aspect-[4/3] rounded-2xl overflow-hidden bg-slate-50 border border-slate-100">
-              {activeImage ? <StoreImage src={activeImage} alt={product.name} className="w-full h-full object-contain" loading="eager" decoding="async" /> : <div className="w-full h-full flex items-center justify-center text-slate-400">No product image available</div>}
+              {activeImage ? <StoreImage src={activeImage} alt={product.name} preset="product-detail" className="w-full h-full object-contain" loading="eager" fetchPriority="high" decoding="async" /> : <div className="w-full h-full flex items-center justify-center text-slate-400">No product image available</div>}
               {product.compareAtPrice && product.compareAtPrice > currentPrice && (
                 <span className="absolute left-4 top-4 rounded-full bg-rose-600 px-3 py-1 text-xs font-bold text-white">
                   Save {Math.round(((product.compareAtPrice - currentPrice) / product.compareAtPrice) * 100)}%
@@ -176,7 +176,7 @@ export const ProductDetailsPage: React.FC<ProductDetailsPageProps> = ({ slug }) 
               <div className="mt-3 grid grid-cols-5 sm:grid-cols-6 gap-2">
                 {images.map((image, index) => (
                   <button key={image + index} type="button" onClick={() => setActiveImageIndex(index)} aria-label={`View product image ${index + 1}`} aria-pressed={activeImageIndex === index} className={`aspect-square overflow-hidden rounded-lg border-2 bg-slate-50 ${activeImageIndex === index ? 'border-slate-900' : 'border-transparent hover:border-slate-300'}`}>
-                    <StoreImage src={image} alt={`${product.name}, image ${index + 1}`} className="w-full h-full object-cover" loading="lazy" decoding="async" />
+                    <StoreImage src={image} alt={`${product.name}, image ${index + 1}`} preset="thumbnail" className="w-full h-full object-cover" loading="lazy" decoding="async" />
                   </button>
                 ))}
               </div>
