@@ -231,7 +231,7 @@ export const ProductDetailsPage: React.FC<ProductDetailsPageProps> = ({ slug }) 
 
             <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
               <button type="button" onClick={handleAddToCart} disabled={requiresVariantSelection || isOutOfStock || quantity > currentStock} className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-900 px-5 py-3.5 text-sm font-semibold text-slate-900 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"><ShoppingBag className="h-4 w-4" /> Add to cart</button>
-              <button type="button" onClick={handleBuyNow} disabled={isOutOfStock || quantity > currentStock} className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-5 py-3.5 text-sm font-semibold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40">Buy now <Check className="h-4 w-4" /></button>
+              <button type="button" onClick={handleBuyNow} disabled={requiresVariantSelection || isOutOfStock || quantity > currentStock} className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-5 py-3.5 text-sm font-semibold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40">Buy now <Check className="h-4 w-4" /></button>
             </div>
 
             <div className="mt-6 divide-y divide-slate-100 rounded-xl border border-slate-200 px-4">
