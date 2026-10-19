@@ -149,6 +149,7 @@ export const OrderSuccessModal: React.FC = () => {
                     <tr key={idx} className="py-2">
                       <td className="py-2">
                         <span className="font-semibold text-slate-900 block">{it.productName}</span>
+                        {it.image && <img src={it.image} alt={it.productName} loading="lazy" className="mt-1 h-12 w-12 rounded border border-slate-200 object-contain" />}
                         {it.variantLabel && <span className="text-[10px] text-slate-500 block">{it.variantLabel}</span>}
                         {Object.keys(it.variantAttributes || {}).length > 0 && <span className="text-[10px] text-slate-500 block">{Object.entries(it.variantAttributes || {}).map(([key, value]) => `${key}: ${value}`).join(' · ')}</span>}
                         {it.variantSku && <span className="text-[10px] text-slate-400 block">SKU: {it.variantSku}</span>}
@@ -172,10 +173,12 @@ export const OrderSuccessModal: React.FC = () => {
                 </div>
                 {lastCreatedOrder.discount > 0 && (
                   <div className="flex justify-between text-emerald-600 font-semibold">
-                    <span>Discount Coupon ({lastCreatedOrder.couponCode || 'PROMO'}):</span>
+                    <span>Discount{lastCreatedOrder.couponCode ? ` Coupon (${lastCreatedOrder.couponCode})` : ''}:</span>
                     <span className="tabular-nums">-{formatPrice(lastCreatedOrder.discount)}</span>
                   </div>
                 )}
+                <div className="flex justify-between text-slate-600"><span>Payment method / status:</span><span className="font-semibold">{lastCreatedOrder.paymentMethod} / {lastCreatedOrder.paymentStatus}</span></div>
+                {lastCreatedOrder.courier.trackingCode && <div className="flex justify-between text-slate-600"><span>Courier tracking:</span><span className="font-mono font-semibold">{lastCreatedOrder.courier.trackingCode}</span></div>}
                 <div className="flex justify-between text-sm font-bold text-slate-900 pt-1 border-t border-slate-100">
                   <span>Grand Total:</span>
                   <span className="text-base text-indigo-700 tabular-nums">{formatPrice(lastCreatedOrder.grandTotal)}</span>
