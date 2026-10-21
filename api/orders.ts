@@ -185,10 +185,13 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
         }
 
         const { data: updatedOrder, error: updateError } = await admin.from('store_orders')
-          .update(update).eq('id', orderId).eq('user_id', user.id)
+          .update(update).eq('id', orderId).eq('user_id', user.id).eq('status', String(ownedOrder.status))
           .select('id,status').maybeSingle();
-        if (updateError || !updatedOrder) {
+        if (updateError) {
           return res.status(503).json({ error: 'Order request could not be saved. Please try again.' });
+        }
+        if (!updatedOrder) {
+          return res.status(409).json({ error: 'The order changed while this request was being submitted. Refresh the order and try again.' });
         }
         return res.status(200).json({ order: { id: updatedOrder.id, status: updatedOrder.status } });
       }
