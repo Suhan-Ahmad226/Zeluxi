@@ -2,6 +2,7 @@ import 'server-only';
 
 import { createClient } from '@supabase/supabase-js';
 import { createPathaoOrder, PathaoApiError } from '@/src/lib/shipping/pathao-server';
+import { formatCourierAddress } from '@/src/lib/address/bangladesh-locations';
 
 export class PathaoBookingError extends Error {
   constructor(message: string, readonly httpStatus = 502, readonly safeCode = 'BOOKING_FAILED') {
@@ -86,8 +87,7 @@ export async function bookPathaoOrderFromDatabase(
 
   try {
     const customer = (order.customer || {}) as Record<string, unknown>;
-    const address = [customer.addressDetails, customer.upazila || customer.thanaCity, customer.district, customer.division, customer.postalCode, 'Bangladesh']
-      .filter((part) => typeof part === 'string' && part.trim()).join(', ');
+    const address = formatCourierAddress(customer);
     const result = await createPathaoOrder({
       storeId: Number(process.env.PATHAO_STORE_ID || 0),
       merchantOrderId: shipment.merchant_order_id,
