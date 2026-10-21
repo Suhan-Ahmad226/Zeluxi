@@ -4,7 +4,7 @@ import { createClient } from '@supabase/supabase-js';
 import { z } from 'zod';
 import { bookPathaoOrderFromDatabase, PathaoBookingError } from '../lib/shipping/pathao-booking';
 import { formatOrderNumber } from '../lib/orders/order-number';
-import { isValidAddressSelection } from '../lib/address/bangladesh-locations';
+import { formatCourierAddress, isValidAddressSelection } from '../lib/address/bangladesh-locations';
 
 const addressSchema = z.object({
   fullName: z.string().trim().min(2).max(100),
@@ -25,6 +25,9 @@ const addressSchema = z.object({
   // Validate new hierarchical addresses, while allowing legacy thanaCity records during rollout.
   if (address.upazila && !isValidAddressSelection(address.division, address.district, address.upazila)) {
     ctx.addIssue({ code: 'custom', path: ['upazila'], message: 'District and upazila / thana must match the selected division.' });
+  }
+  if (formatCourierAddress(address).length > 220) {
+    ctx.addIssue({ code: 'custom', path: ['addressDetails'], message: 'Delivery address exceeds the courier address limit.' });
   }
 });
 const checkoutSchema = z.object({
