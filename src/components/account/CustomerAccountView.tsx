@@ -248,17 +248,38 @@ export const CustomerAccountView: React.FC = () => {
     }
   };
 
-  const handleConfirmCancel = () => {
-    if (cancelModalOrder) {
-      requestOrderCancellation(cancelModalOrder, cancelReason);
+  const refreshPersistedOrders = async () => {
+    const { data, error } = await supabase.auth.getSession();
+    const token = data.session?.access_token;
+    if (error || !token) throw new Error('Please sign in again to refresh your order history.');
+    const response = await fetch('/api/orders?scope=mine', {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: 'no-store',
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(typeof payload.error === 'string' ? payload.error : 'Order history could not be refreshed.');
+    setPersistedOrders(Array.isArray(payload.orders) ? payload.orders : []);
+  };
+
+  const handleConfirmCancel = async () => {
+    if (!cancelModalOrder) return;
+    try {
+      await requestOrderCancellation(cancelModalOrder, cancelReason);
+      await refreshPersistedOrders();
       setCancelModalOrder(null);
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Order cancellation could not be saved.', 'error');
     }
   };
 
-  const handleConfirmReturn = () => {
-    if (returnModalOrder) {
-      requestOrderReturn(returnModalOrder, returnReason);
+  const handleConfirmReturn = async () => {
+    if (!returnModalOrder) return;
+    try {
+      await requestOrderReturn(returnModalOrder, returnReason);
+      await refreshPersistedOrders();
       setReturnModalOrder(null);
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Return request could not be saved.', 'error');
     }
   };
 
