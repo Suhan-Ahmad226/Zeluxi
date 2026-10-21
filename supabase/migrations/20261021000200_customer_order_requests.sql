@@ -3,7 +3,8 @@
 alter table public.store_orders
   add column if not exists cancellation_reason text,
   add column if not exists return_reason text,
-  add column if not exists inventory_restored_at timestamptz;
+  add column if not exists inventory_restored_at timestamptz,
+  add column if not exists delivered_at timestamptz;
 
 alter table public.store_orders
   drop constraint if exists store_orders_cancellation_reason_length,
