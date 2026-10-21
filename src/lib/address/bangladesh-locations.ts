@@ -52,3 +52,17 @@ export function isValidAddressSelection(divisionName: string, districtName: stri
   return getDistrictsByDivision(divisionName).some((district) => district.value === districtName)
     && getUpazilasByDistrict(districtName).some((upazila) => upazila.value === upazilaName);
 }
+
+export function formatCourierAddress(address: {
+  addressDetails?: unknown;
+  upazila?: unknown;
+  thanaCity?: unknown;
+  district?: unknown;
+  division?: unknown;
+  postalCode?: unknown;
+}): string {
+  const area = address.upazila || address.thanaCity;
+  return [address.addressDetails, area, address.district, address.division, address.postalCode, 'Bangladesh']
+    .filter((part): part is string => typeof part === 'string' && part.trim().length > 0)
+    .join(', ');
+}
