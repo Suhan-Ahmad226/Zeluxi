@@ -139,7 +139,7 @@ export const OrderSuccessModal: React.FC = () => {
                 <span className="text-slate-400 block text-[11px]">Destination & Delivery:</span>
                 <p className="text-slate-700">{lastCreatedOrder.customer.addressDetails}</p>
                 <p className="text-slate-700 font-medium">
-                  {[lastCreatedOrder.customer.thanaCity, lastCreatedOrder.customer.district, lastCreatedOrder.customer.division, lastCreatedOrder.customer.postalCode].filter(Boolean).join(', ')}
+                  {[(lastCreatedOrder.customer.upazila || lastCreatedOrder.customer.thanaCity), lastCreatedOrder.customer.district, lastCreatedOrder.customer.division, lastCreatedOrder.customer.postalCode].filter(Boolean).join(', ')}
                 </p>
                 {lastCreatedOrder.customer.notes && <p className="text-slate-500">Delivery notes: {lastCreatedOrder.customer.notes}</p>}
               </div>

@@ -308,7 +308,7 @@ export const OrderTrackingView: React.FC = () => {
                 <div className="space-y-1 text-slate-600">
                   <p className="font-semibold text-slate-900">{searchedOrder.customer.fullName}</p>
                   <p>{searchedOrder.customer.addressDetails}</p>
-                  <p>{searchedOrder.customer.thanaCity}, {searchedOrder.customer.district}, {searchedOrder.customer.division}</p>
+                  <p>{searchedOrder.customer.upazila || searchedOrder.customer.thanaCity}, {searchedOrder.customer.district}, {searchedOrder.customer.division}</p>
                   <p className="text-slate-500">Phone: {searchedOrder.customer.phone}</p>
                 </div>
 

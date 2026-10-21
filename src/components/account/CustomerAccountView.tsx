@@ -3,6 +3,7 @@ import { useStore } from '../../context/StoreContext';
 import { StoreImage } from '../common/StoreImage';
 import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../lib/supabase';
+import { BANGLADESH_DIVISIONS, getDistrictsByDivision, getUpazilasByDistrict } from '../../lib/address/bangladesh-locations';
 import { formatPrice, formatDate } from '../../utils/formatters';
 import {
   Package,
@@ -60,7 +61,7 @@ function openOrderInvoice(order: import('../../types').Order, settings: import('
     return '<tr><td><div class="item"><div>' + image + '</div><div><strong>' + escapeInvoiceText(item.productName) + '</strong>' + (item.variantLabel ? '<div>' + escapeInvoiceText(item.variantLabel) + '</div>' : '') + (attributes ? '<div>' + attributes + '</div>' : '') + (item.variantSku ? '<div>Variant SKU: ' + escapeInvoiceText(item.variantSku) + '</div>' : '') + details + '</div></div></td><td>' + item.quantity + '</td><td>' + escapeInvoiceText(formatPrice(item.price, language)) + '</td><td>' + escapeInvoiceText(formatPrice(item.price * item.quantity, language)) + '</td></tr>';
   }).join('');
   const customer = order.customer;
-  const address = [customer.addressDetails, customer.thanaCity, customer.district, customer.division, customer.postalCode].filter(Boolean).join(', ');
+  const address = [customer.addressDetails, customer.upazila || customer.thanaCity, customer.district, customer.division, customer.postalCode].filter(Boolean).join(', ');
   popup.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Invoice ' + escapeInvoiceText(order.orderNumber || order.id) + '</title><style>body{font:14px Arial;color:#0f172a;padding:24px;max-width:850px;margin:auto}header{display:flex;justify-content:space-between;border-bottom:2px solid;padding-bottom:16px}section{margin:20px 0}table{width:100%;border-collapse:collapse}td,th{padding:10px 6px;border-bottom:1px solid #ddd;text-align:left;vertical-align:top}.item{display:flex;gap:10px;align-items:flex-start}.item-image{width:56px;height:56px;object-fit:contain;border:1px solid #e5e7eb;border-radius:6px}.totals{max-width:330px;margin-left:auto}.total{display:flex;justify-content:space-between;padding:5px 0}.grand{border-top:1px solid #aaa;font-size:18px;font-weight:bold;padding-top:12px}@media print{.no-print{display:none}}@media(max-width:600px){header{display:block}td,th{font-size:11px;padding:5px 2px}}</style></head><body><header><div><h1>' + escapeInvoiceText(settings.storeName || 'Zeluxi') + '</h1><div>' + escapeInvoiceText(settings.address || '') + '</div><div>' + escapeInvoiceText(settings.phone || '') + ' · ' + escapeInvoiceText(settings.email || '') + '</div></div><div><h2>INVOICE</h2><strong>Order #' + escapeInvoiceText(order.orderNumber || order.id) + '</strong><div>' + escapeInvoiceText(formatDate(order.createdAt, language)) + '</div><div>Status: ' + escapeInvoiceText(order.status) + '</div></div></header><section><h2>Customer & delivery</h2><strong>' + escapeInvoiceText(customer.fullName) + '</strong><div>' + escapeInvoiceText(customer.phone) + ' · ' + escapeInvoiceText(customer.email || '') + '</div><div>' + escapeInvoiceText(address) + '</div>' + (customer.notes ? '<div>Delivery notes: ' + escapeInvoiceText(customer.notes) + '</div>' : '') + '</section><table><thead><tr><th>Item</th><th>Qty</th><th>Unit price</th><th>Total</th></tr></thead><tbody>' + rows + '</tbody></table><section class="totals"><div class="total"><span>Subtotal</span><strong>' + escapeInvoiceText(formatPrice(order.subtotal, language)) + '</strong></div><div class="total"><span>Shipping</span><strong>' + escapeInvoiceText(formatPrice(order.shippingFee, language)) + '</strong></div>' + (order.discount > 0 ? '<div class="total"><span>Discount</span><strong>-' + escapeInvoiceText(formatPrice(order.discount, language)) + '</strong></div>' : '') + '<div class="total"><span>Payment method / status</span><strong>' + escapeInvoiceText(order.paymentMethod) + ' / ' + escapeInvoiceText(order.paymentStatus) + '</strong></div>' + (order.courier?.trackingCode ? '<div class="total"><span>Courier tracking</span><strong>' + escapeInvoiceText(order.courier.trackingCode) + '</strong></div>' : '') + '<div class="total grand"><span>Grand total</span><strong>' + escapeInvoiceText(formatPrice(order.grandTotal, language)) + '</strong></div></section><p>Thank you for shopping with ' + escapeInvoiceText(settings.storeName || 'Zeluxi') + '.</p><button class="no-print" onclick="window.print()">Print / Save as PDF</button></body></html>');
   popup.document.close(); popup.focus();
 }
@@ -128,6 +129,9 @@ export const CustomerAccountView: React.FC = () => {
   const [profileEmail, setProfileEmail] = useState('');
   const [profileAddress, setProfileAddress] = useState('');
   const [profileDivision, setProfileDivision] = useState('');
+  const [profileDistrict, setProfileDistrict] = useState('');
+  const [profileUpazila, setProfileUpazila] = useState('');
+  const [profileNotes, setProfileNotes] = useState('');
 
   // Restore optional profile draft data only in the browser, after hydration.
   useEffect(() => {
@@ -135,8 +139,11 @@ export const CustomerAccountView: React.FC = () => {
       setProfileName(localStorage.getItem('ZELUX_PROFILE_NAME') || '');
       setProfilePhone(localStorage.getItem('ZELUX_PROFILE_PHONE') || '');
       setProfileEmail(localStorage.getItem('ZELUX_PROFILE_EMAIL') || '');
-      setProfileAddress(localStorage.getItem('ZELUX_PROFILE_ADDRESS') || '');
+      setProfileAddress(localStorage.getItem('ZELUX_PROFILE_ADDRESS_DETAILS') || localStorage.getItem('ZELUX_PROFILE_ADDRESS') || '');
       setProfileDivision(localStorage.getItem('ZELUX_PROFILE_DIV') || '');
+      setProfileDistrict(localStorage.getItem('ZELUX_PROFILE_DISTRICT') || '');
+      setProfileUpazila(localStorage.getItem('ZELUX_PROFILE_UPAZILA') || '');
+      setProfileNotes(localStorage.getItem('ZELUX_PROFILE_NOTES') || '');
     } catch {
       // Browser storage can be unavailable; authenticated profile data remains usable.
     }
@@ -144,11 +151,14 @@ export const CustomerAccountView: React.FC = () => {
 
   useEffect(() => {
     if (userProfile) {
-      setProfileName(userProfile.displayName || profileName);
-      setProfilePhone(userProfile.phone || profilePhone);
-      setProfileEmail(userProfile.email || profileEmail);
-      if (userProfile.address) setProfileAddress(userProfile.address);
-      if (userProfile.division) setProfileDivision(userProfile.division);
+      setProfileName(userProfile.displayName || '');
+      setProfilePhone(userProfile.phone || '');
+      setProfileEmail(userProfile.email || '');
+      setProfileAddress(userProfile.addressDetails || userProfile.address || '');
+      setProfileDivision(userProfile.division || '');
+      setProfileDistrict(userProfile.district || '');
+      setProfileUpazila(userProfile.upazila || (userProfile as any).thanaCity || '');
+      setProfileNotes(userProfile.notes || '');
     }
   }, [userProfile]);
 
@@ -202,14 +212,22 @@ export const CustomerAccountView: React.FC = () => {
         phone: profilePhone,
         email: profileEmail,
         address: profileAddress,
+        addressDetails: profileAddress,
         division: profileDivision,
+        district: profileDistrict,
+        upazila: profileUpazila,
+        notes: profileNotes,
       });
       try {
         localStorage.setItem('ZELUX_PROFILE_NAME', profileName);
         localStorage.setItem('ZELUX_PROFILE_PHONE', profilePhone);
         localStorage.setItem('ZELUX_PROFILE_EMAIL', profileEmail);
         localStorage.setItem('ZELUX_PROFILE_ADDRESS', profileAddress);
+        localStorage.setItem('ZELUX_PROFILE_ADDRESS_DETAILS', profileAddress);
         localStorage.setItem('ZELUX_PROFILE_DIV', profileDivision);
+        localStorage.setItem('ZELUX_PROFILE_DISTRICT', profileDistrict);
+        localStorage.setItem('ZELUX_PROFILE_UPAZILA', profileUpazila);
+        localStorage.setItem('ZELUX_PROFILE_NOTES', profileNotes);
       } catch {
         // Browser storage is optional; saved profile data remains in Supabase.
       }
@@ -696,7 +714,7 @@ export const CustomerAccountView: React.FC = () => {
                     <section className="rounded-xl border border-indigo-100 bg-indigo-50/40 p-4 space-y-4">
                       <div><h3 className="text-sm font-bold text-slate-900">Order details</h3><p className="mt-1 text-xs text-slate-500">Placed {formatDate(ord.createdAt, language)} · {ord.status.replaceAll('_', ' ')}</p></div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div className="rounded-lg bg-white border border-slate-200 p-3"><h4 className="text-xs font-bold mb-2">Delivery address</h4><p className="text-xs font-semibold">{ord.customer.fullName}</p><p className="text-xs mt-1">{ord.customer.phone}</p><p className="text-xs mt-1">{ord.customer.addressDetails}</p><p className="text-xs">{[ord.customer.thanaCity, ord.customer.district, ord.customer.division, ord.customer.postalCode].filter(Boolean).join(', ')}</p></div>
+                        <div className="rounded-lg bg-white border border-slate-200 p-3"><h4 className="text-xs font-bold mb-2">Delivery address</h4><p className="text-xs font-semibold">{ord.customer.fullName}</p><p className="text-xs mt-1">{ord.customer.phone}</p><p className="text-xs mt-1">{ord.customer.addressDetails}</p><p className="text-xs">{[ord.customer.upazila || ord.customer.thanaCity, ord.customer.district, ord.customer.division, ord.customer.postalCode].filter(Boolean).join(', ')}</p></div>
                         <div className="rounded-lg bg-white border border-slate-200 p-3"><h4 className="text-xs font-bold mb-2">Payment & delivery</h4><p className="text-xs">Method: <strong>{ord.paymentMethod}</strong></p><p className="text-xs mt-1">Payment status: <strong>{ord.paymentStatus}</strong></p><p className="text-xs mt-1">Courier: <strong>{ord.courier.provider}</strong></p><p className="text-xs mt-1">ETA: <strong>{ord.courier.estimatedDelivery || 'Not available yet'}</strong></p>{ord.courier.trackingCode && <p className="text-xs mt-1">Tracking code: <strong className="font-mono">{ord.courier.trackingCode}</strong></p>}{ord.courier.consignmentId && <p className="text-xs mt-1">Consignment: <strong className="font-mono">{ord.courier.consignmentId}</strong></p>}</div>
                       </div>
                       <div className="rounded-lg bg-white border border-slate-200 p-3 space-y-2 text-xs"><h4 className="font-bold">Price summary</h4><div className="flex justify-between"><span>Subtotal</span><strong>{formatPrice(ord.subtotal, language)}</strong></div><div className="flex justify-between"><span>Shipping</span><strong>{formatPrice(ord.shippingFee, language)}</strong></div>{ord.discount > 0 && <div className="flex justify-between text-emerald-700"><span>Discount</span><strong>−{formatPrice(ord.discount, language)}</strong></div>}<div className="flex justify-between border-t pt-2 text-sm"><strong>Grand total</strong><strong className="text-indigo-700">{formatPrice(ord.grandTotal, language)}</strong></div></div>
@@ -1028,7 +1046,8 @@ export const CustomerAccountView: React.FC = () => {
                       Default Shipping Address
                     </span>
                   </div>
-                  <p className="text-slate-700 leading-relaxed">{profileAddress}</p>
+                  <p className="text-slate-700 leading-relaxed">{[profileAddress, profileUpazila, profileDistrict, profileDivision].filter(Boolean).join(', ')}</p>
+                  {profileNotes && <p className="text-slate-500">Delivery notes: {profileNotes}</p>}
                   <p className="text-slate-500 font-mono text-[11px]">
                     Phone: {profilePhone} · Division: {profileDivision}
                   </p>
@@ -1058,33 +1077,36 @@ export const CustomerAccountView: React.FC = () => {
                     </div>
                   </div>
 
-                  <div>
-                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">Division</label>
-                    <select
-                      value={profileDivision}
-                      onChange={(e) => setProfileDivision(e.target.value)}
-                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs"
-                    >
-                      <option value="Dhaka">Dhaka</option>
-                      <option value="Chattogram">Chattogram</option>
-                      <option value="Rajshahi">Rajshahi</option>
-                      <option value="Sylhet">Sylhet</option>
-                      <option value="Khulna">Khulna</option>
-                      <option value="Barishal">Barishal</option>
-                      <option value="Rangpur">Rangpur</option>
-                      <option value="Mymensingh">Mymensingh</option>
-                    </select>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-semibold text-slate-700 mb-1">Division *</label>
+                      <select required value={profileDivision} onChange={(e) => { setProfileDivision(e.target.value); setProfileDistrict(''); setProfileUpazila(''); }} className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs">
+                        <option value="">Select division</option>
+                        {BANGLADESH_DIVISIONS.map((name) => <option key={name} value={name}>{name}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-semibold text-slate-700 mb-1">District *</label>
+                      <select required value={profileDistrict} disabled={!profileDivision} onChange={(e) => { setProfileDistrict(e.target.value); setProfileUpazila(''); }} className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs disabled:bg-slate-100">
+                        <option value="">Select district</option>
+                        {getDistrictsByDivision(profileDivision).map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                      </select>
+                    </div>
+                    <div className="sm:col-span-2">
+                      <label className="block text-[11px] font-semibold text-slate-700 mb-1">Upazila / Thana *</label>
+                      <select required value={profileUpazila} disabled={!profileDistrict} onChange={(e) => setProfileUpazila(e.target.value)} className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs disabled:bg-slate-100">
+                        <option value="">Select upazila / thana</option>
+                        {getUpazilasByDistrict(profileDistrict).map((option) => <option key={option.kind + '-' + option.value} value={option.value}>{option.label}</option>)}
+                      </select>
+                    </div>
                   </div>
-
                   <div>
-                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">Full Street Address & Landmarks</label>
-                    <textarea
-                      value={profileAddress}
-                      onChange={(e) => setProfileAddress(e.target.value)}
-                      rows={2}
-                      required
-                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs"
-                    />
+                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">Address Details (House / Flat / Building) *</label>
+                    <textarea value={profileAddress} onChange={(e) => setProfileAddress(e.target.value)} rows={2} required minLength={5} maxLength={1000} placeholder="House / Flat / Building, Road, Block, Area" className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs" />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">Delivery Notes (optional)</label>
+                    <textarea value={profileNotes} onChange={(e) => setProfileNotes(e.target.value)} rows={2} maxLength={300} placeholder="Special instructions for the courier" className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs" />
                   </div>
 
                   <div className="flex justify-end gap-2 pt-2">
@@ -1148,45 +1170,41 @@ export const CustomerAccountView: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">Email</label>
-                    <input
-                      type="email"
-                      value={profileEmail}
-                      onChange={(e) => setProfileEmail(e.target.value)}
-                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">Division</label>
-                    <select
-                      value={profileDivision}
-                      onChange={(e) => setProfileDivision(e.target.value)}
-                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs"
-                    >
-                      <option value="Dhaka">Dhaka</option>
-                      <option value="Chattogram">Chattogram</option>
-                      <option value="Rajshahi">Rajshahi</option>
-                      <option value="Sylhet">Sylhet</option>
-                      <option value="Khulna">Khulna</option>
-                      <option value="Barishal">Barishal</option>
-                      <option value="Rangpur">Rangpur</option>
-                      <option value="Mymensingh">Mymensingh</option>
-                    </select>
-                  </div>
-                </div>
-
                 <div>
-                  <label className="block text-[11px] font-semibold text-slate-700 mb-1">Full Delivery Address</label>
-                  <textarea
-                    value={profileAddress}
-                    onChange={(e) => setProfileAddress(e.target.value)}
-                    rows={2}
-                    required
-                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs"
-                  />
+                  <label className="block text-[11px] font-semibold text-slate-700 mb-1">Email</label>
+                  <input type="email" value={profileEmail} onChange={(e) => setProfileEmail(e.target.value)} className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs" />
                 </div>
+<div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-semibold text-slate-700 mb-1">Division *</label>
+                      <select required value={profileDivision} onChange={(e) => { setProfileDivision(e.target.value); setProfileDistrict(''); setProfileUpazila(''); }} className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs">
+                        <option value="">Select division</option>
+                        {BANGLADESH_DIVISIONS.map((name) => <option key={name} value={name}>{name}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-semibold text-slate-700 mb-1">District *</label>
+                      <select required value={profileDistrict} disabled={!profileDivision} onChange={(e) => { setProfileDistrict(e.target.value); setProfileUpazila(''); }} className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs disabled:bg-slate-100">
+                        <option value="">Select district</option>
+                        {getDistrictsByDivision(profileDivision).map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                      </select>
+                    </div>
+                    <div className="sm:col-span-2">
+                      <label className="block text-[11px] font-semibold text-slate-700 mb-1">Upazila / Thana *</label>
+                      <select required value={profileUpazila} disabled={!profileDistrict} onChange={(e) => setProfileUpazila(e.target.value)} className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs disabled:bg-slate-100">
+                        <option value="">Select upazila / thana</option>
+                        {getUpazilasByDistrict(profileDistrict).map((option) => <option key={option.kind + '-' + option.value} value={option.value}>{option.label}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">Address Details (House / Flat / Building) *</label>
+                    <textarea value={profileAddress} onChange={(e) => setProfileAddress(e.target.value)} rows={2} required minLength={5} maxLength={1000} placeholder="House / Flat / Building, Road, Block, Area" className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs" />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">Delivery Notes (optional)</label>
+                    <textarea value={profileNotes} onChange={(e) => setProfileNotes(e.target.value)} rows={2} maxLength={300} placeholder="Special instructions for the courier" className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs" />
+                  </div>
 
                 <div className="flex justify-end gap-2 pt-2">
                   <button

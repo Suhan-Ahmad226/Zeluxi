@@ -374,7 +374,7 @@ export const AdminDashboard: React.FC = () => {
       `"${o.customer.fullName.replace(/"/g, '""')}"`,
       o.customer.phone,
       o.customer.division,
-      o.customer.thanaCity,
+      (o.customer.upazila || o.customer.thanaCity),
       o.paymentMethod,
       o.paymentStatus,
       o.status,
@@ -1538,7 +1538,7 @@ export const AdminDashboard: React.FC = () => {
                       <td className="p-3">
                         <p className="font-semibold text-slate-900">{ord.customer.fullName}</p>
                         <p className="text-[11px] text-slate-500 font-mono">{ord.customer.phone}</p>
-                        <p className="text-[11px] text-slate-400 truncate max-w-xs">{ord.customer.addressDetails}, {ord.customer.thanaCity}</p>
+                        <p className="text-[11px] text-slate-400 truncate max-w-xs">{ord.customer.addressDetails}, {(ord.customer.upazila || ord.customer.thanaCity)}</p>
                       </td>
                       <td className="p-3">
                         <div className="space-y-1">
@@ -2207,7 +2207,7 @@ export const AdminDashboard: React.FC = () => {
                 <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
                   <span className="text-slate-400 block font-semibold uppercase text-[10px]">Delivery Address</span>
                   <p className="text-slate-800 font-medium">{selectedAdminOrder.customer.addressDetails}</p>
-                  <p className="text-slate-600">{selectedAdminOrder.customer.thanaCity}, {selectedAdminOrder.customer.district}</p>
+                  <p className="text-slate-600">{(selectedAdminOrder.customer.upazila || selectedAdminOrder.customer.thanaCity)}, {selectedAdminOrder.customer.district}</p>
                   <p className="text-slate-500 font-semibold">{selectedAdminOrder.customer.division} Division</p>
                 </div>
                 <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1">

@@ -4,6 +4,7 @@ import { createClient } from '@supabase/supabase-js';
 import { z } from 'zod';
 import { bookPathaoOrderFromDatabase, PathaoBookingError } from '../lib/shipping/pathao-booking';
 import { formatOrderNumber } from '../lib/orders/order-number';
+import { formatCourierAddress, isValidAddressSelection } from '../lib/address/bangladesh-locations';
 
 const addressSchema = z.object({
   fullName: z.string().trim().min(2).max(100),
@@ -11,10 +12,23 @@ const addressSchema = z.object({
   email: z.string().trim().email().max(254).optional().or(z.literal('')),
   division: z.enum(['Dhaka','Chattogram','Rajshahi','Sylhet','Khulna','Barishal','Rangpur','Mymensingh']),
   district: z.string().trim().min(1).max(100),
-  thanaCity: z.string().trim().min(1).max(100),
+  upazila: z.string().trim().min(1).max(100).optional(),
+  // Accept the former field during rolling deploys and for legacy clients.
+  thanaCity: z.string().trim().min(1).max(100).optional(),
   addressDetails: z.string().trim().min(5).max(1000),
   postalCode: z.string().trim().max(20).optional(),
   notes: z.string().trim().max(300).optional(),
+}).refine((address) => Boolean(address.upazila || address.thanaCity), {
+  message: 'Upazila / Thana is required',
+  path: ['upazila'],
+}).superRefine((address, ctx) => {
+  // Validate new hierarchical addresses, while allowing legacy thanaCity records during rollout.
+  if (address.upazila && !isValidAddressSelection(address.division, address.district, address.upazila)) {
+    ctx.addIssue({ code: 'custom', path: ['upazila'], message: 'District and upazila / thana must match the selected division.' });
+  }
+  if (formatCourierAddress(address).length > 220) {
+    ctx.addIssue({ code: 'custom', path: ['addressDetails'], message: 'Delivery address exceeds the courier address limit.' });
+  }
 });
 const checkoutSchema = z.object({
   customer: addressSchema,

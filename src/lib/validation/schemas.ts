@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { formatCourierAddress, isValidAddressSelection } from '../address/bangladesh-locations';
 
 export const bdPhoneRegex = /^(?:\+?88)?01[3-9]\d{8}$/;
 
@@ -22,10 +23,17 @@ export const shippingAddressSchema = z.object({
     'Mymensingh',
   ]),
   district: z.string().min(1, 'District is required'),
-  thanaCity: z.string().min(1, 'Thana/Area is required'),
+  upazila: z.string().trim().min(1, 'Upazila / Thana is required').max(100),
   addressDetails: z.string().min(5, 'Detailed delivery address is required'),
   postalCode: z.string().optional(),
   notes: z.string().max(300, 'Notes cannot exceed 300 characters').optional(),
+}).superRefine((address, ctx) => {
+  if (!isValidAddressSelection(address.division, address.district, address.upazila)) {
+    ctx.addIssue({ code: 'custom', path: ['upazila'], message: 'Select a district and upazila / thana that belong to the selected division.' });
+  }
+  if (formatCourierAddress(address).length > 220) {
+    ctx.addIssue({ code: 'custom', path: ['addressDetails'], message: 'Address is too long for courier dispatch. Shorten the house, road, or area details.' });
+  }
 });
 
 export const paymentMethodSchema = z.enum([
