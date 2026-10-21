@@ -240,7 +240,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
         PENDING: ['CANCELLED'],
         CONFIRMED: ['PROCESSING', 'CANCELLED'],
         PROCESSING: ['READY_TO_SHIP', 'CANCELLED'],
-        READY_TO_SHIP: ['CANCELLED'],
+        READY_TO_SHIP: [],
         RETURN_REQUESTED: [],
       };
       if (parsed.data.status !== 'CONFIRMED' &&
