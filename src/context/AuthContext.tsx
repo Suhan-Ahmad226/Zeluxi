@@ -10,7 +10,11 @@ export interface UserProfile {
   phone?: string;
   role: 'customer' | 'admin';
   address?: string;
+  addressDetails?: string;
   division?: string;
+  district?: string;
+  upazila?: string;
+  notes?: string;
   createdAt: string;
   isVerified?: boolean;
   avatarUrl?: string;
@@ -117,14 +121,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Admin status must be assigned through trusted Supabase app_metadata, never user-editable metadata or email matching.
     const isAdmin = isAdminUser(user);
 
-    let savedAddress = meta.address;
+    let savedAddress = meta.addressDetails || meta.address;
     let savedDivision = meta.division;
+    let savedDistrict = meta.district;
+    let savedUpazila = meta.upazila || meta.thanaCity;
+    let savedNotes = meta.notes;
     try {
       const cached = localStorage.getItem(`ZELUX_USER_META_${user.id}`);
       if (cached) {
         const parsed = JSON.parse(cached);
-        savedAddress = savedAddress || parsed.address;
+        savedAddress = savedAddress || parsed.addressDetails || parsed.address;
         savedDivision = savedDivision || parsed.division;
+        savedDistrict = savedDistrict || parsed.district;
+        savedUpazila = savedUpazila || parsed.upazila || parsed.thanaCity;
+        savedNotes = savedNotes || parsed.notes;
       }
     } catch {}
 
@@ -142,7 +152,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       phone,
       role: isAdmin ? 'admin' : 'customer',
       address: savedAddress || '',
+      addressDetails: savedAddress || '',
       division: savedDivision || '',
+      district: savedDistrict || '',
+      upazila: savedUpazila || '',
+      notes: savedNotes || '',
       createdAt: user.created_at ? user.created_at.slice(0, 10) : new Date().toISOString().slice(0, 10),
       isVerified,
       avatarUrl: avatar,
@@ -603,15 +617,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           full_name: updated.displayName,
           displayName: updated.displayName,
           phone: updated.phone,
-          address: updated.address,
+          address: updated.addressDetails || updated.address,
+          addressDetails: updated.addressDetails || updated.address,
           division: updated.division,
+          district: updated.district,
+          upazila: updated.upazila,
+          notes: updated.notes,
         },
       });
       if (error) throw new Error(error.message || 'Profile could not be saved.');
       try {
         localStorage.setItem(
           `ZELUX_USER_META_${supabaseUser.id}`,
-          JSON.stringify({ address: updated.address, division: updated.division })
+          JSON.stringify({ address: updated.addressDetails || updated.address, addressDetails: updated.addressDetails || updated.address, division: updated.division, district: updated.district, upazila: updated.upazila, notes: updated.notes })
         );
       } catch {
         // Profile remains persisted in Supabase even if browser storage is unavailable.
