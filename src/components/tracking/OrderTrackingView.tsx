@@ -23,12 +23,12 @@ export const OrderTrackingView: React.FC = () => {
 
   const [searchKey, setSearchKey] = useState(() => {
     if (activeTrackingId) return activeTrackingId;
-    return orders[0]?.id || 'ZLX-2601';
+    return orders[0]?.orderNumber || orders[0]?.id || 'ZLX-000001';
   });
 
   const [searchedOrder, setSearchedOrder] = useState<Order | undefined>(() => {
     if (activeTrackingId) {
-      const match = orders.find((o) => o.id === activeTrackingId);
+      const match = orders.find((o) => o.id === activeTrackingId || o.orderNumber?.toLowerCase() === activeTrackingId.toLowerCase());
       if (match) return match;
     }
     return orders[0];
@@ -44,6 +44,7 @@ export const OrderTrackingView: React.FC = () => {
     const found = orders.find(
       (o) =>
         o.id.toLowerCase() === key ||
+        o.orderNumber?.toLowerCase() === key ||
         o.customer.phone.replace(/[^0-9]/g, '').includes(key) ||
         o.courier.trackingCode?.toLowerCase() === key ||
         o.courier.consignmentId?.toLowerCase() === key
@@ -92,7 +93,7 @@ export const OrderTrackingView: React.FC = () => {
             Track Your Shipment
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 max-w-lg mx-auto">
-            Enter your Order ID (e.g. AET-2601), phone number or courier consignment code.
+            Enter your Order Number (e.g. ZLX-000125), phone number or courier consignment code.
           </p>
         </div>
 
@@ -134,7 +135,7 @@ export const OrderTrackingView: React.FC = () => {
               <div>
                 <div className="flex items-center gap-2">
                   <h3 className="text-lg font-bold text-slate-900 font-mono">
-                    Order #{searchedOrder.id}
+                    Order #{searchedOrder.orderNumber || searchedOrder.id}
                   </h3>
                   <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-indigo-100 text-indigo-800">
                     {searchedOrder.status}
