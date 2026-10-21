@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useStore } from '../../context/StoreContext';
 import { formatPrice } from '../../utils/formatters';
 import {
@@ -35,6 +35,26 @@ export const OrderTrackingView: React.FC = () => {
   });
 
   const [searchError, setSearchError] = useState(false);
+
+  // Resolve deep links after authenticated order history finishes loading.
+  useEffect(() => {
+    if (!orders.length) return;
+    if (activeTrackingId) {
+      const target = orders.find((order) =>
+        order.id === activeTrackingId || order.orderNumber?.toLowerCase() === activeTrackingId.toLowerCase()
+      );
+      if (target) {
+        setSearchedOrder(target);
+        setSearchKey(target.orderNumber || target.id);
+        setSearchError(false);
+      }
+      return;
+    }
+    if (!searchedOrder) {
+      setSearchedOrder(orders[0]);
+      setSearchKey(orders[0].orderNumber || orders[0].id);
+    }
+  }, [activeTrackingId, orders, searchedOrder]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
