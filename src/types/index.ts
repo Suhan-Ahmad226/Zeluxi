@@ -191,7 +191,10 @@ export interface CourierBookingAttempt {
 }
 
 export interface Order {
-  id: string; // e.g. "AET-2601" or "ZLX-2601"
+  /** Internal UUID used for database relationships and authenticated API operations. */
+  id: string;
+  /** Human-readable customer-facing order number, e.g. ZLX-000125. */
+  orderNumber?: string;
   createdAt: string;
   customer: ShippingAddress;
   items: OrderItem[];

@@ -369,7 +369,7 @@ export const AdminDashboard: React.FC = () => {
       'Total (BDT)',
     ];
     const rows = orders.map((o) => [
-      o.id,
+      o.orderNumber || o.id,
       o.createdAt,
       `"${o.customer.fullName.replace(/"/g, '""')}"`,
       o.customer.phone,
@@ -457,6 +457,7 @@ export const AdminDashboard: React.FC = () => {
       const q = adminOrderSearch.toLowerCase();
       return (
         o.id.toLowerCase().includes(q) ||
+        (o.orderNumber || '').toLowerCase().includes(q) ||
         o.customer.fullName.toLowerCase().includes(q) ||
         o.customer.phone.includes(q) ||
         o.courier.trackingCode.toLowerCase().includes(q)
@@ -1392,7 +1393,7 @@ export const AdminDashboard: React.FC = () => {
                   <tbody className="divide-y divide-slate-100">
                     {orders.slice(0, 5).map((ord) => (
                       <tr key={ord.id} className="hover:bg-slate-50/70">
-                        <td className="p-3 font-mono font-bold text-slate-900">#{ord.id}</td>
+                        <td className="p-3 font-mono font-bold text-slate-900">#{ord.orderNumber || ord.id}</td>
                         <td className="p-3">
                           <p className="font-semibold text-slate-800">{ord.customer.fullName}</p>
                           <p className="text-[11px] text-slate-400">{ord.customer.phone}</p>
@@ -1530,7 +1531,7 @@ export const AdminDashboard: React.FC = () => {
                           onClick={() => setSelectedAdminOrder(ord)}
                           className="font-bold text-indigo-600 hover:text-indigo-900 hover:underline block text-left"
                         >
-                          #{ord.id}
+                          #{ord.orderNumber || ord.id}
                         </button>
                         <span className="text-[11px] text-slate-400">{ord.createdAt}</span>
                       </td>
@@ -2172,7 +2173,7 @@ export const AdminDashboard: React.FC = () => {
               <div className="flex justify-between items-start border-b pb-4">
                 <div>
                   <div className="flex items-center gap-3">
-                    <h3 className="font-bold text-slate-900 text-lg">Order #{selectedAdminOrder.id}</h3>
+                    <h3 className="font-bold text-slate-900 text-lg">Order #{selectedAdminOrder.orderNumber || selectedAdminOrder.id}</h3>
                     <span className={`px-2 py-0.5 rounded text-xs font-bold ${
                       selectedAdminOrder.status === 'DELIVERED'
                         ? 'bg-emerald-100 text-emerald-800'
@@ -2678,7 +2679,7 @@ export const AdminDashboard: React.FC = () => {
                   <tbody className="divide-y divide-slate-100">
                     {orders.slice(0, 15).map((ord) => (
                       <tr key={ord.id} className="hover:bg-slate-50/70">
-                        <td className="p-3.5 font-mono font-bold text-slate-900">{ord.id}</td>
+                        <td className="p-3.5 font-mono font-bold text-slate-900">{ord.orderNumber || ord.id}</td>
                         <td className="p-3.5 text-slate-500">{ord.createdAt}</td>
                         <td className="p-3.5 font-medium text-slate-800">{ord.customer.fullName}</td>
                         <td className="p-3.5">

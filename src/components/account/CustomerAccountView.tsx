@@ -61,7 +61,7 @@ function openOrderInvoice(order: import('../../types').Order, settings: import('
   }).join('');
   const customer = order.customer;
   const address = [customer.addressDetails, customer.thanaCity, customer.district, customer.division, customer.postalCode].filter(Boolean).join(', ');
-  popup.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Invoice ' + escapeInvoiceText(order.id) + '</title><style>body{font:14px Arial;color:#0f172a;padding:24px;max-width:850px;margin:auto}header{display:flex;justify-content:space-between;border-bottom:2px solid;padding-bottom:16px}section{margin:20px 0}table{width:100%;border-collapse:collapse}td,th{padding:10px 6px;border-bottom:1px solid #ddd;text-align:left;vertical-align:top}.item{display:flex;gap:10px;align-items:flex-start}.item-image{width:56px;height:56px;object-fit:contain;border:1px solid #e5e7eb;border-radius:6px}.totals{max-width:330px;margin-left:auto}.total{display:flex;justify-content:space-between;padding:5px 0}.grand{border-top:1px solid #aaa;font-size:18px;font-weight:bold;padding-top:12px}@media print{.no-print{display:none}}@media(max-width:600px){header{display:block}td,th{font-size:11px;padding:5px 2px}}</style></head><body><header><div><h1>' + escapeInvoiceText(settings.storeName || 'Zeluxi') + '</h1><div>' + escapeInvoiceText(settings.address || '') + '</div><div>' + escapeInvoiceText(settings.phone || '') + ' · ' + escapeInvoiceText(settings.email || '') + '</div></div><div><h2>INVOICE</h2><strong>Order #' + escapeInvoiceText(order.id) + '</strong><div>' + escapeInvoiceText(formatDate(order.createdAt, language)) + '</div><div>Status: ' + escapeInvoiceText(order.status) + '</div></div></header><section><h2>Customer & delivery</h2><strong>' + escapeInvoiceText(customer.fullName) + '</strong><div>' + escapeInvoiceText(customer.phone) + ' · ' + escapeInvoiceText(customer.email || '') + '</div><div>' + escapeInvoiceText(address) + '</div>' + (customer.notes ? '<div>Delivery notes: ' + escapeInvoiceText(customer.notes) + '</div>' : '') + '</section><table><thead><tr><th>Item</th><th>Qty</th><th>Unit price</th><th>Total</th></tr></thead><tbody>' + rows + '</tbody></table><section class="totals"><div class="total"><span>Subtotal</span><strong>' + escapeInvoiceText(formatPrice(order.subtotal, language)) + '</strong></div><div class="total"><span>Shipping</span><strong>' + escapeInvoiceText(formatPrice(order.shippingFee, language)) + '</strong></div>' + (order.discount > 0 ? '<div class="total"><span>Discount</span><strong>-' + escapeInvoiceText(formatPrice(order.discount, language)) + '</strong></div>' : '') + '<div class="total"><span>Payment method / status</span><strong>' + escapeInvoiceText(order.paymentMethod) + ' / ' + escapeInvoiceText(order.paymentStatus) + '</strong></div>' + (order.courier?.trackingCode ? '<div class="total"><span>Courier tracking</span><strong>' + escapeInvoiceText(order.courier.trackingCode) + '</strong></div>' : '') + '<div class="total grand"><span>Grand total</span><strong>' + escapeInvoiceText(formatPrice(order.grandTotal, language)) + '</strong></div></section><p>Thank you for shopping with ' + escapeInvoiceText(settings.storeName || 'Zeluxi') + '.</p><button class="no-print" onclick="window.print()">Print / Save as PDF</button></body></html>');
+  popup.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Invoice ' + escapeInvoiceText(order.orderNumber || order.id) + '</title><style>body{font:14px Arial;color:#0f172a;padding:24px;max-width:850px;margin:auto}header{display:flex;justify-content:space-between;border-bottom:2px solid;padding-bottom:16px}section{margin:20px 0}table{width:100%;border-collapse:collapse}td,th{padding:10px 6px;border-bottom:1px solid #ddd;text-align:left;vertical-align:top}.item{display:flex;gap:10px;align-items:flex-start}.item-image{width:56px;height:56px;object-fit:contain;border:1px solid #e5e7eb;border-radius:6px}.totals{max-width:330px;margin-left:auto}.total{display:flex;justify-content:space-between;padding:5px 0}.grand{border-top:1px solid #aaa;font-size:18px;font-weight:bold;padding-top:12px}@media print{.no-print{display:none}}@media(max-width:600px){header{display:block}td,th{font-size:11px;padding:5px 2px}}</style></head><body><header><div><h1>' + escapeInvoiceText(settings.storeName || 'Zeluxi') + '</h1><div>' + escapeInvoiceText(settings.address || '') + '</div><div>' + escapeInvoiceText(settings.phone || '') + ' · ' + escapeInvoiceText(settings.email || '') + '</div></div><div><h2>INVOICE</h2><strong>Order #' + escapeInvoiceText(order.orderNumber || order.id) + '</strong><div>' + escapeInvoiceText(formatDate(order.createdAt, language)) + '</div><div>Status: ' + escapeInvoiceText(order.status) + '</div></div></header><section><h2>Customer & delivery</h2><strong>' + escapeInvoiceText(customer.fullName) + '</strong><div>' + escapeInvoiceText(customer.phone) + ' · ' + escapeInvoiceText(customer.email || '') + '</div><div>' + escapeInvoiceText(address) + '</div>' + (customer.notes ? '<div>Delivery notes: ' + escapeInvoiceText(customer.notes) + '</div>' : '') + '</section><table><thead><tr><th>Item</th><th>Qty</th><th>Unit price</th><th>Total</th></tr></thead><tbody>' + rows + '</tbody></table><section class="totals"><div class="total"><span>Subtotal</span><strong>' + escapeInvoiceText(formatPrice(order.subtotal, language)) + '</strong></div><div class="total"><span>Shipping</span><strong>' + escapeInvoiceText(formatPrice(order.shippingFee, language)) + '</strong></div>' + (order.discount > 0 ? '<div class="total"><span>Discount</span><strong>-' + escapeInvoiceText(formatPrice(order.discount, language)) + '</strong></div>' : '') + '<div class="total"><span>Payment method / status</span><strong>' + escapeInvoiceText(order.paymentMethod) + ' / ' + escapeInvoiceText(order.paymentStatus) + '</strong></div>' + (order.courier?.trackingCode ? '<div class="total"><span>Courier tracking</span><strong>' + escapeInvoiceText(order.courier.trackingCode) + '</strong></div>' : '') + '<div class="total grand"><span>Grand total</span><strong>' + escapeInvoiceText(formatPrice(order.grandTotal, language)) + '</strong></div></section><p>Thank you for shopping with ' + escapeInvoiceText(settings.storeName || 'Zeluxi') + '.</p><button class="no-print" onclick="window.print()">Print / Save as PDF</button></body></html>');
   popup.document.close(); popup.focus();
 }
 
@@ -500,7 +500,7 @@ export const CustomerAccountView: React.FC = () => {
                       'Most Recent Order'
                     </span>
                     <h3 className="text-base font-bold font-mono text-white mt-0.5">
-                      Order #{accountOrders[0].id}
+                      Order #{accountOrders[0].orderNumber || accountOrders[0].id}
                     </h3>
                   </div>
                   <div className="flex items-center gap-2">
@@ -610,7 +610,7 @@ export const CustomerAccountView: React.FC = () => {
                     <div>
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-mono font-bold text-slate-900 text-sm">
-                          Order #{ord.id}
+                          Order #{ord.orderNumber || ord.id}
                         </span>
                         <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-indigo-50 text-indigo-700">
                           {ord.status}
@@ -774,7 +774,7 @@ export const CustomerAccountView: React.FC = () => {
                     type="text"
                     value={quickTrackInput}
                     onChange={(e) => setQuickTrackInput(e.target.value)}
-                    placeholder='Enter Order ID (e.g. ORD-2026-9021)'
+                    placeholder='Enter Order Number (e.g. ZLX-000125)'
                     className="w-full pl-9 pr-3 py-2.5 bg-white border border-slate-300 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   />
                 </div>
@@ -809,7 +809,7 @@ export const CustomerAccountView: React.FC = () => {
                   >
                     <div>
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-mono font-bold text-slate-900 text-xs">#{ord.id}</span>
+                        <span className="font-mono font-bold text-slate-900 text-xs">#{ord.orderNumber || ord.id}</span>
                         <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-50 text-indigo-700">
                           {ord.status}
                         </span>
@@ -1465,7 +1465,7 @@ export const CustomerAccountView: React.FC = () => {
               <div className="flex items-center justify-between border-b pb-2">
                 <div className="flex items-center gap-2 text-rose-600">
                   <AlertCircle className="w-5 h-5" />
-                  <h3 className="font-bold text-sm text-slate-900">Cancel Order #{cancelModalOrder}</h3>
+                  <h3 className="font-bold text-sm text-slate-900">Cancel Order #{accountOrders.find((order) => order.id === cancelModalOrder)?.orderNumber || cancelModalOrder}</h3>
                 </div>
                 <button onClick={() => setCancelModalOrder(null)} className="text-slate-400 hover:text-slate-600">
                   <X className="w-4 h-4" />

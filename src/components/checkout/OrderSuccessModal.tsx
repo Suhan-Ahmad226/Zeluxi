@@ -21,7 +21,7 @@ export const OrderSuccessModal: React.FC = () => {
     if (!invoice) return;
     const popup = window.open('', '_blank', 'width=900,height=720');
     if (!popup) { window.alert('Allow pop-ups to print or save your invoice as PDF.'); return; }
-    const safeOrderId = String(lastCreatedOrder.id).replace(/[&<>"']/g, '');
+    const safeOrderId = String(lastCreatedOrder.orderNumber || lastCreatedOrder.id).replace(/[&<>"']/g, '');
     const styles = Array.from(document.querySelectorAll('link[rel="stylesheet"], style')).map((node) => node.outerHTML).join('');
     popup.onload = async () => {
       popup.focus();
@@ -81,7 +81,7 @@ export const OrderSuccessModal: React.FC = () => {
               <span className="text-slate-400 block text-[11px] uppercase tracking-wider">
                 Order ID
               </span>
-              <span className="font-mono font-bold text-slate-900 text-sm">{lastCreatedOrder.id}</span>
+              <span className="font-mono font-bold text-slate-900 text-sm">{lastCreatedOrder.orderNumber || lastCreatedOrder.id}</span>
             </div>
             <div>
               <span className="text-slate-400 block text-[11px] uppercase tracking-wider">
@@ -120,7 +120,7 @@ export const OrderSuccessModal: React.FC = () => {
                 <span className="text-xs uppercase tracking-wider font-bold text-slate-400 block">
                   Invoice / Memo
                 </span>
-                <span className="font-mono text-xs font-bold text-slate-800">{lastCreatedOrder.id}</span>
+                <span className="font-mono text-xs font-bold text-slate-800">{lastCreatedOrder.orderNumber || lastCreatedOrder.id}</span>
                 <p className="text-[11px] text-slate-400">{formatDate(lastCreatedOrder.createdAt)}</p>
               </div>
             </div>

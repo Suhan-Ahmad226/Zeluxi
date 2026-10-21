@@ -3,6 +3,7 @@ type ApiResponse = { setHeader(name: string, value: string): void; status(code: 
 import { createClient } from '@supabase/supabase-js';
 import { z } from 'zod';
 import { bookPathaoOrderFromDatabase, PathaoBookingError } from '../src/lib/shipping/pathao-booking';
+import { formatOrderNumber } from '../src/lib/orders/order-number';
 
 const addressSchema = z.object({
   fullName: z.string().trim().min(2).max(100),
@@ -92,6 +93,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
         const status = row.status || 'PENDING';
         return {
           id: String(row.id),
+          orderNumber: formatOrderNumber(row.order_number),
           createdAt: row.created_at,
           customer: row.customer || {},
           items: (row.store_order_items || []).map((item: any) => ({
@@ -218,6 +220,18 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     }
     const items = [...merged.values()];
 
+    // Fail closed before creating an order if the public order-number migration is pending.
+    const { error: orderNumberSchemaError } = await admin
+      .from('store_orders')
+      .select('order_number')
+      .limit(0);
+    if (orderNumberSchemaError) {
+      return res.status(503).json({
+        error: 'Checkout is temporarily unavailable while the order-number database migration is pending. Please try again later.',
+        code: 'ORDER_NUMBER_SCHEMA_NOT_READY',
+      });
+    }
+
     // Fail closed until the variant snapshot migration is applied. The previous
     // RPC does not understand variant IDs and could otherwise charge base price
     // or decrement the wrong stock while silently dropping the chosen option.
@@ -251,7 +265,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     const orderId = String(data?.orderId || '');
     const { data: savedOrder, error: savedOrderError } = await admin
       .from('store_orders')
-      .select('id,status,customer,subtotal,shipping_fee,discount,grand_total,created_at,store_order_items(*)')
+      .select('id,order_number,status,customer,subtotal,shipping_fee,discount,grand_total,created_at,store_order_items(*)')
       .eq('id', orderId)
       .eq('user_id', user.id)
       .single();
@@ -273,6 +287,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     return res.status(201).json({
       order: {
         orderId: savedOrder.id,
+        orderNumber: formatOrderNumber(savedOrder.order_number),
         status: savedOrder.status,
         createdAt: savedOrder.created_at,
         customer: savedOrder.customer,
