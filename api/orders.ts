@@ -220,6 +220,18 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     }
     const items = [...merged.values()];
 
+    // Fail closed before creating an order if the public order-number migration is pending.
+    const { error: orderNumberSchemaError } = await admin
+      .from('store_orders')
+      .select('order_number')
+      .limit(0);
+    if (orderNumberSchemaError) {
+      return res.status(503).json({
+        error: 'Checkout is temporarily unavailable while the order-number database migration is pending. Please try again later.',
+        code: 'ORDER_NUMBER_SCHEMA_NOT_READY',
+      });
+    }
+
     // Fail closed until the variant snapshot migration is applied. The previous
     // RPC does not understand variant IDs and could otherwise charge base price
     // or decrement the wrong stock while silently dropping the chosen option.
