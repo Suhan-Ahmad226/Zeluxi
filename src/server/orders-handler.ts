@@ -4,6 +4,7 @@ import { createClient } from '@supabase/supabase-js';
 import { z } from 'zod';
 import { bookPathaoOrderFromDatabase, PathaoBookingError } from '../lib/shipping/pathao-booking';
 import { formatOrderNumber } from '../lib/orders/order-number';
+import { isValidAddressSelection } from '../lib/address/bangladesh-locations';
 
 const addressSchema = z.object({
   fullName: z.string().trim().min(2).max(100),
@@ -20,6 +21,11 @@ const addressSchema = z.object({
 }).refine((address) => Boolean(address.upazila || address.thanaCity), {
   message: 'Upazila / Thana is required',
   path: ['upazila'],
+}).superRefine((address, ctx) => {
+  // Validate new hierarchical addresses, while allowing legacy thanaCity records during rollout.
+  if (address.upazila && !isValidAddressSelection(address.division, address.district, address.upazila)) {
+    ctx.addIssue({ code: 'custom', path: ['upazila'], message: 'District and upazila / thana must match the selected division.' });
+  }
 });
 const checkoutSchema = z.object({
   customer: addressSchema,
