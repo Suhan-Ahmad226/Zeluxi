@@ -23,7 +23,7 @@ export function runValidationTests() {
     phone: '01712334455',
     division: 'Dhaka',
     district: 'Dhaka City',
-    thanaCity: 'Banani',
+    upazila: 'Gulshan',
     addressDetails: 'Road 11, Block D, House 14',
   };
 
@@ -38,7 +38,7 @@ export function runValidationTests() {
     phone: '01712334455',
     division: 'Dhaka',
     district: 'Dhaka City',
-    thanaCity: 'Banani',
+    upazila: 'Gulshan',
     addressDetails: 'Rd1', // Less than 5 chars
   };
 
