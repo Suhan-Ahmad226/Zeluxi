@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-const orderApi = readFileSync(new URL('../../api/orders.ts', import.meta.url), 'utf8');
+const orderApi = readFileSync(new URL('../../src/server/orders-handler.ts', import.meta.url), 'utf8');
 const commerceMigration = readFileSync(
   new URL('../../supabase/migrations/20261016000100_production_commerce.sql', import.meta.url),
   'utf8'
