@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { isValidAddressSelection } from '../address/bangladesh-locations';
+import { formatCourierAddress, isValidAddressSelection } from '../address/bangladesh-locations';
 
 export const bdPhoneRegex = /^(?:\+?88)?01[3-9]\d{8}$/;
 
@@ -30,6 +30,9 @@ export const shippingAddressSchema = z.object({
 }).superRefine((address, ctx) => {
   if (!isValidAddressSelection(address.division, address.district, address.upazila)) {
     ctx.addIssue({ code: 'custom', path: ['upazila'], message: 'Select a district and upazila / thana that belong to the selected division.' });
+  }
+  if (formatCourierAddress(address).length > 220) {
+    ctx.addIssue({ code: 'custom', path: ['addressDetails'], message: 'Address is too long for courier dispatch. Shorten the house, road, or area details.' });
   }
 });
 
