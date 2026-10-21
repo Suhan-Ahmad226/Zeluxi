@@ -151,14 +151,14 @@ export const CustomerAccountView: React.FC = () => {
 
   useEffect(() => {
     if (userProfile) {
-      setProfileName(userProfile.displayName || profileName);
-      setProfilePhone(userProfile.phone || profilePhone);
-      setProfileEmail(userProfile.email || profileEmail);
-      if (userProfile.addressDetails || userProfile.address) setProfileAddress(userProfile.addressDetails || userProfile.address || '');
-      if (userProfile.division) setProfileDivision(userProfile.division);
-      if (userProfile.district) setProfileDistrict(userProfile.district);
-      if (userProfile.upazila || (userProfile as any).thanaCity) setProfileUpazila(userProfile.upazila || (userProfile as any).thanaCity || '');
-      if (typeof userProfile.notes === 'string') setProfileNotes(userProfile.notes);
+      setProfileName(userProfile.displayName || '');
+      setProfilePhone(userProfile.phone || '');
+      setProfileEmail(userProfile.email || '');
+      setProfileAddress(userProfile.addressDetails || userProfile.address || '');
+      setProfileDivision(userProfile.division || '');
+      setProfileDistrict(userProfile.district || '');
+      setProfileUpazila(userProfile.upazila || (userProfile as any).thanaCity || '');
+      setProfileNotes(userProfile.notes || '');
     }
   }, [userProfile]);
 
