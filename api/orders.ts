@@ -155,7 +155,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
 
         const { orderId, action, reason } = customerAction.data;
         const { data: ownedOrder, error: ownedOrderError } = await admin.from('store_orders')
-          .select('id,status,created_at')
+          .select('id,status,delivered_at')
           .eq('id', orderId)
           .eq('user_id', user.id)
           .maybeSingle();
@@ -180,8 +180,11 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
           if (String(ownedOrder.status) !== 'DELIVERED') {
             return res.status(409).json({ error: 'A return can only be requested for a delivered order.' });
           }
-          const deliveredAt = Date.parse(String(ownedOrder.created_at || ''));
-          if (!Number.isFinite(deliveredAt) || Date.now() - deliveredAt > 7 * 24 * 60 * 60 * 1000) {
+          const deliveredAt = Date.parse(String(ownedOrder.delivered_at || ''));
+          if (!Number.isFinite(deliveredAt)) {
+            return res.status(409).json({ error: 'The delivery date is not available for this order. Please contact support to request a return.' });
+          }
+          if (Date.now() - deliveredAt > 7 * 24 * 60 * 60 * 1000) {
             return res.status(409).json({ error: 'The 7-day return request window has expired.' });
           }
           nextStatus = 'RETURN_REQUESTED';
