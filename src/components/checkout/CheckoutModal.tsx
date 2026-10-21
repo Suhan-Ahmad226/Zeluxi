@@ -352,7 +352,7 @@ export const CheckoutModal: React.FC = () => {
 
               <div className="sm:col-span-2">
                 <label className="text-xs font-semibold text-slate-700 block mb-1">
-                  Street address & house details *
+                  Address Details (House / Flat / Building) *
                 </label>
                 <div className="relative">
                   <MapPin className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
@@ -361,7 +361,7 @@ export const CheckoutModal: React.FC = () => {
                     rows={2}
                     value={addressDetails}
                     onChange={(e) => setAddressDetails(e.target.value)}
-                    placeholder="House #, Road #, Flat #, Sector or landmark..."
+                    placeholder="House / Flat / Building, Road, Block, Area..."
                     className="w-full pl-9 pr-3 py-2 text-xs border border-slate-300 rounded-lg focus:outline-none focus:border-indigo-600"
                   />
                 </div>
@@ -375,6 +375,7 @@ export const CheckoutModal: React.FC = () => {
                   type="text"
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
+                  maxLength={300}
                   placeholder="e.g. Call before delivery"
                   className="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:border-indigo-600"
                 />
