@@ -184,6 +184,22 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
           update = { status: nextStatus, return_reason: reason };
         }
 
+        if (action === 'CANCEL') {
+          const { data: cancellation, error: cancellationError } = await admin.rpc('cancel_order_and_restore_inventory', {
+            p_order_id: orderId,
+            p_user_id: user.id,
+            p_reason: reason,
+          });
+          if (cancellationError) {
+            const message = String(cancellationError.message || '');
+            if (/cannot be cancelled|courier booking|not found/i.test(message)) {
+              return res.status(/not found/i.test(message) ? 404 : 409).json({ error: message });
+            }
+            return res.status(503).json({ error: 'Cancellation could not be saved. Please contact support before retrying.' });
+          }
+          return res.status(200).json({ order: cancellation });
+        }
+
         const { data: updatedOrder, error: updateError } = await admin.from('store_orders')
           .update(update).eq('id', orderId).eq('user_id', user.id).eq('status', String(ownedOrder.status))
           .select('id,status').maybeSingle();
@@ -200,7 +216,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
       if (!parsed.success) return res.status(400).json({ error: 'Invalid order status update.' });
 
       const { data: currentOrder, error: currentOrderError } = await admin.from('store_orders')
-        .select('id,status').eq('id', parsed.data.orderId).maybeSingle();
+        .select('id,status,user_id').eq('id', parsed.data.orderId).maybeSingle();
       if (currentOrderError) return res.status(503).json({ error: 'Current order status could not be verified.' });
       if (!currentOrder) return res.status(404).json({ error: 'Order not found.' });
       const currentStatus = String(currentOrder.status || 'PENDING');
@@ -263,6 +279,19 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
             code: 'PATHAO_CANCELLATION_UNAVAILABLE',
           });
         }
+        const { data: cancellation, error: cancellationError } = await admin.rpc('cancel_order_and_restore_inventory', {
+          p_order_id: parsed.data.orderId,
+          p_user_id: String(currentOrder.user_id),
+          p_reason: 'Cancelled by administrator',
+        });
+        if (cancellationError) {
+          const message = String(cancellationError.message || '');
+          if (/cannot be cancelled|courier booking|not found/i.test(message)) {
+            return res.status(/not found/i.test(message) ? 404 : 409).json({ error: message });
+          }
+          return res.status(503).json({ error: 'Cancellation could not be saved. Please retry after checking the order state.' });
+        }
+        return res.status(200).json({ order: cancellation });
       }
 
       const { data, error } = await admin.from('store_orders')
