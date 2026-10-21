@@ -29,6 +29,11 @@ const statusSchema = z.object({
   orderId: z.string().uuid(),
   status: z.enum(['PENDING','CONFIRMED','PROCESSING','READY_TO_SHIP','SHIPPED','OUT_FOR_DELIVERY','DELIVERED','CANCELLED','RETURN_REQUESTED','RETURNED','REFUNDED']),
 }).strict();
+const customerOrderActionSchema = z.object({
+  action: z.enum(['CANCEL', 'RETURN']),
+  orderId: z.string().uuid(),
+  reason: z.string().trim().min(3).max(1000),
+}).strict();
 
 function getHeader(req: ApiRequest, name: string): string {
   const value = req.headers[name] ?? req.headers[name.toLowerCase()];
@@ -141,9 +146,53 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     }
 
     if (req.method === 'PATCH') {
-      if (String(user.app_metadata?.role || '').toUpperCase() !== 'ADMIN') {
-        return res.status(403).json({ error: 'Administrator access is required.' });
+      const isAdmin = String(user.app_metadata?.role || '').toUpperCase() === 'ADMIN';
+      if (!isAdmin) {
+        const customerAction = customerOrderActionSchema.safeParse(req.body);
+        if (!customerAction.success) {
+          return res.status(400).json({ error: 'Invalid customer order request.' });
+        }
+
+        const { orderId, action, reason } = customerAction.data;
+        const { data: ownedOrder, error: ownedOrderError } = await admin.from('store_orders')
+          .select('id,status')
+          .eq('id', orderId)
+          .eq('user_id', user.id)
+          .maybeSingle();
+        if (ownedOrderError) return res.status(503).json({ error: 'Order could not be verified.' });
+        if (!ownedOrder) return res.status(404).json({ error: 'Order not found.' });
+
+        let nextStatus: 'CANCELLED' | 'RETURN_REQUESTED';
+        let update: Record<string, string>;
+        if (action === 'CANCEL') {
+          if (!['PENDING', 'CONFIRMED'].includes(String(ownedOrder.status))) {
+            return res.status(409).json({ error: 'This order can no longer be cancelled online.' });
+          }
+          const { data: shipment, error: shipmentError } = await admin.from('courier_shipments')
+            .select('status,consignment_id').eq('order_id', orderId).maybeSingle();
+          if (shipmentError) return res.status(503).json({ error: 'Courier status could not be checked before cancellation.' });
+          if (shipment?.consignment_id || ['BOOKING', 'UNKNOWN', 'BULK_SUBMITTED', 'BOOKED', 'IN_TRANSIT', 'DELIVERED'].includes(String(shipment?.status || ''))) {
+            return res.status(409).json({ error: 'This order has a Pathao booking or unresolved booking attempt and cannot be cancelled online.', code: 'PATHAO_CANCELLATION_UNAVAILABLE' });
+          }
+          nextStatus = 'CANCELLED';
+          update = { status: nextStatus, cancellation_reason: reason };
+        } else {
+          if (String(ownedOrder.status) !== 'DELIVERED') {
+            return res.status(409).json({ error: 'A return can only be requested for a delivered order.' });
+          }
+          nextStatus = 'RETURN_REQUESTED';
+          update = { status: nextStatus, return_reason: reason };
+        }
+
+        const { data: updatedOrder, error: updateError } = await admin.from('store_orders')
+          .update(update).eq('id', orderId).eq('user_id', user.id)
+          .select('id,status').maybeSingle();
+        if (updateError || !updatedOrder) {
+          return res.status(503).json({ error: 'Order request could not be saved. Please try again.' });
+        }
+        return res.status(200).json({ order: { id: updatedOrder.id, status: updatedOrder.status } });
       }
+
       const parsed = statusSchema.safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ error: 'Invalid order status update.' });
 
