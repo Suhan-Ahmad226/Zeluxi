@@ -355,7 +355,20 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
     void loadCatalog().catch((error) => {
       console.warn('Persistent catalog or admin orders could not be loaded.', error);
     });
-    return () => { cancelled = true; };
+    const { data: authListener } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
+        // Defer work until the auth callback has returned to avoid re-entering Supabase auth APIs.
+        window.setTimeout(() => {
+          if (!cancelled) void loadCatalog().catch((error) => {
+            console.warn('Persistent catalog or account data could not be refreshed after auth change.', error);
+          });
+        }, 0);
+      }
+    });
+    return () => {
+      cancelled = true;
+      authListener.subscription.unsubscribe();
+    };
   }, []);
 
   const loadMoreProducts = async () => {
