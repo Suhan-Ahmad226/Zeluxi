@@ -11,10 +11,15 @@ const addressSchema = z.object({
   email: z.string().trim().email().max(254).optional().or(z.literal('')),
   division: z.enum(['Dhaka','Chattogram','Rajshahi','Sylhet','Khulna','Barishal','Rangpur','Mymensingh']),
   district: z.string().trim().min(1).max(100),
-  thanaCity: z.string().trim().min(1).max(100),
+  upazila: z.string().trim().min(1).max(100).optional(),
+  // Accept the former field during rolling deploys and for legacy clients.
+  thanaCity: z.string().trim().min(1).max(100).optional(),
   addressDetails: z.string().trim().min(5).max(1000),
   postalCode: z.string().trim().max(20).optional(),
   notes: z.string().trim().max(300).optional(),
+}).refine((address) => Boolean(address.upazila || address.thanaCity), {
+  message: 'Upazila / Thana is required',
+  path: ['upazila'],
 });
 const checkoutSchema = z.object({
   customer: addressSchema,
