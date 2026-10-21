@@ -182,17 +182,20 @@ export const CartDrawer: React.FC = () => {
             <div className="p-4 sm:p-6 border-t border-slate-200 bg-white space-y-4">
               {/* Coupon form */}
               {appliedCoupon ? (
-                <div className="flex items-center justify-between p-2.5 bg-emerald-50 border border-emerald-200 rounded-lg text-xs">
-                  <div className="flex items-center gap-2 text-emerald-800 font-semibold">
-                    <Check className="w-4 h-4 text-emerald-600 shrink-0" />
-                    <span>{appliedCoupon.code} applied (-{appliedCoupon.type === 'PERCENTAGE' ? `${appliedCoupon.value}%` : `৳${appliedCoupon.value}`})</span>
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between p-2.5 bg-emerald-50 border border-emerald-200 rounded-lg text-xs">
+                    <div className="flex items-center gap-2 text-emerald-800 font-semibold">
+                      <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <span>{appliedCoupon.code} applied (-{appliedCoupon.type === 'PERCENTAGE' ? `${appliedCoupon.value}%` : `৳${appliedCoupon.value}`})</span>
+                    </div>
+                    <button
+                      onClick={removeCoupon}
+                      className="text-emerald-700 hover:text-emerald-900 font-bold underline text-[11px]"
+                    >
+                      Remove
+                    </button>
                   </div>
-                  <button
-                    onClick={removeCoupon}
-                    className="text-emerald-700 hover:text-emerald-900 font-bold underline"
-                  >
-                    Remove
-                  </button>
+                  <p className="text-[10px] text-slate-400">Server-side automated coupon checkout is currently being updated.</p>
                 </div>
               ) : (
                 <form onSubmit={handleApplyCoupon} className="flex gap-2">

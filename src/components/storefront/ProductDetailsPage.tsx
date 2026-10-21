@@ -53,22 +53,34 @@ export const ProductDetailsPage: React.FC<ProductDetailsPageProps> = ({ slug }) 
       setIsLoadingProduct(true);
       setLoadError(false);
       try {
-        let offset = 0;
-        let found: Product | undefined;
-        let hasMore = true;
-        while (!found && hasMore && offset <= 100000) {
-          const response = await fetch(`/api/products?limit=48&offset=${offset}`, { cache: 'no-store' });
-          if (!response.ok) throw new Error('Unable to load product catalog.');
+        // Direct O(1) single-product lookup by slug
+        const response = await fetch(`/api/products?slug=${encodeURIComponent(slug)}`, { cache: 'no-store' });
+        if (response.ok) {
           const payload = await response.json();
-          const pageProducts = Array.isArray(payload.products) ? payload.products as Product[] : [];
-          found = pageProducts.find((item) => item.slug === slug);
-          hasMore = Boolean(payload.pagination?.hasMore);
-          offset = Number(payload.pagination?.nextOffset ?? offset + pageProducts.length);
-          if (!pageProducts.length) hasMore = false;
+          if (payload.product) {
+            if (!cancelled) {
+              setFetchedProduct(payload.product);
+              setIsLoadingProduct(false);
+            }
+            return;
+          }
         }
+
+        // Fallback for catalog listing cache
+        const catRes = await fetch(`/api/products?limit=48`, { cache: 'no-store' });
+        if (catRes.ok) {
+          const catPayload = await catRes.json();
+          const pageProducts = Array.isArray(catPayload.products) ? catPayload.products as Product[] : [];
+          const found = pageProducts.find((item) => item.slug === slug);
+          if (found && !cancelled) {
+            setFetchedProduct(found);
+            setIsLoadingProduct(false);
+            return;
+          }
+        }
+
         if (!cancelled) {
-          setFetchedProduct(found || null);
-          setLoadError(!found);
+          setLoadError(true);
           setIsLoadingProduct(false);
         }
       } catch {
@@ -270,6 +282,33 @@ export const ProductDetailsPage: React.FC<ProductDetailsPageProps> = ({ slug }) 
         </div>
 
         {relatedProducts.length > 0 && <section className="mt-14 border-t border-slate-200 pt-8"><div className="flex items-end justify-between gap-4 mb-5"><div><p className="text-xs font-semibold uppercase tracking-widest text-slate-500">You may also like</p><h2 className="mt-1 text-xl font-bold text-slate-950">Related products</h2></div><Link href="/shop" className="text-sm font-semibold text-slate-700 hover:text-black">View all</Link></div><div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5">{relatedProducts.map((item) => <ProductCard key={item.id} product={item} />)}</div></section>}
+      </div>
+
+      {/* Mobile Sticky Purchase Bar */}
+      <div className="md:hidden fixed bottom-14 left-0 right-0 z-30 bg-white/95 backdrop-blur-md border-t border-slate-200 px-4 py-2.5 shadow-[0_-4px_16px_rgba(0,0,0,0.06)] flex items-center justify-between gap-3 safe-bottom-nav">
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-semibold text-slate-900 truncate">{product.name}</p>
+          <p className="text-sm font-bold text-slate-950 tabular-nums">{formatPrice(currentPrice)}</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => {
+            if (requiresVariantSelection) {
+              const el = document.getElementById('product-variant');
+              if (el) {
+                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                el.focus();
+              }
+            } else {
+              handleAddToCart();
+            }
+          }}
+          disabled={isOutOfStock || quantity > currentStock}
+          className="px-4 py-2 bg-slate-950 text-white text-xs font-semibold rounded-lg hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed shrink-0 flex items-center gap-1.5 transition-transform active:scale-95"
+        >
+          <ShoppingBag className="w-3.5 h-3.5" />
+          <span>{isOutOfStock ? 'Sold out' : requiresVariantSelection ? 'Select option' : 'Add to bag'}</span>
+        </button>
       </div>
     </div>
   );

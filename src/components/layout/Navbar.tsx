@@ -1,6 +1,10 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { useStore } from '../../context/StoreContext';
 import { useAuth } from '../../context/AuthContext';
+import { formatPrice } from '../../utils/formatters';
+import { StoreImage } from '../common/StoreImage';
+import { Product } from '../../types';
 import {
   ShoppingBag,
   Search,
@@ -14,10 +18,13 @@ import {
   Flame,
   Truck,
   Layers,
+  ArrowRight,
 } from 'lucide-react';
 
 export const Navbar: React.FC = () => {
+  const router = useRouter();
   const {
+    products,
     cart,
     wishlist,
     activeView,
@@ -40,9 +47,45 @@ export const Navbar: React.FC = () => {
 
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
+  const searchContainerRef = useRef<HTMLDivElement>(null);
 
   const cartItemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+
+  const searchResults = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (q.length < 2) return [];
+    return products
+      .filter((p) => {
+        if (!p.published || p.archived) return false;
+        return (
+          p.name.toLowerCase().includes(q) ||
+          p.category.toLowerCase().includes(q) ||
+          p.sku.toLowerCase().includes(q) ||
+          p.tags.some((t) => t.toLowerCase().includes(q))
+        );
+      })
+      .slice(0, 5);
+  }, [searchQuery, products]);
+
+  const handleSelectProduct = (product: Product) => {
+    setIsSearchFocused(false);
+    setIsMobileSearchOpen(false);
+    setSearchQuery('');
+    const slug = product.slug || product.name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    router.push(`/products/${encodeURIComponent(slug)}`);
+  };
+
+  const handleSearchSubmit = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!searchQuery.trim()) return;
+    setIsSearchFocused(false);
+    setIsMobileSearchOpen(false);
+    if (activeView !== 'shop') {
+      setActiveView('shop');
+    }
+  };
 
   const handleNavClick = (view: 'store' | 'shop' | 'tracking' | 'account' | 'admin') => {
     setActiveView(view);
@@ -62,6 +105,9 @@ export const Navbar: React.FC = () => {
     const handleClickOutside = (e: MouseEvent) => {
       if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
         setIsUserMenuOpen(false);
+      }
+      if (searchContainerRef.current && !searchContainerRef.current.contains(e.target as Node)) {
+        setIsSearchFocused(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -91,30 +137,83 @@ export const Navbar: React.FC = () => {
         </div>
 
         {/* Desktop Central Search Bar */}
-        <div className="hidden md:flex flex-1 max-w-md mx-6">
-          <div className="relative w-full">
+        <div className="hidden md:flex flex-1 max-w-md mx-6" ref={searchContainerRef}>
+          <form onSubmit={handleSearchSubmit} className="relative w-full">
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
               type="text"
               value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value);
-                if (activeView !== 'shop') {
-                  setActiveView('shop');
-                }
-              }}
+              onFocus={() => setIsSearchFocused(true)}
+              onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search products, categories, SKU..."
               className="w-full text-xs pl-9 pr-8 py-2 bg-slate-100 hover:bg-slate-100/80 focus:bg-white border border-transparent focus:border-indigo-500 rounded-full transition-all focus:outline-none focus:ring-2 focus:ring-indigo-100 text-slate-900"
             />
             {searchQuery && (
               <button
+                type="button"
                 onClick={() => setSearchQuery('')}
                 className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
             )}
-          </div>
+
+            {/* Instant Search Suggestions Popover */}
+            {isSearchFocused && searchQuery.trim().length >= 2 && (
+              <div className="absolute left-0 right-0 top-full mt-2 bg-white rounded-xl shadow-xl border border-slate-200 overflow-hidden z-50">
+                <div className="px-3 py-2 bg-slate-50 border-b border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+                  <span className="font-semibold uppercase tracking-wider text-[10px]">Suggestions</span>
+                  <span className="font-mono">{searchResults.length} found</span>
+                </div>
+                {searchResults.length === 0 ? (
+                  <div className="p-4 text-center text-xs text-slate-500">
+                    No products matching "{searchQuery}"
+                  </div>
+                ) : (
+                  <div className="divide-y divide-slate-100 max-h-80 overflow-y-auto">
+                    {searchResults.map((product) => (
+                      <button
+                        key={product.id}
+                        type="button"
+                        onClick={() => handleSelectProduct(product)}
+                        className="w-full flex items-center gap-3 p-2.5 hover:bg-slate-50 transition-colors text-left group"
+                      >
+                        <StoreImage
+                          src={product.images?.[0]}
+                          alt={product.name}
+                          className="w-10 h-10 rounded-lg object-cover bg-slate-100 shrink-0 border border-slate-200"
+                          preset="thumbnail"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-semibold text-slate-900 truncate group-hover:text-indigo-600 transition-colors">
+                            {product.name}
+                          </p>
+                          <div className="flex items-center gap-1.5 text-[10px] text-slate-400">
+                            <span>{product.category}</span>
+                            <span aria-hidden="true">·</span>
+                            <span className="font-mono">{product.sku}</span>
+                          </div>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <span className="text-xs font-bold text-slate-900 tabular-nums">
+                            {formatPrice(product.price)}
+                          </span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                <button
+                  type="button"
+                  onClick={() => handleSearchSubmit()}
+                  className="w-full p-2.5 bg-slate-50 hover:bg-slate-100 text-xs font-semibold text-indigo-600 text-center transition-colors border-t border-slate-100 flex items-center justify-center gap-1.5"
+                >
+                  <span>View all results in shop</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
+          </form>
         </div>
 
         {/* Actions & Controls */}
@@ -241,28 +340,66 @@ export const Navbar: React.FC = () => {
       {/* Mobile Search Overlay Bar */}
       {isMobileSearchOpen && (
         <div className="md:hidden px-4 pb-3 pt-1 border-t border-slate-100 bg-white">
-          <div className="relative w-full">
+          <form onSubmit={handleSearchSubmit} className="relative w-full">
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value);
-                if (activeView !== 'shop') setActiveView('shop');
-              }}
+              onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search products..."
               className="w-full text-xs pl-9 pr-8 py-2 bg-slate-100 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
               autoFocus
             />
             {searchQuery && (
               <button
+                type="button"
                 onClick={() => setSearchQuery('')}
                 className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
             )}
-          </div>
+          </form>
+          {searchQuery.trim().length >= 2 && (
+            <div className="mt-2 bg-white rounded-xl border border-slate-200 shadow-md divide-y divide-slate-100 max-h-60 overflow-y-auto">
+              {searchResults.length === 0 ? (
+                <div className="p-3 text-center text-xs text-slate-500">
+                  No matching products
+                </div>
+              ) : (
+                searchResults.map((product) => (
+                  <button
+                    key={product.id}
+                    type="button"
+                    onClick={() => handleSelectProduct(product)}
+                    className="w-full flex items-center gap-2.5 p-2 hover:bg-slate-50 text-left"
+                  >
+                    <StoreImage
+                      src={product.images?.[0]}
+                      alt={product.name}
+                      className="w-8 h-8 rounded object-cover bg-slate-100 shrink-0 border border-slate-200"
+                      preset="thumbnail"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-semibold text-slate-900 truncate">{product.name}</p>
+                      <p className="text-[10px] text-slate-400">{product.category}</p>
+                    </div>
+                    <span className="text-xs font-bold text-slate-900 tabular-nums">
+                      {formatPrice(product.price)}
+                    </span>
+                  </button>
+                ))
+              )}
+              <button
+                type="button"
+                onClick={() => handleSearchSubmit()}
+                className="w-full p-2 bg-slate-50 text-[11px] font-semibold text-indigo-600 text-center flex items-center justify-center gap-1"
+              >
+                <span>View all in shop</span>
+                <ArrowRight className="w-3 h-3" />
+              </button>
+            </div>
+          )}
         </div>
       )}
 

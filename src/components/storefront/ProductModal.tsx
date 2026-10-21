@@ -60,7 +60,8 @@ export const ProductModal: React.FC = () => {
 
   useEffect(() => {
     if (selectedProduct) {
-      setSelectedVariantId(selectedProduct.variants[0]?.id || '');
+      const firstInStock = selectedProduct.variants.find((v) => v.stock > 0);
+      setSelectedVariantId(firstInStock?.id || selectedProduct.variants[0]?.id || '');
       setActiveImageIndex(0);
       setQuantity(1);
       addRecentlyViewed(selectedProduct.id);
@@ -72,6 +73,7 @@ export const ProductModal: React.FC = () => {
   const selectedVariant = selectedProduct.variants.find((v) => v.id === selectedVariantId);
   const currentPrice = selectedVariant ? selectedVariant.price : selectedProduct.price;
   const currentStock = selectedVariant ? selectedVariant.stock : selectedProduct.stock;
+  const requiresVariantSelection = Boolean(selectedProduct.variants.length > 0 && !selectedVariant);
   const isOutOfStock = currentStock <= 0;
   const isWishlisted = wishlist.includes(selectedProduct.id);
   const isCompared = compareList.includes(selectedProduct.id);
@@ -81,12 +83,12 @@ export const ProductModal: React.FC = () => {
   const productQuestions = questions.filter((q) => q.productId === selectedProduct.id);
 
   const handleAddToCart = () => {
-    if (isOutOfStock) return;
+    if (isOutOfStock || requiresVariantSelection) return;
     addToCart(selectedProduct, selectedVariantId, quantity);
   };
 
   const handleBuyNow = () => {
-    if (isOutOfStock) return;
+    if (isOutOfStock || requiresVariantSelection) return;
     addToCart(selectedProduct, selectedVariantId, quantity);
     setSelectedProduct(null);
     setIsCheckoutOpen(true);
@@ -303,13 +305,16 @@ export const ProductModal: React.FC = () => {
                       <button
                         key={v.id}
                         onClick={() => setSelectedVariantId(v.id)}
+                        disabled={v.stock <= 0}
                         className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-all ${
                           selectedVariantId === v.id
                             ? 'border-indigo-600 bg-indigo-50/70 text-indigo-900 font-semibold shadow-sm'
+                            : v.stock <= 0
+                            ? 'border-slate-100 bg-slate-50 text-slate-400 line-through cursor-not-allowed'
                             : 'border-slate-200 text-slate-700 hover:border-slate-300'
                         }`}
                       >
-                        {v.name}
+                        {v.name}{v.stock <= 0 ? ' (Out of stock)' : ''}
                       </button>
                     ))}
                   </div>
@@ -563,19 +568,19 @@ export const ProductModal: React.FC = () => {
               <div className="grid grid-cols-2 gap-3">
                 <button
                   onClick={handleAddToCart}
-                  disabled={isOutOfStock}
+                  disabled={isOutOfStock || requiresVariantSelection || quantity > currentStock}
                   className="flex items-center justify-center gap-2 py-3 px-4 bg-slate-900 text-white text-xs sm:text-sm font-semibold rounded-xl hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
                 >
                   <ShoppingBag className="w-4 h-4" />
-                  <span>Add to Bag</span>
+                  <span>{isOutOfStock ? 'Out of stock' : requiresVariantSelection ? 'Choose an option' : 'Add to Bag'}</span>
                 </button>
 
                 <button
                   onClick={handleBuyNow}
-                  disabled={isOutOfStock}
+                  disabled={isOutOfStock || requiresVariantSelection || quantity > currentStock}
                   className="flex items-center justify-center gap-2 py-3 px-4 bg-indigo-600 text-white text-xs sm:text-sm font-semibold rounded-xl hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
                 >
-                  <span>Buy Now</span>
+                  <span>{isOutOfStock ? 'Out of stock' : requiresVariantSelection ? 'Choose an option' : 'Buy Now'}</span>
                   <ArrowRight className="w-4 h-4" />
                 </button>
               </div>

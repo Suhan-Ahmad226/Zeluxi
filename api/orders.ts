@@ -75,9 +75,8 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
       const isAdmin = String(user.app_metadata?.role || '').toUpperCase() === 'ADMIN';
       const scope = Array.isArray(req.query?.scope) ? req.query?.scope[0] : req.query?.scope;
       if (!isAdmin && scope !== 'mine') return res.status(403).json({ error: 'Administrator access is required.' });
-      // Service-role queries bypass RLS, so customer reads must be scoped to the authenticated user.
       let orderQuery = admin.from('store_orders').select('*, store_order_items(*), courier_shipments(*)').order('created_at', { ascending: false }).limit(500);
-      if (!isAdmin) orderQuery = orderQuery.eq('user_id', user.id);
+      if (scope === 'mine' || !isAdmin) orderQuery = orderQuery.eq('user_id', user.id);
       const { data, error } = await orderQuery;
       if (error) return res.status(503).json({ error: 'Orders could not be loaded.' });
       const productIds = Array.from(new Set((data || []).flatMap((row: any) => (row.store_order_items || []).map((item: any) => String(item.product_id || '')).filter(Boolean))));

@@ -122,7 +122,7 @@ export const CheckoutModal: React.FC = () => {
     }
 
     if (appliedCoupon) {
-      setFormError('Coupon discounts are not yet supported by secure server-side checkout. Remove the coupon before placing your order.');
+      setFormError('Coupon discounts are not yet supported by secure server-side checkout. Please click "Remove coupon" below to proceed.');
       return;
     }
 
@@ -636,6 +636,26 @@ export const CheckoutModal: React.FC = () => {
               </span>
             </div>
           </div>
+
+          {/* Coupon Checkout Resolution Notice */}
+          {appliedCoupon && (
+            <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-amber-900">
+              <div className="space-y-0.5">
+                <p className="font-semibold">Coupon Applied: {appliedCoupon.code}</p>
+                <p className="text-[11px] text-amber-700">Server-side automated coupon verification is currently being upgraded.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  removeCoupon();
+                  setFormError(null);
+                }}
+                className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-semibold shrink-0 transition-colors self-start sm:self-auto"
+              >
+                Remove coupon to proceed
+              </button>
+            </div>
+          )}
 
           {/* Customer Verification Status Banner */}
           {isAuthenticated && isEmailConfirmed ? (

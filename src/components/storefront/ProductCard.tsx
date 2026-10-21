@@ -24,16 +24,22 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const isOutOfStock = product.stock <= 0;
   const isLowStock = product.stock > 0 && product.stock <= product.lowStockThreshold;
 
-  const handleQuickAdd = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (isOutOfStock) return;
-    addToCart(product, product.variants[0]?.id, 1);
-  };
+  const hasVariants = Boolean(product.variants && product.variants.length > 0);
 
   const handleCardClick = () => {
     addRecentlyViewed(product.id);
     const slug = product.slug || product.name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
     router.push(`/products/${encodeURIComponent(slug)}`);
+  };
+
+  const handleQuickAdd = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (isOutOfStock) return;
+    if (hasVariants) {
+      handleCardClick();
+      return;
+    }
+    addToCart(product, undefined, 1);
   };
 
   return (
@@ -151,11 +157,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
                 ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
                 : 'bg-slate-900 text-white hover:bg-slate-800'
             }`}
-            aria-label="Add to Bag"
+            aria-label={isOutOfStock ? 'Out of stock' : hasVariants ? 'Select options' : 'Add to Bag'}
           >
             <ShoppingBag className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">
-              {isOutOfStock ? 'Out of stock' : 'Add'}
+              {isOutOfStock ? 'Out of stock' : hasVariants ? 'Options' : 'Add'}
             </span>
           </button>
         </div>

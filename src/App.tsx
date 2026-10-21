@@ -15,21 +15,23 @@ import { ProductDetailsPage } from './components/storefront/ProductDetailsPage';
 import { DealsBanner } from './components/storefront/DealsBanner';
 import { ProductModal } from './components/storefront/ProductModal';
 import { RecentlyViewedBar } from './components/storefront/RecentlyViewedBar';
-import { SizeGuideModal } from './components/storefront/SizeGuideModal';
-import { ProductCompareModal } from './components/storefront/ProductCompareModal';
-import { WhatsAppConcierge } from './components/common/WhatsAppConcierge';
 import { CartDrawer } from './components/cart/CartDrawer';
 import { CheckoutModal } from './components/checkout/CheckoutModal';
 import { OrderSuccessModal } from './components/checkout/OrderSuccessModal';
 import { OrderTrackingView } from './components/tracking/OrderTrackingView';
 import { CustomerAccountView } from './components/account/CustomerAccountView';
-import { AdminDashboard } from './components/admin/AdminDashboard';
 import { VerifyEmailScreen } from './components/auth/VerifyEmailScreen';
 import { MobileBottomNav } from './components/layout/MobileBottomNav';
 import { NotificationToast } from './components/common/NotificationToast';
-import { StaticPagesModal } from './components/common/StaticPagesModal';
 import { OfflineIndicator } from './components/common/OfflineIndicator';
 import { SlidersHorizontal } from 'lucide-react';
+
+// Code-split heavy modals and workspace to optimize initial storefront bundle
+const AdminDashboard = React.lazy(() => import('./components/admin/AdminDashboard').then((m) => ({ default: m.AdminDashboard })));
+const SizeGuideModal = React.lazy(() => import('./components/storefront/SizeGuideModal').then((m) => ({ default: m.SizeGuideModal })));
+const ProductCompareModal = React.lazy(() => import('./components/storefront/ProductCompareModal').then((m) => ({ default: m.ProductCompareModal })));
+const StaticPagesModal = React.lazy(() => import('./components/common/StaticPagesModal').then((m) => ({ default: m.StaticPagesModal })));
+const WhatsAppConcierge = React.lazy(() => import('./components/common/WhatsAppConcierge').then((m) => ({ default: m.WhatsAppConcierge })));
 
 const MainStoreContent: React.FC<{ productSlug?: string }> = ({ productSlug }) => {
   const { activeView, language, compareList, setIsCompareOpen, activeStaticPage, setActiveStaticPage, storefrontCMS } = useStore();
@@ -38,7 +40,9 @@ const MainStoreContent: React.FC<{ productSlug?: string }> = ({ productSlug }) =
   if (activeView === 'admin') {
     return (
       <div className="min-h-screen bg-slate-900 text-slate-100 antialiased selection:bg-indigo-500 selection:text-white">
-        <AdminDashboard />
+        <React.Suspense fallback={<div className="min-h-screen flex items-center justify-center text-xs font-mono text-slate-400">Loading admin workspace...</div>}>
+          <AdminDashboard />
+        </React.Suspense>
         <AuthModal />
         <NotificationToast />
       </div>
@@ -110,17 +114,19 @@ const MainStoreContent: React.FC<{ productSlug?: string }> = ({ productSlug }) =
       {/* Global Modals & Drawers */}
       <AuthModal />
       <ProductModal />
-      <SizeGuideModal />
-      <ProductCompareModal />
+      <React.Suspense fallback={null}>
+        <SizeGuideModal />
+        <ProductCompareModal />
+        <WhatsAppConcierge />
+        <StaticPagesModal
+          page={activeStaticPage}
+          onClose={() => setActiveStaticPage(null)}
+        />
+      </React.Suspense>
       <CartDrawer />
       <CheckoutModal />
       <OrderSuccessModal />
-      <WhatsAppConcierge />
       <NotificationToast />
-      <StaticPagesModal
-        page={activeStaticPage}
-        onClose={() => setActiveStaticPage(null)}
-      />
       <OfflineIndicator />
       <MobileBottomNav />
     </div>

@@ -142,6 +142,69 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
       const publicClient = createClient(url, anonKey, {
         auth: { persistSession: false, autoRefreshToken: false },
       });
+
+      const requestedSlug = typeof req.query?.slug === 'string' ? req.query.slug.trim() : Array.isArray(req.query?.slug) ? req.query.slug[0] : '';
+      const requestedId = typeof req.query?.id === 'string' ? req.query.id.trim() : Array.isArray(req.query?.id) ? req.query.id[0] : '';
+
+      if (requestedSlug || requestedId) {
+        let singleQuery = publicClient
+          .from('store_products')
+          .select('id,name,price,stock,published,archived,image_url,product_data,updated_at')
+          .eq('published', true)
+          .eq('archived', false);
+
+        if (requestedId) {
+          singleQuery = singleQuery.eq('id', requestedId);
+        } else if (requestedSlug) {
+          singleQuery = singleQuery.eq('product_data->>slug', requestedSlug);
+        }
+
+        const { data: singleData, error: singleError } = await singleQuery.limit(1);
+        if (singleError || !singleData || singleData.length === 0) {
+          if (requestedSlug) {
+            const fallback = await publicClient
+              .from('store_products')
+              .select('id,name,price,stock,published,archived,image_url,product_data,updated_at')
+              .eq('published', true)
+              .eq('archived', false)
+              .eq('id', requestedSlug)
+              .limit(1);
+            if (fallback.data && fallback.data.length > 0) {
+              const row = fallback.data[0];
+              const stored = row.product_data && typeof row.product_data === 'object' ? (row.product_data as Record<string, unknown>) : {};
+              const { costPrice: _costPrice, ...publicData } = stored;
+              const product = {
+                ...publicData,
+                id: row.id,
+                name: row.name,
+                price: Number(row.price),
+                stock: row.stock,
+                published: row.published,
+                archived: row.archived,
+                images: resolveProductImages(stored, row.image_url),
+              };
+              return res.status(200).json({ product });
+            }
+          }
+          return res.status(404).json({ error: 'Product not found.' });
+        }
+
+        const row = singleData[0];
+        const stored = row.product_data && typeof row.product_data === 'object' ? (row.product_data as Record<string, unknown>) : {};
+        const { costPrice: _costPrice, ...publicData } = stored;
+        const product = {
+          ...publicData,
+          id: row.id,
+          name: row.name,
+          price: Number(row.price),
+          stock: row.stock,
+          published: row.published,
+          archived: row.archived,
+          images: resolveProductImages(stored, row.image_url),
+        };
+        return res.status(200).json({ product });
+      }
+
       const requestedLimit = Number(Array.isArray(req.query?.limit) ? req.query?.limit[0] : req.query?.limit);
       const requestedOffset = Number(Array.isArray(req.query?.offset) ? req.query?.offset[0] : req.query?.offset);
       const limit = Number.isFinite(requestedLimit) ? Math.min(48, Math.max(1, Math.floor(requestedLimit))) : 12;

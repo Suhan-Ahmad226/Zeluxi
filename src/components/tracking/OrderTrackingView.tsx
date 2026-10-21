@@ -35,46 +35,90 @@ export const OrderTrackingView: React.FC = () => {
   });
 
   const [searchError, setSearchError] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
 
-  // Resolve deep links after authenticated order history finishes loading.
+  // Resolve deep links after authenticated order history finishes loading or via server query
   useEffect(() => {
-    if (!orders.length) return;
-    if (activeTrackingId) {
-      const target = orders.find((order) =>
-        order.id === activeTrackingId || order.orderNumber?.toLowerCase() === activeTrackingId.toLowerCase()
-      );
-      if (target) {
-        setSearchedOrder(target);
-        setSearchKey(target.orderNumber || target.id);
-        setSearchError(false);
-      }
-      return;
-    }
-    if (!searchedOrder) {
-      setSearchedOrder(orders[0]);
-      setSearchKey(orders[0].orderNumber || orders[0].id);
-    }
-  }, [activeTrackingId, orders, searchedOrder]);
+    let cancelled = false;
+    const resolveInitial = async () => {
+      if (activeTrackingId) {
+        const localMatch = orders.find((order) =>
+          order.id === activeTrackingId || order.orderNumber?.toLowerCase() === activeTrackingId.toLowerCase()
+        );
+        if (localMatch) {
+          setSearchedOrder(localMatch);
+          setSearchKey(localMatch.orderNumber || localMatch.id);
+          setSearchError(false);
+          return;
+        }
 
-  const handleSearch = (e: React.FormEvent) => {
+        // Query server for public tracking if not found in memory
+        try {
+          const res = await fetch(`/api/orders/track?q=${encodeURIComponent(activeTrackingId)}`, { cache: 'no-store' });
+          if (res.ok) {
+            const data = await res.json();
+            if (!cancelled && data.order) {
+              setSearchedOrder(data.order);
+              setSearchKey(data.order.orderNumber || data.order.id);
+              setSearchError(false);
+              return;
+            }
+          }
+        } catch {}
+      }
+
+      if (!searchedOrder && orders[0]) {
+        setSearchedOrder(orders[0]);
+        setSearchKey(orders[0].orderNumber || orders[0].id);
+      }
+    };
+
+    void resolveInitial();
+    return () => { cancelled = true; };
+  }, [activeTrackingId, orders]);
+
+  const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     setSearchError(false);
-    const key = searchKey.trim().toLowerCase();
+    const key = searchKey.trim();
+    if (!key) return;
+    const lowerKey = key.toLowerCase();
 
+    // 1. Try finding in loaded orders first
     const found = orders.find(
       (o) =>
-        o.id.toLowerCase() === key ||
-        o.orderNumber?.toLowerCase() === key ||
-        o.customer.phone.replace(/[^0-9]/g, '').includes(key) ||
-        o.courier.trackingCode?.toLowerCase() === key ||
-        o.courier.consignmentId?.toLowerCase() === key
+        o.id.toLowerCase() === lowerKey ||
+        o.orderNumber?.toLowerCase() === lowerKey ||
+        o.customer.phone.replace(/[^0-9]/g, '').includes(key.replace(/[^0-9]/g, '')) ||
+        o.courier.trackingCode?.toLowerCase() === lowerKey ||
+        o.courier.consignmentId?.toLowerCase() === lowerKey
     );
 
     if (found) {
       setSearchedOrder(found);
-    } else {
+      return;
+    }
+
+    // 2. Query public server tracking endpoint for guest orders
+    setIsSearching(true);
+    try {
+      const res = await fetch(`/api/orders/track?q=${encodeURIComponent(key)}`, { cache: 'no-store' });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.order) {
+          setSearchedOrder(data.order);
+          setSearchError(false);
+          setIsSearching(false);
+          return;
+        }
+      }
       setSearchError(true);
       setSearchedOrder(undefined);
+    } catch {
+      setSearchError(true);
+      setSearchedOrder(undefined);
+    } finally {
+      setIsSearching(false);
     }
   };
 
@@ -132,9 +176,10 @@ export const OrderTrackingView: React.FC = () => {
           </div>
           <button
             type="submit"
-            className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs sm:text-sm font-semibold rounded-xl transition-colors shadow-sm whitespace-nowrap"
+            disabled={isSearching}
+            className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white text-xs sm:text-sm font-semibold rounded-xl transition-colors shadow-sm whitespace-nowrap"
           >
-            Track
+            {isSearching ? 'Tracking...' : 'Track'}
           </button>
         </form>
 

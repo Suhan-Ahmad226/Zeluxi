@@ -342,9 +342,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
         }
       }
 
-      // Admins receive durable orders from the protected API; ordinary customers are denied by the server.
+      // Admins receive durable orders from the protected API; ordinary customers are scoped to their own orders.
       if (!token) return;
-      const orderResponse = await fetch('/api/orders?scope=mine', {
+      const isAdmin = String(sessionData.session?.user?.app_metadata?.role || '').toUpperCase() === 'ADMIN';
+      const orderEndpoint = isAdmin ? '/api/orders' : '/api/orders?scope=mine';
+      const orderResponse = await fetch(orderEndpoint, {
         headers: { Authorization: `Bearer ${token}` },
         cache: 'no-store',
       });

@@ -100,8 +100,8 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
         {/* Section Header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
           <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100">
+            <div className="flex items-center gap-2 text-xs text-slate-500 mb-1">
+              <span className="font-mono font-bold uppercase tracking-wider text-indigo-600 text-[11px]">
                 {featuredOnly ? 'Featured' : activeFilterTab === 'new-arrivals'
                   ? 'New arrivals'
                   : activeFilterTab === 'deals'
@@ -110,6 +110,7 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
                   ? 'Best sellers'
                   : 'Catalog'}
               </span>
+              <span aria-hidden="true" className="text-slate-300">·</span>
               <span className="text-xs text-slate-400 font-mono">
                 {filteredProducts.length} items
               </span>
