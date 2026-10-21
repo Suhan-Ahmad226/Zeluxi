@@ -22,7 +22,7 @@ export function runValidationTests() {
     fullName: 'Suhan Ahmad',
     phone: '01712334455',
     division: 'Dhaka',
-    district: 'Dhaka City',
+    district: 'Dhaka',
     upazila: 'Gulshan',
     addressDetails: 'Road 11, Block D, House 14',
   };
@@ -37,7 +37,7 @@ export function runValidationTests() {
     fullName: 'Suhan',
     phone: '01712334455',
     division: 'Dhaka',
-    district: 'Dhaka City',
+    district: 'Dhaka',
     upazila: 'Gulshan',
     addressDetails: 'Rd1', // Less than 5 chars
   };
