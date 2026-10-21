@@ -22,7 +22,7 @@ export const shippingAddressSchema = z.object({
     'Mymensingh',
   ]),
   district: z.string().min(1, 'District is required'),
-  thanaCity: z.string().min(1, 'Thana/Area is required'),
+  upazila: z.string().trim().min(1, 'Upazila / Thana is required').max(100),
   addressDetails: z.string().min(5, 'Detailed delivery address is required'),
   postalCode: z.string().optional(),
   notes: z.string().max(300, 'Notes cannot exceed 300 characters').optional(),
