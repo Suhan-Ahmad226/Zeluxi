@@ -3,6 +3,7 @@ import { useStore } from '../../context/StoreContext';
 import { StoreImage } from '../common/StoreImage';
 import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../lib/supabase';
+import { BANGLADESH_DIVISIONS, getDistrictsByDivision, getUpazilasByDistrict } from '../../lib/address/bangladesh-locations';
 import { formatPrice, formatDate } from '../../utils/formatters';
 import {
   Package,
@@ -128,6 +129,9 @@ export const CustomerAccountView: React.FC = () => {
   const [profileEmail, setProfileEmail] = useState('');
   const [profileAddress, setProfileAddress] = useState('');
   const [profileDivision, setProfileDivision] = useState('');
+  const [profileDistrict, setProfileDistrict] = useState('');
+  const [profileUpazila, setProfileUpazila] = useState('');
+  const [profileNotes, setProfileNotes] = useState('');
 
   // Restore optional profile draft data only in the browser, after hydration.
   useEffect(() => {
@@ -135,8 +139,11 @@ export const CustomerAccountView: React.FC = () => {
       setProfileName(localStorage.getItem('ZELUX_PROFILE_NAME') || '');
       setProfilePhone(localStorage.getItem('ZELUX_PROFILE_PHONE') || '');
       setProfileEmail(localStorage.getItem('ZELUX_PROFILE_EMAIL') || '');
-      setProfileAddress(localStorage.getItem('ZELUX_PROFILE_ADDRESS') || '');
+      setProfileAddress(localStorage.getItem('ZELUX_PROFILE_ADDRESS_DETAILS') || localStorage.getItem('ZELUX_PROFILE_ADDRESS') || '');
       setProfileDivision(localStorage.getItem('ZELUX_PROFILE_DIV') || '');
+      setProfileDistrict(localStorage.getItem('ZELUX_PROFILE_DISTRICT') || '');
+      setProfileUpazila(localStorage.getItem('ZELUX_PROFILE_UPAZILA') || '');
+      setProfileNotes(localStorage.getItem('ZELUX_PROFILE_NOTES') || '');
     } catch {
       // Browser storage can be unavailable; authenticated profile data remains usable.
     }
@@ -147,8 +154,11 @@ export const CustomerAccountView: React.FC = () => {
       setProfileName(userProfile.displayName || profileName);
       setProfilePhone(userProfile.phone || profilePhone);
       setProfileEmail(userProfile.email || profileEmail);
-      if (userProfile.address) setProfileAddress(userProfile.address);
+      if (userProfile.addressDetails || userProfile.address) setProfileAddress(userProfile.addressDetails || userProfile.address || '');
       if (userProfile.division) setProfileDivision(userProfile.division);
+      if (userProfile.district) setProfileDistrict(userProfile.district);
+      if (userProfile.upazila || (userProfile as any).thanaCity) setProfileUpazila(userProfile.upazila || (userProfile as any).thanaCity || '');
+      if (typeof userProfile.notes === 'string') setProfileNotes(userProfile.notes);
     }
   }, [userProfile]);
 
@@ -202,14 +212,22 @@ export const CustomerAccountView: React.FC = () => {
         phone: profilePhone,
         email: profileEmail,
         address: profileAddress,
+        addressDetails: profileAddress,
         division: profileDivision,
+        district: profileDistrict,
+        upazila: profileUpazila,
+        notes: profileNotes,
       });
       try {
         localStorage.setItem('ZELUX_PROFILE_NAME', profileName);
         localStorage.setItem('ZELUX_PROFILE_PHONE', profilePhone);
         localStorage.setItem('ZELUX_PROFILE_EMAIL', profileEmail);
         localStorage.setItem('ZELUX_PROFILE_ADDRESS', profileAddress);
+        localStorage.setItem('ZELUX_PROFILE_ADDRESS_DETAILS', profileAddress);
         localStorage.setItem('ZELUX_PROFILE_DIV', profileDivision);
+        localStorage.setItem('ZELUX_PROFILE_DISTRICT', profileDistrict);
+        localStorage.setItem('ZELUX_PROFILE_UPAZILA', profileUpazila);
+        localStorage.setItem('ZELUX_PROFILE_NOTES', profileNotes);
       } catch {
         // Browser storage is optional; saved profile data remains in Supabase.
       }
@@ -1028,7 +1046,8 @@ export const CustomerAccountView: React.FC = () => {
                       Default Shipping Address
                     </span>
                   </div>
-                  <p className="text-slate-700 leading-relaxed">{profileAddress}</p>
+                  <p className="text-slate-700 leading-relaxed">{[profileAddress, profileUpazila, profileDistrict, profileDivision].filter(Boolean).join(', ')}</p>
+                  {profileNotes && <p className="text-slate-500">Delivery notes: {profileNotes}</p>}
                   <p className="text-slate-500 font-mono text-[11px]">
                     Phone: {profilePhone} · Division: {profileDivision}
                   </p>
@@ -1058,33 +1077,36 @@ export const CustomerAccountView: React.FC = () => {
                     </div>
                   </div>
 
-                  <div>
-                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">Division</label>
-                    <select
-                      value={profileDivision}
-                      onChange={(e) => setProfileDivision(e.target.value)}
-                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs"
-                    >
-                      <option value="Dhaka">Dhaka</option>
-                      <option value="Chattogram">Chattogram</option>
-                      <option value="Rajshahi">Rajshahi</option>
-                      <option value="Sylhet">Sylhet</option>
-                      <option value="Khulna">Khulna</option>
-                      <option value="Barishal">Barishal</option>
-                      <option value="Rangpur">Rangpur</option>
-                      <option value="Mymensingh">Mymensingh</option>
-                    </select>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-semibold text-slate-700 mb-1">Division *</label>
+                      <select required value={profileDivision} onChange={(e) => { setProfileDivision(e.target.value); setProfileDistrict(''); setProfileUpazila(''); }} className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs">
+                        <option value="">Select division</option>
+                        {BANGLADESH_DIVISIONS.map((name) => <option key={name} value={name}>{name}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-semibold text-slate-700 mb-1">District *</label>
+                      <select required value={profileDistrict} disabled={!profileDivision} onChange={(e) => { setProfileDistrict(e.target.value); setProfileUpazila(''); }} className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs disabled:bg-slate-100">
+                        <option value="">Select district</option>
+                        {getDistrictsByDivision(profileDivision).map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                      </select>
+                    </div>
+                    <div className="sm:col-span-2">
+                      <label className="block text-[11px] font-semibold text-slate-700 mb-1">Upazila / Thana *</label>
+                      <select required value={profileUpazila} disabled={!profileDistrict} onChange={(e) => setProfileUpazila(e.target.value)} className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs disabled:bg-slate-100">
+                        <option value="">Select upazila / thana</option>
+                        {getUpazilasByDistrict(profileDistrict).map((option) => <option key={option.kind + '-' + option.value} value={option.value}>{option.label}</option>)}
+                      </select>
+                    </div>
                   </div>
-
                   <div>
-                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">Full Street Address & Landmarks</label>
-                    <textarea
-                      value={profileAddress}
-                      onChange={(e) => setProfileAddress(e.target.value)}
-                      rows={2}
-                      required
-                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs"
-                    />
+                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">Address Details (House / Flat / Building) *</label>
+                    <textarea value={profileAddress} onChange={(e) => setProfileAddress(e.target.value)} rows={2} required minLength={5} maxLength={1000} placeholder="House / Flat / Building, Road, Block, Area" className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs" />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">Delivery Notes (optional)</label>
+                    <textarea value={profileNotes} onChange={(e) => setProfileNotes(e.target.value)} rows={2} maxLength={300} placeholder="Special instructions for the courier" className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs" />
                   </div>
 
                   <div className="flex justify-end gap-2 pt-2">
@@ -1148,45 +1170,41 @@ export const CustomerAccountView: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">Email</label>
-                    <input
-                      type="email"
-                      value={profileEmail}
-                      onChange={(e) => setProfileEmail(e.target.value)}
-                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">Division</label>
-                    <select
-                      value={profileDivision}
-                      onChange={(e) => setProfileDivision(e.target.value)}
-                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs"
-                    >
-                      <option value="Dhaka">Dhaka</option>
-                      <option value="Chattogram">Chattogram</option>
-                      <option value="Rajshahi">Rajshahi</option>
-                      <option value="Sylhet">Sylhet</option>
-                      <option value="Khulna">Khulna</option>
-                      <option value="Barishal">Barishal</option>
-                      <option value="Rangpur">Rangpur</option>
-                      <option value="Mymensingh">Mymensingh</option>
-                    </select>
-                  </div>
-                </div>
-
                 <div>
-                  <label className="block text-[11px] font-semibold text-slate-700 mb-1">Full Delivery Address</label>
-                  <textarea
-                    value={profileAddress}
-                    onChange={(e) => setProfileAddress(e.target.value)}
-                    rows={2}
-                    required
-                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs"
-                  />
+                  <label className="block text-[11px] font-semibold text-slate-700 mb-1">Email</label>
+                  <input type="email" value={profileEmail} onChange={(e) => setProfileEmail(e.target.value)} className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs" />
                 </div>
+<div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-semibold text-slate-700 mb-1">Division *</label>
+                      <select required value={profileDivision} onChange={(e) => { setProfileDivision(e.target.value); setProfileDistrict(''); setProfileUpazila(''); }} className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs">
+                        <option value="">Select division</option>
+                        {BANGLADESH_DIVISIONS.map((name) => <option key={name} value={name}>{name}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-semibold text-slate-700 mb-1">District *</label>
+                      <select required value={profileDistrict} disabled={!profileDivision} onChange={(e) => { setProfileDistrict(e.target.value); setProfileUpazila(''); }} className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs disabled:bg-slate-100">
+                        <option value="">Select district</option>
+                        {getDistrictsByDivision(profileDivision).map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                      </select>
+                    </div>
+                    <div className="sm:col-span-2">
+                      <label className="block text-[11px] font-semibold text-slate-700 mb-1">Upazila / Thana *</label>
+                      <select required value={profileUpazila} disabled={!profileDistrict} onChange={(e) => setProfileUpazila(e.target.value)} className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs disabled:bg-slate-100">
+                        <option value="">Select upazila / thana</option>
+                        {getUpazilasByDistrict(profileDistrict).map((option) => <option key={option.kind + '-' + option.value} value={option.value}>{option.label}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">Address Details (House / Flat / Building) *</label>
+                    <textarea value={profileAddress} onChange={(e) => setProfileAddress(e.target.value)} rows={2} required minLength={5} maxLength={1000} placeholder="House / Flat / Building, Road, Block, Area" className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs" />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">Delivery Notes (optional)</label>
+                    <textarea value={profileNotes} onChange={(e) => setProfileNotes(e.target.value)} rows={2} maxLength={300} placeholder="Special instructions for the courier" className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs" />
+                  </div>
 
                 <div className="flex justify-end gap-2 pt-2">
                   <button
