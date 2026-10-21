@@ -344,7 +344,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
 
       // Admins receive durable orders from the protected API; ordinary customers are denied by the server.
       if (!token) return;
-      const orderResponse = await fetch('/api/orders', {
+      const orderResponse = await fetch('/api/orders?scope=mine', {
         headers: { Authorization: `Bearer ${token}` },
         cache: 'no-store',
       });
@@ -756,6 +756,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
     const createdAt = typeof payload.order.createdAt === 'string' ? payload.order.createdAt : new Date().toISOString();
     const order: Order = {
       id: String(payload.order.orderId),
+      orderNumber: typeof payload.order.orderNumber === 'string' ? payload.order.orderNumber : undefined,
       createdAt,
       customer,
       items: payload.order.items.map((item: any) => ({
