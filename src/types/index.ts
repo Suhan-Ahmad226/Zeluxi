@@ -147,7 +147,9 @@ export interface ShippingAddress {
   email: string;
   division: string;
   district: string;
-  thanaCity: string;
+  upazila?: string;
+  /** Legacy address key retained for previously saved orders. */
+  thanaCity?: string;
   addressDetails: string;
   postalCode?: string;
   notes?: string;
