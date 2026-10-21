@@ -47,3 +47,8 @@ export function getUpazilasByDistrict(districtName: string): AddressOption[] {
     })
     .sort((a, b) => a.label.localeCompare(b.label));
 }
+
+export function isValidAddressSelection(divisionName: string, districtName: string, upazilaName: string): boolean {
+  return getDistrictsByDivision(divisionName).some((district) => district.value === districtName)
+    && getUpazilasByDistrict(districtName).some((upazila) => upazila.value === upazilaName);
+}
