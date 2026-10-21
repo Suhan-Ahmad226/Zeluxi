@@ -587,33 +587,39 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem('ZELUX_ACTIVE_PROFILE');
   };
 
-  // Update profile details (address, phone, name)
+  // Update profile details (address, phone, name). Email changes must use
+  // Supabase's dedicated verified email-change flow, not profile metadata.
   const updateProfileDetails = async (details: Partial<UserProfile>) => {
-    if (!userProfile) return;
-    // Strip role and uid to prevent client-side privilege escalation
+    if (!userProfile) throw new Error('Sign in before updating your profile.');
     const { role: _ignoredRole, uid: _ignoredUid, isVerified: _ignoredVerified, ...allowedDetails } = details;
-    const updated = { ...userProfile, ...allowedDetails };
-    setUserProfile(updated);
-    localStorage.setItem('ZELUX_ACTIVE_PROFILE', JSON.stringify(updated));
-
+    if (supabaseUser && typeof allowedDetails.email === 'string' &&
+      allowedDetails.email.trim().toLowerCase() !== String(supabaseUser.email || '').toLowerCase()) {
+      throw new Error('Email cannot be changed here. Use the verified email-change process.');
+    }
+    const updated = { ...userProfile, ...allowedDetails, email: supabaseUser?.email || userProfile.email };
     if (supabaseUser) {
+      const { error } = await supabase.auth.updateUser({
+        data: {
+          full_name: updated.displayName,
+          displayName: updated.displayName,
+          phone: updated.phone,
+          address: updated.address,
+          division: updated.division,
+        },
+      });
+      if (error) throw new Error(error.message || 'Profile could not be saved.');
       try {
         localStorage.setItem(
           `ZELUX_USER_META_${supabaseUser.id}`,
           JSON.stringify({ address: updated.address, division: updated.division })
         );
-        await supabase.auth.updateUser({
-          data: {
-            full_name: updated.displayName,
-            displayName: updated.displayName,
-            phone: updated.phone,
-            address: updated.address,
-            division: updated.division,
-          },
-        });
-      } catch (e) {
-        console.warn('Failed to update Supabase user metadata:', e);
+      } catch {
+        // Profile remains persisted in Supabase even if browser storage is unavailable.
       }
+    }
+    setUserProfile(updated);
+    try { localStorage.setItem('ZELUX_ACTIVE_PROFILE', JSON.stringify(updated)); } catch {
+      // Browser storage is optional; Supabase is the source of truth for signed-in users.
     }
   };
 

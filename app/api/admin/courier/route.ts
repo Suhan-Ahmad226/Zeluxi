@@ -111,7 +111,7 @@ export async function POST(request: NextRequest) {
       const { data: shipment, error } = await db.from('courier_shipments').select('*').eq('order_id', input.orderId).maybeSingle();
       if (error) return jsonError('Courier shipment history could not be loaded.', 503);
       if (!shipment?.consignment_id) return jsonError('This shipment has no confirmed consignment ID. Resolve booking outcome in Pathao first.', 409);
-      const { data: order, error: orderReadError } = await db.from('store_orders').select('status').eq('id', input.orderId).maybeSingle();
+      const { data: order, error: orderReadError } = await db.from('store_orders').select('status,delivered_at').eq('id', input.orderId).maybeSingle();
       if (orderReadError || !order) return jsonError('Order status could not be loaded for safe synchronization.', 503);
       const info = await getPathaoOrderInfo(shipment.consignment_id);
       const pathaoStatus = String(info.order_status_slug || info.order_status || '');
@@ -141,8 +141,10 @@ export async function POST(request: NextRequest) {
         last_synced_at: now, updated_at: now, error_code: null, error_message: null,
       }).eq('order_id', input.orderId);
       if (shipmentUpdateError) return jsonError('Pathao status was read but could not be saved locally.', 503);
-      if (nextOrderStatus !== currentOrderStatus) {
-        const { error: orderUpdateError } = await db.from('store_orders').update({ status: nextOrderStatus }).eq('id', input.orderId);
+      if (nextOrderStatus !== currentOrderStatus || (nextOrderStatus === 'DELIVERED' && !order.delivered_at)) {
+        const orderUpdate: { status: string; delivered_at?: string } = { status: nextOrderStatus };
+        if (nextOrderStatus === 'DELIVERED') orderUpdate.delivered_at = order.delivered_at || now;
+        const { error: orderUpdateError } = await db.from('store_orders').update(orderUpdate).eq('id', input.orderId);
         if (orderUpdateError) return jsonError('Pathao status was read but the order status could not be saved.', 503);
       }
       const { error: eventError } = await db.from('courier_shipment_events').insert({

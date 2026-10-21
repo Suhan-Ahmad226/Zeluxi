@@ -113,8 +113,8 @@ interface StoreContextType {
     courierChoice: CourierProvider,
     transactionId?: string
   ) => Promise<Order>;
-  requestOrderCancellation: (orderId: string, reason: string) => void;
-  requestOrderReturn: (orderId: string, reason: string) => void;
+  requestOrderCancellation: (orderId: string, reason: string) => Promise<void>;
+  requestOrderReturn: (orderId: string, reason: string) => Promise<void>;
 
   // Product Reviews & Q&A
   addReview: (productId: string, review: Omit<ProductReview, 'id' | 'date'>) => void;
@@ -355,7 +355,20 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
     void loadCatalog().catch((error) => {
       console.warn('Persistent catalog or admin orders could not be loaded.', error);
     });
-    return () => { cancelled = true; };
+    const { data: authListener } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
+        // Defer work until the auth callback has returned to avoid re-entering Supabase auth APIs.
+        window.setTimeout(() => {
+          if (!cancelled) void loadCatalog().catch((error) => {
+            console.warn('Persistent catalog or account data could not be refreshed after auth change.', error);
+          });
+        }, 0);
+      }
+    });
+    return () => {
+      cancelled = true;
+      authListener.subscription.unsubscribe();
+    };
   }, []);
 
   const loadMoreProducts = async () => {
@@ -461,45 +474,33 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
     showToast('Answer published', 'success');
   };
 
-  const requestOrderCancellation = (orderId: string, reason: string) => {
-    const timestampStr = new Date().toISOString().slice(0, 16).replace('T', ' ');
-    setOrders((prev) =>
-      prev.map((o) => {
-        if (o.id === orderId) {
-          return {
-            ...o,
-            status: 'CANCELLED',
-            statusHistory: [
-              ...o.statusHistory,
-              { status: 'CANCELLED', timestamp: timestampStr, note: `Customer requested cancellation: ${reason}` },
-            ],
-          };
-        }
-        return o;
-      })
-    );
-    showToast(`Order #${orderId} has been cancelled`, 'info');
+  const submitCustomerOrderAction = async (action: 'CANCEL' | 'RETURN', orderId: string, reason: string) => {
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    const token = sessionData.session?.access_token;
+    if (sessionError || !token) throw new Error('Please sign in again before changing an order.');
+
+    const response = await fetch('/api/orders', {
+      method: 'PATCH',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ action, orderId, reason }),
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(typeof payload.error === 'string' ? payload.error : 'Your order request could not be saved.');
+    }
+    const nextStatus = action === 'CANCEL' ? 'CANCELLED' : 'RETURN_REQUESTED';
+    const timestampStr = new Date().toISOString();
+    setOrders((prev) => prev.map((order) => order.id === orderId
+      ? { ...order, status: nextStatus, statusHistory: [...(order.statusHistory || []), { status: nextStatus, timestamp: timestampStr, note: reason }] }
+      : order));
+    showToast(action === 'CANCEL' ? 'Order cancellation saved.' : 'Return request saved.', 'success');
   };
 
-  const requestOrderReturn = (orderId: string, reason: string) => {
-    const timestampStr = new Date().toISOString().slice(0, 16).replace('T', ' ');
-    setOrders((prev) =>
-      prev.map((o) => {
-        if (o.id === orderId) {
-          return {
-            ...o,
-            status: 'RETURN_REQUESTED',
-            statusHistory: [
-              ...o.statusHistory,
-              { status: 'RETURN_REQUESTED', timestamp: timestampStr, note: `Customer requested 7-day return: ${reason}` },
-            ],
-          };
-        }
-        return o;
-      })
-    );
-    showToast(`Return request submitted for #${orderId}`, 'info');
-  };
+  const requestOrderCancellation = (orderId: string, reason: string) => submitCustomerOrderAction('CANCEL', orderId, reason);
+  const requestOrderReturn = (orderId: string, reason: string) => submitCustomerOrderAction('RETURN', orderId, reason);
 
   const showToast = (message: string, type: 'success' | 'info' | 'error' = 'success') => {
     const id = Math.random().toString(36).substring(2, 9);

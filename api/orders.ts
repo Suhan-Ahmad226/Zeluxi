@@ -29,6 +29,11 @@ const statusSchema = z.object({
   orderId: z.string().uuid(),
   status: z.enum(['PENDING','CONFIRMED','PROCESSING','READY_TO_SHIP','SHIPPED','OUT_FOR_DELIVERY','DELIVERED','CANCELLED','RETURN_REQUESTED','RETURNED','REFUNDED']),
 }).strict();
+const customerOrderActionSchema = z.object({
+  action: z.enum(['CANCEL', 'RETURN']),
+  orderId: z.string().uuid(),
+  reason: z.string().trim().min(3).max(1000),
+}).strict();
 
 function getHeader(req: ApiRequest, name: string): string {
   const value = req.headers[name] ?? req.headers[name.toLowerCase()];
@@ -141,11 +146,110 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     }
 
     if (req.method === 'PATCH') {
-      if (String(user.app_metadata?.role || '').toUpperCase() !== 'ADMIN') {
-        return res.status(403).json({ error: 'Administrator access is required.' });
+      const isAdmin = String(user.app_metadata?.role || '').toUpperCase() === 'ADMIN';
+      if (!isAdmin) {
+        const customerAction = customerOrderActionSchema.safeParse(req.body);
+        if (!customerAction.success) {
+          return res.status(400).json({ error: 'Invalid customer order request.' });
+        }
+
+        const { orderId, action, reason } = customerAction.data;
+        const { data: ownedOrder, error: ownedOrderError } = await admin.from('store_orders')
+          .select('id,status,delivered_at')
+          .eq('id', orderId)
+          .eq('user_id', user.id)
+          .maybeSingle();
+        if (ownedOrderError) return res.status(503).json({ error: 'Order could not be verified.' });
+        if (!ownedOrder) return res.status(404).json({ error: 'Order not found.' });
+
+        let nextStatus: 'CANCELLED' | 'RETURN_REQUESTED';
+        let update: Record<string, string>;
+        if (action === 'CANCEL') {
+          if (!['PENDING', 'CONFIRMED'].includes(String(ownedOrder.status))) {
+            return res.status(409).json({ error: 'This order can no longer be cancelled online.' });
+          }
+          const { data: shipment, error: shipmentError } = await admin.from('courier_shipments')
+            .select('status,consignment_id').eq('order_id', orderId).maybeSingle();
+          if (shipmentError) return res.status(503).json({ error: 'Courier status could not be checked before cancellation.' });
+          if (shipment?.consignment_id || ['BOOKING', 'UNKNOWN', 'BULK_SUBMITTED', 'BOOKED', 'IN_TRANSIT', 'DELIVERED'].includes(String(shipment?.status || ''))) {
+            return res.status(409).json({ error: 'This order has a Pathao booking or unresolved booking attempt and cannot be cancelled online.', code: 'PATHAO_CANCELLATION_UNAVAILABLE' });
+          }
+          nextStatus = 'CANCELLED';
+          update = { status: nextStatus, cancellation_reason: reason };
+        } else {
+          if (String(ownedOrder.status) !== 'DELIVERED') {
+            return res.status(409).json({ error: 'A return can only be requested for a delivered order.' });
+          }
+          const deliveredAt = Date.parse(String(ownedOrder.delivered_at || ''));
+          if (!Number.isFinite(deliveredAt)) {
+            return res.status(409).json({ error: 'The delivery date is not available for this order. Please contact support to request a return.' });
+          }
+          if (Date.now() - deliveredAt > 7 * 24 * 60 * 60 * 1000) {
+            return res.status(409).json({ error: 'The 7-day return request window has expired.' });
+          }
+          nextStatus = 'RETURN_REQUESTED';
+          update = { status: nextStatus, return_reason: reason };
+        }
+
+        if (action === 'CANCEL') {
+          const { data: cancellation, error: cancellationError } = await admin.rpc('cancel_order_and_restore_inventory', {
+            p_order_id: orderId,
+            p_user_id: user.id,
+            p_reason: reason,
+          });
+          if (cancellationError) {
+            const message = String(cancellationError.message || '');
+            if (/cannot be cancelled|courier booking|not found/i.test(message)) {
+              return res.status(/not found/i.test(message) ? 404 : 409).json({ error: message });
+            }
+            return res.status(503).json({ error: 'Cancellation could not be saved. Please contact support before retrying.' });
+          }
+          return res.status(200).json({ order: cancellation });
+        }
+
+        const { data: updatedOrder, error: updateError } = await admin.from('store_orders')
+          .update(update).eq('id', orderId).eq('user_id', user.id).eq('status', String(ownedOrder.status))
+          .select('id,status').maybeSingle();
+        if (updateError) {
+          return res.status(503).json({ error: 'Order request could not be saved. Please try again.' });
+        }
+        if (!updatedOrder) {
+          return res.status(409).json({ error: 'The order changed while this request was being submitted. Refresh the order and try again.' });
+        }
+        return res.status(200).json({ order: { id: updatedOrder.id, status: updatedOrder.status } });
       }
+
       const parsed = statusSchema.safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ error: 'Invalid order status update.' });
+
+      const { data: currentOrder, error: currentOrderError } = await admin.from('store_orders')
+        .select('id,status,user_id').eq('id', parsed.data.orderId).maybeSingle();
+      if (currentOrderError) return res.status(503).json({ error: 'Current order status could not be verified.' });
+      if (!currentOrder) return res.status(404).json({ error: 'Order not found.' });
+      const currentStatus = String(currentOrder.status || 'PENDING');
+      if (parsed.data.status === 'REFUNDED') {
+        return res.status(409).json({
+          error: 'Refunds cannot be marked complete until a verified refund workflow is integrated.',
+          code: 'REFUND_PROCESSOR_UNAVAILABLE',
+        });
+      }
+      if (parsed.data.status === 'CONFIRMED' && !['PENDING', 'CONFIRMED', 'READY_TO_SHIP'].includes(currentStatus)) {
+        return res.status(409).json({ error: `Order cannot be booked from status ${currentStatus}.`, code: 'INVALID_ORDER_TRANSITION' });
+      }
+      const allowedTransitions: Record<string, string[]> = {
+        PENDING: ['CANCELLED'],
+        CONFIRMED: ['PROCESSING', 'CANCELLED'],
+        PROCESSING: ['READY_TO_SHIP', 'CANCELLED'],
+        READY_TO_SHIP: [],
+        RETURN_REQUESTED: [],
+      };
+      if (parsed.data.status !== 'CONFIRMED' &&
+        !(allowedTransitions[currentStatus] || []).includes(parsed.data.status)) {
+        return res.status(409).json({
+          error: `Order cannot transition from ${currentStatus} to ${parsed.data.status}.`,
+          code: 'INVALID_ORDER_TRANSITION',
+        });
+      }
 
       // Accepting an order is a courier operation: do not mark it accepted unless
       // Pathao confirms the booking. The dedicated Admin > Delivery & Tracking
@@ -182,11 +286,25 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
             code: 'PATHAO_CANCELLATION_UNAVAILABLE',
           });
         }
+        const { data: cancellation, error: cancellationError } = await admin.rpc('cancel_order_and_restore_inventory', {
+          p_order_id: parsed.data.orderId,
+          p_user_id: String(currentOrder.user_id),
+          p_reason: 'Cancelled by administrator',
+        });
+        if (cancellationError) {
+          const message = String(cancellationError.message || '');
+          if (/cannot be cancelled|courier booking|not found/i.test(message)) {
+            return res.status(/not found/i.test(message) ? 404 : 409).json({ error: message });
+          }
+          return res.status(503).json({ error: 'Cancellation could not be saved. Please retry after checking the order state.' });
+        }
+        return res.status(200).json({ order: cancellation });
       }
 
       const { data, error } = await admin.from('store_orders')
         .update({ status: parsed.data.status })
         .eq('id', parsed.data.orderId)
+        .eq('status', currentStatus)
         .select('id,status')
         .maybeSingle();
       if (error || !data) return res.status(404).json({ error: 'Order status could not be updated.' });
