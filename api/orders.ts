@@ -196,6 +196,35 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
       const parsed = statusSchema.safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ error: 'Invalid order status update.' });
 
+      const { data: currentOrder, error: currentOrderError } = await admin.from('store_orders')
+        .select('id,status').eq('id', parsed.data.orderId).maybeSingle();
+      if (currentOrderError) return res.status(503).json({ error: 'Current order status could not be verified.' });
+      if (!currentOrder) return res.status(404).json({ error: 'Order not found.' });
+      const currentStatus = String(currentOrder.status || 'PENDING');
+      if (parsed.data.status === 'REFUNDED') {
+        return res.status(409).json({
+          error: 'Refunds cannot be marked complete until a verified refund workflow is integrated.',
+          code: 'REFUND_PROCESSOR_UNAVAILABLE',
+        });
+      }
+      if (parsed.data.status === 'CONFIRMED' && !['PENDING', 'CONFIRMED', 'READY_TO_SHIP'].includes(currentStatus)) {
+        return res.status(409).json({ error: `Order cannot be booked from status ${currentStatus}.`, code: 'INVALID_ORDER_TRANSITION' });
+      }
+      const allowedTransitions: Record<string, string[]> = {
+        PENDING: ['CANCELLED'],
+        CONFIRMED: ['PROCESSING', 'CANCELLED'],
+        PROCESSING: ['READY_TO_SHIP', 'CANCELLED'],
+        READY_TO_SHIP: ['CANCELLED'],
+        RETURN_REQUESTED: [],
+      };
+      if (parsed.data.status !== 'CONFIRMED' &&
+        !(allowedTransitions[currentStatus] || []).includes(parsed.data.status)) {
+        return res.status(409).json({
+          error: `Order cannot transition from ${currentStatus} to ${parsed.data.status}.`,
+          code: 'INVALID_ORDER_TRANSITION',
+        });
+      }
+
       // Accepting an order is a courier operation: do not mark it accepted unless
       // Pathao confirms the booking. The dedicated Admin > Delivery & Tracking
       // action uses this same idempotent booking service.
@@ -236,6 +265,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
       const { data, error } = await admin.from('store_orders')
         .update({ status: parsed.data.status })
         .eq('id', parsed.data.orderId)
+        .eq('status', currentStatus)
         .select('id,status')
         .maybeSingle();
       if (error || !data) return res.status(404).json({ error: 'Order status could not be updated.' });
