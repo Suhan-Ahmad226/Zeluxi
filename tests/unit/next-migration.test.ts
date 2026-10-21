@@ -39,7 +39,7 @@ test('browser Supabase config uses public Next.js environment variables, never V
 
 test('variant checkout persists immutable invoice snapshots and requires a selected variant', () => {
   const migration = read('supabase/migrations/20261019000000_variant_order_invoice.sql');
-  const orderApi = read('api/orders.ts');
+  const orderApi = read('src/server/orders-handler.ts');
   const productDetails = read('src/components/storefront/ProductDetailsPage.tsx');
   const invoice = read('src/components/checkout/OrderSuccessModal.tsx');
 
