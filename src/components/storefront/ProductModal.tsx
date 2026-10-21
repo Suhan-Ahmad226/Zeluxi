@@ -297,24 +297,29 @@ export const ProductModal: React.FC = () => {
               {/* Variants Selector */}
               {selectedProduct.variants.length > 0 && (
                 <div className="space-y-2 pt-2 border-t border-slate-100">
-                  <label className="text-xs font-semibold text-slate-700 block">
-                    Select Variant / Option:
-                  </label>
+                  <div className="flex items-center justify-between text-xs font-semibold text-slate-800">
+                    <span>Option: <strong className="font-bold text-slate-950">{selectedVariant ? selectedVariant.name : 'Choose an option'}</strong></span>
+                    {selectedVariant && selectedVariant.stock <= 5 && selectedVariant.stock > 0 && (
+                      <span className="text-amber-700 text-[11px] font-medium">Only {selectedVariant.stock} left</span>
+                    )}
+                  </div>
                   <div className="flex flex-wrap gap-2">
                     {selectedProduct.variants.map((v) => (
                       <button
                         key={v.id}
+                        type="button"
                         onClick={() => setSelectedVariantId(v.id)}
                         disabled={v.stock <= 0}
-                        className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-all ${
+                        className={`min-h-[38px] px-3.5 py-1.5 text-xs font-medium rounded-xl border transition-all flex items-center gap-1.5 active:scale-95 ${
                           selectedVariantId === v.id
-                            ? 'border-indigo-600 bg-indigo-50/70 text-indigo-900 font-semibold shadow-sm'
+                            ? 'border-slate-950 bg-slate-950 text-white font-semibold shadow-xs ring-2 ring-slate-950/20'
                             : v.stock <= 0
-                            ? 'border-slate-100 bg-slate-50 text-slate-400 line-through cursor-not-allowed'
-                            : 'border-slate-200 text-slate-700 hover:border-slate-300'
+                            ? 'border-slate-200 bg-slate-50 text-slate-300 line-through cursor-not-allowed'
+                            : 'border-slate-200 bg-white text-slate-800 hover:border-slate-400 hover:bg-slate-50'
                         }`}
                       >
-                        {v.name}{v.stock <= 0 ? ' (Out of stock)' : ''}
+                        <span>{v.name}</span>
+                        {v.stock <= 0 && <span className="text-[10px] text-slate-400 no-underline font-normal">(Out of stock)</span>}
                       </button>
                     ))}
                   </div>

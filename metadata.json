@@ -1,0 +1,7 @@
+{
+  "name": "Zelux — Premium Bangladesh Store",
+  "description": "Discover thoughtfully curated lifestyle essentials, leather accessories, apparel and everyday goods from Zelux in Bangladesh.",
+  "capabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

@@ -235,11 +235,69 @@ export const ProductDetailsPage: React.FC<ProductDetailsPageProps> = ({ slug }) 
             {product.shortDescription && <p className="mt-4 text-sm leading-6 text-slate-600">{product.shortDescription}</p>}
 
             {product.variants.length > 0 && (
-              <div className="mt-6">
-                <label htmlFor="product-variant" className="block text-sm font-semibold text-slate-900 mb-2">Choose option</label>
-                <select id="product-variant" value={selectedVariantId} onChange={(event) => { setSelectedVariantId(event.target.value); setQuantity(Math.max(1, product.minOrderQuantity || 1)); }} className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm text-slate-900 focus:border-slate-900 focus:outline-none">
+              <div id="product-variant" className="mt-6 scroll-mt-24">
+                <div className="flex items-center justify-between text-sm font-semibold text-slate-900 mb-2.5">
+                  <span className="flex items-center gap-1.5">
+                    <span>Option:</span>
+                    <span className="font-bold text-slate-950">
+                      {selectedVariant ? selectedVariant.name : 'Select an option'}
+                    </span>
+                  </span>
+                  {selectedVariant && selectedVariant.stock <= 5 && selectedVariant.stock > 0 && (
+                    <span className="text-amber-700 text-xs font-medium">Only {selectedVariant.stock} left</span>
+                  )}
+                </div>
+
+                {/* Smart interactive chips */}
+                <div className="flex flex-wrap gap-2.5">
+                  {product.variants.map((variant) => {
+                    const isSelected = selectedVariantId === variant.id;
+                    const isStockOut = variant.stock <= 0;
+                    return (
+                      <button
+                        key={variant.id}
+                        type="button"
+                        onClick={() => {
+                          if (isStockOut) return;
+                          setSelectedVariantId(variant.id);
+                          setQuantity(Math.max(1, product.minOrderQuantity || 1));
+                        }}
+                        disabled={isStockOut}
+                        className={`min-h-[44px] px-4 py-2.5 rounded-xl text-xs sm:text-sm font-medium border transition-all flex items-center justify-center gap-2 active:scale-95 ${
+                          isSelected
+                            ? 'bg-slate-950 text-white border-slate-950 shadow-sm ring-2 ring-slate-950/20 font-semibold'
+                            : isStockOut
+                            ? 'bg-slate-50 text-slate-300 border-slate-200 line-through cursor-not-allowed'
+                            : 'bg-white text-slate-800 border-slate-200 hover:border-slate-400 hover:bg-slate-50'
+                        }`}
+                        aria-pressed={isSelected}
+                      >
+                        <span>{variant.name}</span>
+                        {isStockOut && (
+                          <span className="text-[10px] text-slate-400 no-underline font-normal">(Out of stock)</span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Accessible select keeping compatibility with test runner and form autofill */}
+                <select
+                  aria-label="Product variant"
+                  value={selectedVariantId}
+                  onChange={(event) => {
+                    setSelectedVariantId(event.target.value);
+                    setQuantity(Math.max(1, product.minOrderQuantity || 1));
+                  }}
+                  className="sr-only"
+                  tabIndex={-1}
+                >
                   <option value="">Select an option</option>
-                  {product.variants.map((variant) => <option key={variant.id} value={variant.id} disabled={variant.stock <= 0}>{[variant.name, ...Object.entries(variant.attributes || {}).map(([key, value]) => `${key}: ${value}`)].filter(Boolean).join(' · ')}{variant.stock <= 0 ? ' (Out of stock)' : ''} · {formatPrice(variant.price)} · SKU: {variant.sku}</option>)}
+                  {product.variants.map((variant) => (
+                    <option key={variant.id} value={variant.id} disabled={variant.stock <= 0}>
+                      {variant.name}
+                    </option>
+                  ))}
                 </select>
               </div>
             )}
