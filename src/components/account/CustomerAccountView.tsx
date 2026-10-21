@@ -194,22 +194,30 @@ export const CustomerAccountView: React.FC = () => {
   const accountOrders = persistedOrders ?? orders;
   const wishlistedProducts = products.filter((p) => wishlist.includes(p.id));
 
-  const handleSaveProfile = (e: React.FormEvent) => {
+  const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    localStorage.setItem('ZELUX_PROFILE_NAME', profileName);
-    localStorage.setItem('ZELUX_PROFILE_PHONE', profilePhone);
-    localStorage.setItem('ZELUX_PROFILE_EMAIL', profileEmail);
-    localStorage.setItem('ZELUX_PROFILE_ADDRESS', profileAddress);
-    localStorage.setItem('ZELUX_PROFILE_DIV', profileDivision);
-    updateProfileDetails({
-      displayName: profileName,
-      phone: profilePhone,
-      email: profileEmail,
-      address: profileAddress,
-      division: profileDivision,
-    });
-    setIsEditingProfile(false);
-    showToast('Profile information updated successfully', 'success');
+    try {
+      await updateProfileDetails({
+        displayName: profileName,
+        phone: profilePhone,
+        email: profileEmail,
+        address: profileAddress,
+        division: profileDivision,
+      });
+      try {
+        localStorage.setItem('ZELUX_PROFILE_NAME', profileName);
+        localStorage.setItem('ZELUX_PROFILE_PHONE', profilePhone);
+        localStorage.setItem('ZELUX_PROFILE_EMAIL', profileEmail);
+        localStorage.setItem('ZELUX_PROFILE_ADDRESS', profileAddress);
+        localStorage.setItem('ZELUX_PROFILE_DIV', profileDivision);
+      } catch {
+        // Browser storage is optional; saved profile data remains in Supabase.
+      }
+      setIsEditingProfile(false);
+      showToast('Profile information updated successfully', 'success');
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Profile information could not be saved.', 'error');
+    }
   };
 
   const handleCustomerChangePassword = async (e: React.FormEvent) => {
