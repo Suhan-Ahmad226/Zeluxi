@@ -303,7 +303,7 @@ export const CheckoutModal: React.FC = () => {
                 </label>
                 <select
                   value={division}
-                  onChange={(e) => setDivision(e.target.value)}
+                  onChange={(e) => { setDivision(e.target.value); setDistrict(''); setUpazila(''); }}
                   className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg bg-white focus:outline-none focus:border-indigo-600 cursor-pointer"
                 >
                   {BANGLADESH_DIVISIONS.map((d) => (
