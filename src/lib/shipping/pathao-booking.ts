@@ -86,7 +86,7 @@ export async function bookPathaoOrderFromDatabase(
 
   try {
     const customer = (order.customer || {}) as Record<string, unknown>;
-    const address = [customer.addressDetails, customer.thanaCity, customer.district, customer.division, customer.postalCode, 'Bangladesh']
+    const address = [customer.addressDetails, customer.upazila || customer.thanaCity, customer.district, customer.division, customer.postalCode, 'Bangladesh']
       .filter((part) => typeof part === 'string' && part.trim()).join(', ');
     const result = await createPathaoOrder({
       storeId: Number(process.env.PATHAO_STORE_ID || 0),
