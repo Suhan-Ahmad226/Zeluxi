@@ -2,8 +2,8 @@ type ApiRequest = { method?: string; headers: Record<string, string | string[] |
 type ApiResponse = { setHeader(name: string, value: string): void; status(code: number): ApiResponse; json(payload: unknown): void };
 import { createClient } from '@supabase/supabase-js';
 import { z } from 'zod';
-import { bookPathaoOrderFromDatabase, PathaoBookingError } from '../src/lib/shipping/pathao-booking';
-import { formatOrderNumber } from '../src/lib/orders/order-number';
+import { bookPathaoOrderFromDatabase, PathaoBookingError } from '../lib/shipping/pathao-booking';
+import { formatOrderNumber } from '../lib/orders/order-number';
 
 const addressSchema = z.object({
   fullName: z.string().trim().min(2).max(100),

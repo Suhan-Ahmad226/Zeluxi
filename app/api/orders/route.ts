@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import orderHandler from '@/api/orders';
+import orderHandler from '@/src/server/orders-handler';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
