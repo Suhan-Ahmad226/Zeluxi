@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { isValidAddressSelection } from '../address/bangladesh-locations';
 
 export const bdPhoneRegex = /^(?:\+?88)?01[3-9]\d{8}$/;
 
@@ -26,6 +27,10 @@ export const shippingAddressSchema = z.object({
   addressDetails: z.string().min(5, 'Detailed delivery address is required'),
   postalCode: z.string().optional(),
   notes: z.string().max(300, 'Notes cannot exceed 300 characters').optional(),
+}).superRefine((address, ctx) => {
+  if (!isValidAddressSelection(address.division, address.district, address.upazila)) {
+    ctx.addIssue({ code: 'custom', path: ['upazila'], message: 'Select a district and upazila / thana that belong to the selected division.' });
+  }
 });
 
 export const paymentMethodSchema = z.enum([
