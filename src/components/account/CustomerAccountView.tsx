@@ -4,7 +4,7 @@ import { StoreImage } from '../common/StoreImage';
 import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../lib/supabase';
 import { BANGLADESH_DIVISIONS, getDistrictsByDivision, getUpazilasByDistrict } from '../../lib/address/bangladesh-locations';
-import { formatPrice, formatDate } from '../../utils/formatters';
+import { formatPrice, formatDate, formatDateOnly } from '../../utils/formatters';
 import { downloadOrderInvoicePdf, printOrderInvoice } from '../../utils/order-invoice';
 import {
   Package,
