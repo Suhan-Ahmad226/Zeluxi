@@ -996,37 +996,37 @@ export const AdminDashboard: React.FC = () => {
           <div>
             <button
               onClick={() => {
-                if (isSidebarCollapsed) {
+                if (isSidebarCollapsed && !isMobileDrawerOpen) {
                   setActiveTab('settings');
                 } else {
                   setIsSettingsGroupOpen(!isSettingsGroupOpen);
                 }
               }}
-              title={isSidebarCollapsed ? 'Storefront & Content' : undefined}
-              aria-expanded={!isSidebarCollapsed && isSettingsGroupOpen}
+              title={isSidebarCollapsed && !isMobileDrawerOpen ? 'Storefront & Content' : undefined}
+              aria-expanded={(!isSidebarCollapsed || isMobileDrawerOpen) && isSettingsGroupOpen}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-colors group relative ${
                 isSettingActive && isSidebarCollapsed
                   ? 'bg-indigo-600 text-white shadow-sm'
                   : isSettingActive
                   ? 'text-white bg-slate-800/60 font-bold'
                   : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
-              } ${isSidebarCollapsed ? 'md:justify-center md:px-0' : ''}`}
+              } ${isSidebarCollapsed && !isMobileDrawerOpen ? 'md:justify-center md:px-0' : ''}`}
             >
               <Palette className={`w-4 h-4 shrink-0 ${isSettingActive ? 'text-indigo-400' : 'text-slate-400 group-hover:text-slate-200'}`} />
-              {!isSidebarCollapsed && (
+              {(!isSidebarCollapsed || isMobileDrawerOpen) && (
                 <>
                   <span className="truncate flex-1 text-left">Storefront & Content</span>
                   <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${isSettingsGroupOpen ? 'rotate-180 text-white' : ''}`} />
                 </>
               )}
-              {isSidebarCollapsed && (
+              {isSidebarCollapsed && !isMobileDrawerOpen && (
                 <span className="hidden md:group-hover:block absolute left-full ml-2.5 px-2.5 py-1.5 bg-slate-950 text-white text-[11px] font-medium rounded-lg shadow-xl whitespace-nowrap z-50 border border-slate-800 pointer-events-none">
                   Storefront & Content
                 </span>
               )}
             </button>
 
-            {!isSidebarCollapsed && isSettingsGroupOpen && (
+            {(!isSidebarCollapsed || isMobileDrawerOpen) && isSettingsGroupOpen && (
               <div className="pl-6 pr-1 pt-1 pb-1 space-y-0.5 border-l border-slate-800 ml-4 mt-1">
                 <button
                   onClick={() => { setActiveTab('appearance'); setIsMobileDrawerOpen(false); }}
