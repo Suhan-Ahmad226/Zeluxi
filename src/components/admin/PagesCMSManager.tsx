@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useStore } from '../../context/StoreContext';
 import { formatDateOnly } from '../../utils/formatters';
 import { StaticPageContent } from '../../types';
@@ -29,6 +29,18 @@ export const PagesCMSManager: React.FC = () => {
   const [deleteCandidate, setDeleteCandidate] = useState<StaticPageContent | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  useEffect(() => {
+    if (!isModalOpen && !deleteCandidate) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      if (isSaving || isDeleting) return;
+      if (deleteCandidate) setDeleteCandidate(null);
+      else setIsModalOpen(false);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isModalOpen, deleteCandidate, isSaving, isDeleting]);
 
   // Form states
   const [slug, setSlug] = useState('');
@@ -253,14 +265,14 @@ export const PagesCMSManager: React.FC = () => {
 
       {/* Edit / Create Page Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150">
-          <div className="bg-white rounded-2xl max-w-2xl w-full border border-slate-200 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150" role="presentation">
+          <div role="dialog" aria-modal="true" aria-labelledby="cms-editor-title" className="bg-white rounded-2xl max-w-2xl w-full border border-slate-200 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
             <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center">
                   <FileText className="w-4 h-4" />
                 </div>
-                <h3 className="text-sm font-bold text-slate-900">
+                <h3 id="cms-editor-title" className="text-sm font-bold text-slate-900">
                   {editingPage ? `Edit Page: ${editingPage.title}` : 'Create New CMS Page'}
                 </h3>
               </div>
