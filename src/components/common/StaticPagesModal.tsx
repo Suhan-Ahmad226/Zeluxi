@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useStore } from '../../context/StoreContext';
 import { formatDateOnly } from '../../utils/formatters';
 import { X, ShieldCheck, Truck, RefreshCw, Mail, FileText } from 'lucide-react';
@@ -22,13 +22,50 @@ const builtInPages: Record<string, { title: string; description: string; Icon: R
 
 export const StaticPagesModal: React.FC<StaticPagesModalProps> = ({ page, onClose }) => {
   const { settings, pages } = useStore();
-  if (!page) return null;
-
   const dynamicPage = pages.find((item) => item.slug === page && item.isPublished);
-  const builtIn = builtInPages[page];
-  const title = dynamicPage?.title || builtIn?.title || page.replace(/-/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
+  const builtIn = page ? builtInPages[page] : undefined;
+  const title = dynamicPage?.title || builtIn?.title || (page || '').replace(/-/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
   const Icon = builtIn?.Icon || FileText;
   const content = dynamicPage?.content?.trim();
+
+  // Apply page metadata while the CMS page dialog is open, then restore the storefront metadata.
+  // This improves browser/tab metadata but is not a substitute for server-rendered SEO metadata.
+  useEffect(() => {
+    if (!page) return;
+    const originalTitle = document.title;
+    const values = [
+      { attribute: 'name', key: 'description', value: dynamicPage?.seoDescription },
+      { attribute: 'property', key: 'og:title', value: dynamicPage?.seoTitle || title },
+      { attribute: 'property', key: 'og:description', value: dynamicPage?.seoDescription },
+      { attribute: 'property', key: 'og:image', value: dynamicPage?.ogImageUrl },
+    ];
+    const previous = values.map(({ attribute, key, value }) => {
+      const selector = `meta[${attribute}="${key}"]`;
+      let element = document.head.querySelector<HTMLMetaElement>(selector);
+      const created = !element;
+      if (!element) {
+        element = document.createElement('meta');
+        element.setAttribute(attribute, key);
+        document.head.appendChild(element);
+      }
+      const oldContent = element.getAttribute('content');
+      if (value) element.setAttribute('content', value);
+      else if (created) element.remove();
+      return { element, created, oldContent, value };
+    });
+    document.title = dynamicPage?.seoTitle || title;
+    return () => {
+      document.title = originalTitle;
+      previous.forEach(({ element, created, oldContent, value }) => {
+        if (!value && created) return;
+        if (oldContent === null) element.removeAttribute('content');
+        else element.setAttribute('content', oldContent);
+        if (created) element.remove();
+      });
+    };
+  }, [page, dynamicPage?.seoTitle, dynamicPage?.seoDescription, dynamicPage?.ogImageUrl, title]);
+
+  if (!page) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm" role="presentation" onClick={onClose}>
