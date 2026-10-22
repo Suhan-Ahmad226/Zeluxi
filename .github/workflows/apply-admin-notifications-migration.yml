@@ -1,0 +1,58 @@
+name: Apply admin notifications Supabase migration
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/apply-admin-notifications-migration.yml
+      - supabase/migrations/20261022000000_admin_notifications.sql
+
+permissions:
+  contents: read
+
+concurrency:
+  group: zeluxi-supabase-notifications-migration
+  cancel-in-progress: false
+
+jobs:
+  apply-migration:
+    name: Apply notifications migration
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Verify required secret
+        shell: bash
+        run: |
+          if [[ -z "${SUPABASE_DB_URL}" ]]; then
+            echo "::error::Missing repository secret SUPABASE_DB_URL. Add the Supabase Postgres connection string under Settings > Secrets and variables > Actions, then rerun this workflow."
+            exit 1
+          fi
+          if [[ "${SUPABASE_DB_URL}" != postgres://* && "${SUPABASE_DB_URL}" != postgresql://* ]]; then
+            echo "::error::SUPABASE_DB_URL must be a postgres:// or postgresql:// connection string."
+            exit 1
+          fi
+
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes postgresql-client
+
+      - name: Verify database connection
+        run: psql "${SUPABASE_DB_URL}" -v ON_ERROR_STOP=1 -X -c "select current_database() as database, current_user as role;"
+
+      - name: Apply the exact additive migration
+        run: psql "${SUPABASE_DB_URL}" -v ON_ERROR_STOP=1 -X --file supabase/migrations/20261022000000_admin_notifications.sql
+
+      - name: Verify notification table and triggers
+        run: |
+          psql "${SUPABASE_DB_URL}" -v ON_ERROR_STOP=1 -X -c "select to_regclass('public.admin_notifications') as notifications_table;"
+          psql "${SUPABASE_DB_URL}" -v ON_ERROR_STOP=1 -X -c "select trigger_name from information_schema.triggers where trigger_schema = 'public' and trigger_name in ('store_order_admin_notification_insert','store_order_admin_notification_update','store_product_admin_low_stock_insert','store_product_admin_low_stock_update','courier_shipment_admin_notification_insert','courier_shipment_admin_notification_update') order by trigger_name;"
