@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useStore } from '../../context/StoreContext';
+import { StoreBrandMark } from '../common/StoreBrandMark';
 import {
   ShieldCheck,
   Mail,
@@ -25,7 +26,7 @@ export const VerifyEmailScreen: React.FC = () => {
     setAuthModalMode,
   } = useAuth();
 
-  const { language, setActiveView, showToast } = useStore();
+  const { language, setActiveView, showToast, settings } = useStore();
 
   // Extract email from pending context state or URL query parameter
   const [email, setEmail] = useState<string>(() => {
@@ -174,7 +175,7 @@ export const VerifyEmailScreen: React.FC = () => {
       await verifyEmailOtp(targetEmail, targetCode);
 
       setSuccessMessage(
-        'Email address verified successfully! Welcome to Zelux.'
+        'Email address verified successfully! Welcome to ${settings.storeName?.trim() || 'the store'}.'
       );
 
       showToast('Email verified successfully! Welcome to Zelux.', 'success');
@@ -257,9 +258,13 @@ export const VerifyEmailScreen: React.FC = () => {
         <div className="bg-slate-950 text-white px-6 py-6 sm:px-8 text-center relative overflow-hidden">
           <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#4f46e5_1px,transparent_1px)] [background-size:16px_16px]" />
           <div className="relative z-10 flex flex-col items-center">
-            <div className="w-14 h-14 rounded-2xl bg-indigo-600/30 border border-indigo-400/40 text-indigo-300 flex items-center justify-center mb-3 shadow-inner">
-              <ShieldCheck className="w-7 h-7 text-indigo-400" />
-            </div>
+            <StoreBrandMark
+              name={settings.storeName}
+              logoUrl={settings.logoUrl}
+              className="mb-3 h-14 w-14 rounded-2xl border border-indigo-400/40"
+              fallbackClassName="bg-indigo-600/30 text-indigo-300"
+              imageClassName="h-full w-full object-contain p-2"
+            />
             <span className="text-[10px] font-mono uppercase tracking-widest text-indigo-300 font-bold bg-indigo-950/80 px-2.5 py-1 rounded-full border border-indigo-800/60 mb-2">
               Identity verification
             </span>
