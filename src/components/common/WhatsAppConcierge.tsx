@@ -36,7 +36,7 @@ export const WhatsAppConcierge: React.FC = () => {
                 imageClassName="h-full w-full object-contain p-1"
               />
               <div>
-                <h4 className="text-xs font-bold text-slate-900">{settings.storeName} Concierge</h4>
+                <h4 className="text-xs font-bold text-slate-900">{settings.storeName?.trim() || 'Store'} Concierge</h4>
                 <p className="text-[10px] text-emerald-600 font-medium">● Available 10am - 9pm</p>
               </div>
             </div>
@@ -49,7 +49,7 @@ export const WhatsAppConcierge: React.FC = () => {
           </div>
 
           <p className="text-xs text-slate-600 leading-relaxed">
-            Our Dhaka concierge team is available to assist with sizing, bespoke inquiries, and order delivery.
+            Contact our team for help with products, orders, and delivery.
           </p>
 
           <div className="space-y-2">
@@ -75,8 +75,8 @@ export const WhatsAppConcierge: React.FC = () => {
               </div>
             )}
 
-            <a
-              href={`tel:${settings.phone}`}
+            {settings.phone?.trim() && <a
+              href={`tel:${settings.phone.replace(/[^\d+]/g, '')}`}
               className="flex items-center justify-between p-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-semibold transition-colors"
             >
               <span className="flex items-center gap-2">
@@ -84,7 +84,7 @@ export const WhatsAppConcierge: React.FC = () => {
                 <span>Call Hotline</span>
               </span>
               <span className="font-mono text-[11px] text-slate-500">{settings.phone}</span>
-            </a>
+            </a>}
           </div>
 
           {/* Quick FAQ links */}
