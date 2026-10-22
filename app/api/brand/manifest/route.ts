@@ -38,9 +38,7 @@ export async function GET(request: NextRequest) {
     theme_color: '#4F46E5',
     categories: ['shopping', 'lifestyle', 'business'],
     icons: [
-      { src: iconUrl, sizes: '192x192', type: 'image/png', purpose: 'any' },
-      { src: iconUrl, sizes: '512x512', type: 'image/png', purpose: 'any' },
-      { src: iconUrl, sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+      { src: iconUrl, purpose: 'any' },
     ],
   }, {
     headers: { 'Cache-Control': 'no-store, max-age=0', 'Content-Type': 'application/manifest+json; charset=utf-8' },
