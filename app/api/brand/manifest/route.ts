@@ -4,7 +4,7 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
-  let storeName = 'Zelux';
+  let storeName = 'Store';
   let description = 'Shop online with our store in Bangladesh.';
   try {
     const response = await fetch(new URL('/api/content', request.nextUrl.origin), { cache: 'no-store' });
