@@ -292,7 +292,7 @@ export const OrderTrackingView: React.FC = () => {
                       <div className="w-2 h-2 rounded-full bg-indigo-600 mt-1.5 shrink-0" />
                       <div>
                         <span className="font-semibold text-slate-800">{hist.status}</span>
-                        <span className="text-slate-400 text-[11px] block">{hist.timestamp}</span>
+                        <span className="text-slate-400 text-[11px] block">{formatDate(hist.timestamp)}</span>
                         <p className="text-slate-600 text-xs mt-0.5">{hist.note}</p>
                       </div>
                     </div>
