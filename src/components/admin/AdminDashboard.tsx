@@ -2,6 +2,7 @@ import PathaoCourierManager from './PathaoCourierManager';
 import React, { useState } from 'react';
 import { useStore } from '../../context/StoreContext';
 import { StoreImage } from '../common/StoreImage';
+import { StoreBrandMark } from '../common/StoreBrandMark';
 import { useAuth } from '../../context/AuthContext';
 import { formatPrice, formatDate, formatDateOnly } from '../../utils/formatters';
 import {
@@ -641,16 +642,19 @@ export const AdminDashboard: React.FC = () => {
         {/* Sidebar Header Brand */}
         <div className="h-16 flex items-center justify-between px-4 border-b border-slate-800 shrink-0">
           <div className="flex items-center gap-3 overflow-hidden">
-            <div className="p-2 bg-indigo-600 rounded-xl text-white shrink-0 shadow-sm">
-              <LayoutDashboard className="w-5 h-5" />
-            </div>
+            <StoreBrandMark
+              name={settings.storeName}
+              logoUrl={settings.logoUrl}
+              className="h-10 w-10 rounded-xl"
+              fallbackClassName="bg-indigo-600 text-white shadow-sm"
+            />
             {!isSidebarCollapsed && (
               <div className="min-w-0">
-                <span className="font-mono font-black text-sm tracking-tight text-white block truncate uppercase">
-                  ZELUX ADMIN
+                <span className="block truncate text-sm font-black tracking-tight text-white">
+                  {settings.storeName?.trim() || 'Store'} Admin
                 </span>
-                <span className="text-[10px] text-emerald-400 font-medium block truncate">
-                  Dhaka Operations
+                <span className="block truncate text-[10px] font-medium text-emerald-400">
+                  Store management
                 </span>
               </div>
             )}
