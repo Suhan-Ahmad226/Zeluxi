@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Activity, ExternalLink, MapPin, PackageCheck, RefreshCw, ShieldCheck, Truck, Wifi, WifiOff } from 'lucide-react';
 import { supabase } from '@/src/lib/supabase';
+import { formatDate } from '@/src/utils/formatters';
 import { useStore } from '@/src/context/StoreContext';
 
 type MerchantStore = { store_id: number; store_name: string; store_address: string; is_active: number; city_id: number; zone_id: number; hub_id: number };
@@ -39,7 +40,7 @@ export default function PathaoCourierManager() {
       const response = await fetch('/api/admin/courier', { headers: { Authorization: 'Bearer ' + accessToken }, cache: 'no-store' });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(typeof data.error === 'string' ? data.error : 'Courier status could not be loaded.');
-      setOverview((old) => ({ ...data, stores: old?.stores })); setLastChecked(new Date().toLocaleString());
+      setOverview((old) => ({ ...data, stores: old?.stores })); setLastChecked(formatDate(new Date().toISOString()));
     } catch (e) { setError(e instanceof Error ? e.message : 'Courier status could not be loaded.'); }
   }, []);
   useEffect(() => { void load(); }, [load]);
