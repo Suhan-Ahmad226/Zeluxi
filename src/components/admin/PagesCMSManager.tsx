@@ -37,6 +37,9 @@ export const PagesCMSManager: React.FC = () => {
   const [showInHeader, setShowInHeader] = useState(false);
   const [navigationLabel, setNavigationLabel] = useState('');
   const [navigationOrder, setNavigationOrder] = useState(100);
+  const [seoTitle, setSeoTitle] = useState('');
+  const [seoDescription, setSeoDescription] = useState('');
+  const [ogImageUrl, setOgImageUrl] = useState('');
 
   const openCreateModal = () => {
     setEditingPage(null);
@@ -48,6 +51,9 @@ export const PagesCMSManager: React.FC = () => {
     setShowInHeader(false);
     setNavigationLabel('');
     setNavigationOrder(100);
+    setSeoTitle('');
+    setSeoDescription('');
+    setOgImageUrl('');
     setIsModalOpen(true);
   };
 
@@ -61,6 +67,9 @@ export const PagesCMSManager: React.FC = () => {
     setShowInHeader(page.showInHeader ?? false);
     setNavigationLabel(page.navigationLabel || '');
     setNavigationOrder(page.navigationOrder ?? 100);
+    setSeoTitle(page.seoTitle || '');
+    setSeoDescription(page.seoDescription || '');
+    setOgImageUrl(page.ogImageUrl || '');
     setIsModalOpen(true);
   };
 
@@ -98,7 +107,10 @@ export const PagesCMSManager: React.FC = () => {
       showInHeader: showInHeader && isPublished,
       navigationLabel: navigationLabel.trim() || title.trim(),
       navigationGroup: 'customer-care',
-      navigationOrder: Number.isFinite(navigationOrder) ? Math.max(0, navigationOrder) : 100,
+      navigationOrder: Number.isFinite(navigationOrder) ? Math.max(0, Math.min(999, navigationOrder)) : 100,
+      seoTitle: seoTitle.trim().slice(0, 70) || undefined,
+      seoDescription: seoDescription.trim().slice(0, 180) || undefined,
+      ogImageUrl: ogImageUrl.trim() || undefined,
     };
 
     if (editingPage) {
@@ -156,8 +168,8 @@ export const PagesCMSManager: React.FC = () => {
       </div>
 
       {/* Pages Table */}
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-2xs">
-        <table className="w-full text-left text-xs">
+      <div className="bg-white rounded-xl border border-slate-200 overflow-x-auto shadow-2xs">
+        <table className="w-full min-w-[680px] text-left text-xs">
           <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
             <tr>
               <th className="p-3.5">Page Title</th>
@@ -258,7 +270,7 @@ export const PagesCMSManager: React.FC = () => {
                 <label className="block font-semibold text-slate-700 mb-1">Route Slug *</label>
                 <div className="flex items-center border border-slate-200 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-indigo-500/20 focus-within:border-indigo-500">
                   <span className="px-3 py-2 bg-slate-50 text-slate-400 font-mono text-[11px] border-r border-slate-200">
-                    zelux.com.bd/
+                    /
                   </span>
                   <input
                     type="text"
@@ -306,6 +318,22 @@ export const PagesCMSManager: React.FC = () => {
                     onChange={(e) => setNavigationOrder(Number(e.target.value))}
                     className="w-full rounded-lg border border-slate-200 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
                   />
+                </div>
+              </div>
+              <div className="space-y-3 rounded-xl border border-slate-200 p-3">
+                <p className="font-semibold text-slate-800">Search & social preview (optional)</p>
+                <div>
+                  <label className="mb-1 block font-semibold text-slate-700">SEO title <span className="font-normal text-slate-400">({seoTitle.length}/70)</span></label>
+                  <input type="text" maxLength={70} value={seoTitle} onChange={(e) => setSeoTitle(e.target.value)} placeholder={title || 'Page title shown in search results'} className="w-full rounded-lg border border-slate-200 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20" />
+                </div>
+                <div>
+                  <label className="mb-1 block font-semibold text-slate-700">SEO description <span className="font-normal text-slate-400">({seoDescription.length}/180)</span></label>
+                  <textarea rows={3} maxLength={180} value={seoDescription} onChange={(e) => setSeoDescription(e.target.value)} placeholder="Short summary for search and social previews" className="w-full rounded-lg border border-slate-200 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20" />
+                </div>
+                <div>
+                  <label className="mb-1 block font-semibold text-slate-700">Social preview image URL</label>
+                  <input type="url" value={ogImageUrl} onChange={(e) => setOgImageUrl(e.target.value)} placeholder="https://..." className="w-full rounded-lg border border-slate-200 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20" />
+                  <p className="mt-1 text-[11px] text-slate-500">Use a public HTTPS image URL. Metadata only takes effect if the page renderer reads these fields.</p>
                 </div>
               </div>
               <label className="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
