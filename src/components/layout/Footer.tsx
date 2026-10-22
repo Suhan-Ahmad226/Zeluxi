@@ -65,11 +65,10 @@ export const Footer: React.FC = () => {
         <div className="grid grid-cols-1 gap-9 border-b border-white/10 pb-9 sm:grid-cols-2 lg:grid-cols-4 lg:gap-10">
           <section className="min-w-0 space-y-4">
             <a href="/" aria-label={`${storeName} home`} className="inline-flex min-w-0 items-center gap-2 rounded-sm text-white no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400">
-              {settings.logoUrl?.trim().startsWith('https://') ? (
-                <StoreImage src={settings.logoUrl.trim()} alt={`${storeName} logo`} loading="lazy" className="h-9 max-w-40 object-contain" preset="logo" />
-              ) : (
-                <span className="break-words text-xl font-black uppercase tracking-[0.16em] sm:text-2xl">{storeName}</span>
+              {settings.logoUrl?.trim().startsWith('https://') && (
+                <StoreImage src={settings.logoUrl.trim()} alt="" aria-hidden="true" loading="lazy" className="h-9 w-9 max-w-9 shrink-0 object-contain" preset="logo" />
               )}
+              <span className="min-w-0 break-words text-xl font-black uppercase tracking-[0.12em] sm:text-2xl">{storeName}</span>
             </a>
             <p className="max-w-sm break-words text-sm leading-6 text-slate-400">
               {settings.footerDescription?.trim() || settings.tagline?.trim() || ''}
