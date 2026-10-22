@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth, AuthModalMode } from '../../context/AuthContext';
 import { useStore } from '../../context/StoreContext';
+import { StoreImage } from '../common/StoreImage';
 import {
   X,
   Lock,
@@ -43,7 +44,7 @@ export const AuthModal: React.FC = () => {
     loading,
   } = useAuth();
 
-  const { language, showToast, setActiveView } = useStore();
+  const { language, showToast, setActiveView, settings } = useStore();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -360,9 +361,23 @@ export const AuthModal: React.FC = () => {
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/80">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-slate-950 text-white flex items-center justify-center font-bold text-xs font-mono tracking-wider">
-              Z
-            </div>
+            {settings.logoUrl?.trim().startsWith('https://') ? (
+              <StoreImage
+                src={settings.logoUrl.trim()}
+                alt={settings.storeName?.trim() || 'Store logo'}
+                className="h-9 w-9 rounded-lg object-contain shrink-0"
+                loading="eager"
+                decoding="async"
+                preset="logo"
+              />
+            ) : (
+              <div
+                aria-hidden="true"
+                className="w-8 h-8 rounded-lg bg-slate-950 text-white flex items-center justify-center font-bold text-xs font-mono tracking-wider"
+              >
+                {(settings.storeName?.trim() || 'Z').charAt(0).toUpperCase()}
+              </div>
+            )}
             <div>
               <h2 className="text-sm font-bold text-slate-900">
                 {authModalMode === 'signin' && ('Sign in')}
