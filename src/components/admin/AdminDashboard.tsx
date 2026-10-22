@@ -251,6 +251,7 @@ export const AdminDashboard: React.FC = () => {
 
   // Settings State Form
   const [storeNameInput, setStoreNameInput] = useState(settings.storeName);
+  const [logoUrlInput, setLogoUrlInput] = useState(settings.logoUrl || '');
   const [taglineInput, setTaglineInput] = useState(settings.tagline || '');
   const [phoneInput, setPhoneInput] = useState(settings.phone || '');
   const [emailInput, setEmailInput] = useState(settings.email || '');
@@ -282,6 +283,7 @@ export const AdminDashboard: React.FC = () => {
   // Settings may arrive asynchronously from the content API after this component mounts.
   React.useEffect(() => {
     setStoreNameInput(settings.storeName || 'Zelux');
+    setLogoUrlInput(settings.logoUrl || '');
     setTaglineInput(settings.tagline || '');
     setPhoneInput(settings.phone || '');
     setEmailInput(settings.email || '');
@@ -420,8 +422,30 @@ export const AdminDashboard: React.FC = () => {
 
   const handleSaveSettings = (e: React.FormEvent) => {
     e.preventDefault();
+    const nonNegativeValues = [shippingDhakaInput, shippingOutsideInput, freeThresholdInput];
+    if (nonNegativeValues.some((value) => !Number.isFinite(Number(value)) || Number(value) < 0)) {
+      showToast('Shipping fees and the free-shipping threshold must be valid non-negative amounts.', 'error');
+      return;
+    }
+    const publicUrls = [
+      ['Store logo', logoUrlInput],
+      ['Facebook', facebookInput],
+      ['Instagram', instagramInput],
+      ['TikTok', tiktokInput],
+      ['YouTube', youtubeInput],
+    ] as const;
+    for (const [label, value] of publicUrls) {
+      if (!value.trim()) continue;
+      try {
+        if (new URL(value.trim()).protocol !== 'https:') throw new Error('HTTPS required');
+      } catch {
+        showToast(`${label} must use a valid HTTPS URL.`, 'error');
+        return;
+      }
+    }
     updateSettings({
       storeName: storeNameInput.trim() || 'Zelux',
+      logoUrl: logoUrlInput.trim().startsWith('https://') ? logoUrlInput.trim() : '',
       tagline: taglineInput.trim(),
       phone: phoneInput.trim(),
       email: emailInput.trim(),
@@ -2911,6 +2935,13 @@ export const AdminDashboard: React.FC = () => {
                   onChange={(e) => setStoreNameInput(e.target.value)}
                   className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:border-indigo-600"
                 />
+              </div>
+
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <label className="mb-1 block font-semibold">Store logo URL (optional)</label>
+                <input type="url" maxLength={2048} value={logoUrlInput} onChange={(e) => setLogoUrlInput(e.target.value)} placeholder="https://res.cloudinary.com/.../logo.webp" className="w-full rounded-lg border bg-white px-3 py-2 focus:border-indigo-600 focus:outline-none" aria-describedby="store-logo-help" />
+                <p id="store-logo-help" className="mt-1 text-[11px] leading-5 text-slate-500">Use a public HTTPS image URL from your trusted media provider. Leave blank to use the store name as text. Logo uses contain sizing to avoid cropping.</p>
+                {logoUrlInput.trim().startsWith('https://') && <div className="mt-3 flex min-h-16 items-center gap-3 rounded-lg border border-dashed border-slate-300 bg-white p-3"><img src={logoUrlInput.trim()} alt="Store logo preview" className="max-h-12 max-w-48 object-contain" onError={(event) => { event.currentTarget.style.visibility = 'hidden'; }} /><span className="text-xs text-slate-500">Logo preview</span></div>}
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

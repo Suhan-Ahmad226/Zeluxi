@@ -138,9 +138,9 @@ interface StoreContextType {
   addCategory: (category: Omit<Category, 'id' | 'itemCount'> & { id?: string; itemCount?: number }) => Category;
   updateCategory: (category: Category) => void;
   deleteCategory: (categoryId: string) => { success: boolean; message: string };
-  addPage: (page: StaticPageContent) => void;
-  updatePage: (page: StaticPageContent) => void;
-  deletePage: (slug: string) => void;
+  addPage: (page: StaticPageContent) => Promise<void>;
+  updatePage: (page: StaticPageContent) => Promise<void>;
+  deletePage: (slug: string) => Promise<void>;
   updateStorefrontCMS: (cms: Partial<StorefrontCMS>) => Promise<StorefrontCMS>;
   updateCustomer: (customer: CustomerRecord) => void;
   updateCustomerStatus: (customerId: string, status: 'ACTIVE' | 'SUSPENDED') => void;
@@ -1195,36 +1195,40 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
     return { success: true, message: 'Category removal requested' };
   };
 
-  const addPage = (page: StaticPageContent) => {
+  const addPage = async (page: StaticPageContent): Promise<void> => {
     const now = new Date().toISOString().slice(0, 10);
     const newPage = { ...page, lastUpdated: now };
-    const nextPages = [...pages.filter((p) => p.slug !== newPage.slug), newPage];
-    void saveAdminContent('pages', nextPages).then(() => {
-      setPages(nextPages);
-      addAuditLog('PAGE_CREATED', `Created CMS page "${newPage.title}" (/${newPage.slug})`);
-      showToast(`Page "${newPage.title}" saved to database`, 'success');
-    }).catch((error) => showToast(error instanceof Error ? error.message : 'Page could not be saved.', 'error'));
+    if (pages.some((existing) => existing.slug === newPage.slug)) {
+      throw new Error('This URL slug is already in use. Choose a unique slug.');
+    }
+    const nextPages = [...pages, newPage];
+    await saveAdminContent('pages', nextPages);
+    setPages(nextPages);
+    addAuditLog('PAGE_CREATED', `Created CMS page "${newPage.title}" (/${newPage.slug})`);
+    showToast(`Page "${newPage.title}" saved to database`, 'success');
   };
 
-  const updatePage = (updated: StaticPageContent) => {
+  const updatePage = async (updated: StaticPageContent): Promise<void> => {
     const now = new Date().toISOString().slice(0, 10);
     const updatedPage = { ...updated, lastUpdated: now };
-    const nextPages = pages.map((p) => (p.slug === updatedPage.slug ? updatedPage : p));
-    void saveAdminContent('pages', nextPages).then(() => {
-      setPages(nextPages);
-      addAuditLog('PAGE_UPDATED', `Updated CMS page "${updatedPage.title}" (/${updatedPage.slug})`);
-      showToast(`Page "${updatedPage.title}" saved to database`, 'success');
-    }).catch((error) => showToast(error instanceof Error ? error.message : 'Page could not be saved.', 'error'));
+    const index = pages.findIndex((p) => p.slug === updatedPage.slug);
+    if (index < 0) throw new Error('This page no longer exists. Refresh and try again.');
+    const nextPages = [...pages];
+    nextPages[index] = updatedPage;
+    await saveAdminContent('pages', nextPages);
+    setPages(nextPages);
+    addAuditLog('PAGE_UPDATED', `Updated CMS page "${updatedPage.title}" (/${updatedPage.slug})`);
+    showToast(`Page "${updatedPage.title}" saved to database`, 'success');
   };
 
-  const deletePage = (slug: string) => {
+  const deletePage = async (slug: string): Promise<void> => {
     const page = pages.find((p) => p.slug === slug);
+    if (!page) throw new Error('This page no longer exists. Refresh and try again.');
     const nextPages = pages.filter((p) => p.slug !== slug);
-    void saveAdminContent('pages', nextPages).then(() => {
-      setPages(nextPages);
-      addAuditLog('PAGE_DELETED', `Deleted CMS page "${page?.title || slug}"`);
-      showToast(`Page "${page?.title || slug}" deleted from database`, 'info');
-    }).catch((error) => showToast(error instanceof Error ? error.message : 'Page could not be deleted.', 'error'));
+    await saveAdminContent('pages', nextPages);
+    setPages(nextPages);
+    addAuditLog('PAGE_DELETED', `Deleted CMS page "${page.title}"`);
+    showToast(`Page "${page.title}" deleted from database`, 'info');
   };
 
   const updateStorefrontCMS = async (cmsUpdate: Partial<StorefrontCMS>): Promise<StorefrontCMS> => {
