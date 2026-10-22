@@ -3,6 +3,7 @@ import { useStore } from '../../context/StoreContext';
 import { formatDateOnly } from '../../utils/formatters';
 import { X, ShieldCheck, Truck, RefreshCw, Mail, FileText } from 'lucide-react';
 import { sanitizeRichTextHtml } from '../../utils/richText';
+import '../../styles/cms-rich-text.css';
 
 export type StaticPageType = string;
 
