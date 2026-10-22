@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useStore } from '../../context/StoreContext';
-import { formatPrice } from '../../utils/formatters';
+import { formatPrice, formatDate } from '../../utils/formatters';
 import {
   Search,
   Truck,
@@ -207,7 +207,7 @@ export const OrderTrackingView: React.FC = () => {
                   </span>
                 </div>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Placed on {searchedOrder.createdAt} · {searchedOrder.customer.fullName}
+                  Placed on {formatDate(searchedOrder.createdAt)} · {searchedOrder.customer.fullName}
                 </p>
               </div>
 
