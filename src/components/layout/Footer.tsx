@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { useStore } from '../../context/StoreContext';
 import { PWAInstallButton } from '../common/PWAInstallButton';
+import { StoreImage } from '../common/StoreImage';
 
 type SocialLink = { label: string; href: string; Icon: React.ComponentType<{ className?: string }> };
 
@@ -65,7 +66,7 @@ export const Footer: React.FC = () => {
           <section className="min-w-0 space-y-4">
             <a href="/" aria-label={`${storeName} home`} className="inline-flex min-w-0 items-center gap-2 rounded-sm text-white no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400">
               {settings.logoUrl?.trim().startsWith('https://') ? (
-                <img src={settings.logoUrl.trim()} alt={`${storeName} logo`} loading="lazy" className="h-9 max-w-40 object-contain" />
+                <StoreImage src={settings.logoUrl.trim()} alt={`${storeName} logo`} loading="lazy" className="h-9 max-w-40 object-contain" preset="logo" />
               ) : (
                 <span className="break-words text-xl font-black uppercase tracking-[0.16em] sm:text-2xl">{storeName}</span>
               )}
