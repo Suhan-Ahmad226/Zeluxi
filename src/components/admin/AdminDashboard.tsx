@@ -317,7 +317,7 @@ export const AdminDashboard: React.FC = () => {
 
   // Settings may arrive asynchronously from the content API after this component mounts.
   React.useEffect(() => {
-    setStoreNameInput(settings.storeName || 'Zelux');
+    setStoreNameInput(settings.storeName || 'Store');
     setLogoUrlInput(settings.logoUrl || '');
     setTaglineInput(settings.tagline || '');
     setPhoneInput(settings.phone || '');
@@ -494,7 +494,7 @@ export const AdminDashboard: React.FC = () => {
       }
     }
     updateSettings({
-      storeName: storeNameInput.trim() || 'Zelux',
+      storeName: storeNameInput.trim() || 'Store',
       logoUrl: logoUrlInput.trim().startsWith('https://') ? logoUrlInput.trim() : '',
       tagline: taglineInput.trim(),
       phone: phoneInput.trim(),
@@ -2641,7 +2641,7 @@ export const AdminDashboard: React.FC = () => {
                 </div>
                 <label htmlFor="store-logo-url" className="mt-4 mb-1 block font-semibold">Or use logo URL</label>
                 <input id="store-logo-url" type="url" maxLength={2048} value={logoUrlInput} onChange={(e) => setLogoUrlInput(e.target.value)} placeholder="https://res.cloudinary.com/.../logo.webp" className="w-full rounded-lg border bg-white px-3 py-2 focus:border-indigo-600 focus:outline-none" aria-describedby="store-logo-help" />
-                {logoUrlInput.trim().startsWith('https://') && <div className="mt-3 flex min-h-16 items-center gap-3 rounded-lg border border-dashed border-slate-300 bg-white p-3"><img src={logoUrlInput.trim()} alt="Store logo preview" className="h-12 w-12 object-contain" onError={(event) => { event.currentTarget.style.visibility = 'hidden'; }} /><span className="min-w-0 break-words text-sm font-bold text-slate-900">{storeNameInput.trim() || 'Zelux'}</span><span className="text-[11px] text-slate-500">Header & footer preview</span></div>}
+                {logoUrlInput.trim().startsWith('https://') && <div className="mt-3 flex min-h-16 items-center gap-3 rounded-lg border border-dashed border-slate-300 bg-white p-3"><img src={logoUrlInput.trim()} alt="Store logo preview" className="h-12 w-12 object-contain" onError={(event) => { event.currentTarget.style.visibility = 'hidden'; }} /><span className="min-w-0 break-words text-sm font-bold text-slate-900">{storeNameInput.trim() || 'Store'}</span><span className="text-[11px] text-slate-500">Header & footer preview</span></div>}
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
