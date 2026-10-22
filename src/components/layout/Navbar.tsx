@@ -26,6 +26,7 @@ export const Navbar: React.FC = () => {
   const {
     products,
     settings,
+    pages,
     cart,
     wishlist,
     activeView,
@@ -36,6 +37,7 @@ export const Navbar: React.FC = () => {
     searchQuery,
     setSearchQuery,
     setSelectedCategoryFilter,
+    setActiveStaticPage,
   } = useStore();
 
   const {
@@ -470,6 +472,21 @@ export const Navbar: React.FC = () => {
               <Flame className="w-3.5 h-3.5 text-rose-500" />
               <span>Deals</span>
             </button>
+            {pages
+              .filter((page) => page.isPublished && page.showInHeader === true)
+              .sort((left, right) => (left.navigationOrder ?? 100) - (right.navigationOrder ?? 100))
+              .slice(0, 4)
+              .map((page) => (
+                <button
+                  key={page.slug}
+                  type="button"
+                  onClick={() => setActiveStaticPage(page.slug)}
+                  className="max-w-36 truncate hover:text-indigo-600 transition-colors"
+                  title={page.navigationLabel || page.title}
+                >
+                  {page.navigationLabel || page.title}
+                </button>
+              ))}
           </div>
 
           <div className="flex items-center gap-4 text-slate-500">
