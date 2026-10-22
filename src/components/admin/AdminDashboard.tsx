@@ -736,7 +736,7 @@ export const AdminDashboard: React.FC = () => {
                       : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
                   }`}
                 >
-                  <span className="truncate">All Products</span>
+                  <span className="truncate flex items-center gap-2"><Package className="w-3.5 h-3.5 shrink-0" /><span>All Products</span></span>
                   <span className="text-[10px] text-slate-400">{products.length}</span>
                 </button>
 
@@ -767,7 +767,7 @@ export const AdminDashboard: React.FC = () => {
                         : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
                     }`}
                   >
-                    <span className="truncate">Categories & Sub-Categories</span>
+                    <span className="truncate flex items-center gap-2"><Layers className="w-3.5 h-3.5 shrink-0" /><span>Categories & Sub-Categories</span></span>
                     <span className="text-[10px] text-slate-400 font-mono">{categories?.length || 4}</span>
                   </button>
                   <button
@@ -794,7 +794,7 @@ export const AdminDashboard: React.FC = () => {
                       : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
                   }`}
                 >
-                  <span className="truncate">Inventory & Stock</span>
+                  <span className="truncate flex items-center gap-2"><Archive className="w-3.5 h-3.5 shrink-0" /><span>Inventory & Stock</span></span>
                   {lowStockProducts.length > 0 && (
                     <span className="text-[10px] px-1.5 py-0.2 rounded bg-amber-900/60 text-amber-300 font-bold">
                       {lowStockProducts.length} low
