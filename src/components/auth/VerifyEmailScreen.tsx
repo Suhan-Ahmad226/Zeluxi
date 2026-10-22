@@ -3,7 +3,6 @@ import { useAuth } from '../../context/AuthContext';
 import { useStore } from '../../context/StoreContext';
 import { StoreBrandMark } from '../common/StoreBrandMark';
 import {
-  ShieldCheck,
   Mail,
   RefreshCw,
   ArrowRight,
@@ -175,10 +174,10 @@ export const VerifyEmailScreen: React.FC = () => {
       await verifyEmailOtp(targetEmail, targetCode);
 
       setSuccessMessage(
-        'Email address verified successfully! Welcome to ${settings.storeName?.trim() || 'the store'}.'
+        `Email address verified successfully! Welcome to ${settings.storeName?.trim() || 'the store'}.`
       );
 
-      showToast('Email verified successfully! Welcome to Zelux.', 'success');
+      showToast(`Email verified successfully! Welcome to ${settings.storeName?.trim() || 'the store'}.`, 'success');
 
       // Brief delay before redirecting to storefront
       setTimeout(() => {
