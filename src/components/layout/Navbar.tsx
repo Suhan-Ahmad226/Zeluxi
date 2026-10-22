@@ -25,6 +25,7 @@ export const Navbar: React.FC = () => {
   const router = useRouter();
   const {
     products,
+    settings,
     cart,
     wishlist,
     activeView,
@@ -127,9 +128,13 @@ export const Navbar: React.FC = () => {
             }}
             className="flex items-center gap-2 group text-left"
           >
-            <span className="text-2xl font-black tracking-tight text-slate-950 group-hover:text-indigo-600 transition-colors uppercase font-mono">
-              ZELUX
-            </span>
+            {settings.logoUrl?.trim().startsWith('https://') ? (
+              <StoreImage src={settings.logoUrl.trim()} alt={`${settings.storeName || 'Store'} logo`} className="h-9 max-w-36 sm:max-w-44 object-contain" loading="eager" decoding="async" />
+            ) : (
+              <span className="text-xl sm:text-2xl font-black tracking-tight text-slate-950 group-hover:text-indigo-600 transition-colors uppercase font-mono">
+                {settings.storeName?.trim() || 'Zelux'}
+              </span>
+            )}
             <span className="hidden sm:inline-block text-[9px] font-bold tracking-widest uppercase px-1.5 py-0.5 bg-slate-900 text-white rounded font-mono">
               BD
             </span>
