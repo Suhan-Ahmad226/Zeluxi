@@ -86,7 +86,7 @@ export const PagesCMSManager: React.FC = () => {
     e.preventDefault();
     if (isSaving) return;
     if (!title.trim() || !slug.trim() || !content.trim()) {
-      showToast('Page title and slug are required', 'error');
+      showToast('Page title, URL slug, and page content are required.', 'error');
       return;
     }
 
