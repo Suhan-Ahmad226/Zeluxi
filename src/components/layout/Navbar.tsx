@@ -502,6 +502,25 @@ export const Navbar: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Compact mobile navigation keeps key shop links reachable without a hamburger drawer. */}
+      <nav aria-label="Mobile store navigation" className="md:hidden border-t border-slate-100 bg-white/95">
+        <div className="mx-auto flex max-w-7xl items-center gap-2 overflow-x-auto px-4 py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <button type="button" onClick={() => handleTabClick('all')} className="shrink-0 rounded-full border border-slate-200 px-3 py-1.5 text-[11px] font-semibold text-slate-700 active:bg-slate-100">All products</button>
+          <button type="button" onClick={() => handleTabClick('new-arrivals')} className="shrink-0 rounded-full border border-slate-200 px-3 py-1.5 text-[11px] font-semibold text-slate-700 active:bg-slate-100">New arrivals</button>
+          <button type="button" onClick={() => handleTabClick('deals')} className="shrink-0 rounded-full border border-rose-100 bg-rose-50 px-3 py-1.5 text-[11px] font-semibold text-rose-700 active:bg-rose-100">Deals</button>
+          <button type="button" onClick={() => handleNavClick('tracking')} className="shrink-0 rounded-full border border-slate-200 px-3 py-1.5 text-[11px] font-semibold text-slate-700 active:bg-slate-100">Track order</button>
+          {pages
+            .filter((page) => page.isPublished && page.showInHeader === true)
+            .sort((left, right) => (left.navigationOrder ?? 100) - (right.navigationOrder ?? 100))
+            .slice(0, 6)
+            .map((page) => (
+              <button key={page.slug} type="button" onClick={() => setActiveStaticPage(page.slug)} className="max-w-36 shrink-0 truncate rounded-full border border-slate-200 px-3 py-1.5 text-[11px] font-semibold text-slate-700 active:bg-slate-100">
+                {page.navigationLabel || page.title}
+              </button>
+            ))}
+        </div>
+      </nav>
     </header>
   );
 };
