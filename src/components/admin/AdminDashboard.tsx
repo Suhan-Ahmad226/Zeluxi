@@ -2859,7 +2859,7 @@ export const AdminDashboard: React.FC = () => {
                           <strong>Concierge Published Answer:</strong> {q.answer}
                         </p>
                         <span className="text-[10px] text-emerald-700 font-mono mt-0.5 block">
-                          Answered on {q.answeredAt}
+                          Answered on {formatDate(q.answeredAt, language)}
                         </span>
                       </div>
                     ) : (
