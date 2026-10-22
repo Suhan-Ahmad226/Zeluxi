@@ -66,6 +66,7 @@ import { InventoryManager } from './InventoryManager';
 import { NotificationsManager } from './NotificationsManager';
 import { CustomersManager } from './CustomersManager';
 import { RefundModal } from './RefundModal';
+import { supabase } from '../../lib/supabase';
 
 export const AdminDashboard: React.FC = () => {
   const {
@@ -176,6 +177,36 @@ export const AdminDashboard: React.FC = () => {
   const [isSettingsGroupOpen, setIsSettingsGroupOpen] = useState(false);
   const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
   const handleUnreadNotificationCountChange = React.useCallback((count: number) => setUnreadNotificationCount(count), []);
+
+  // Keep the sidebar badge current even before the Notifications tab is opened.
+  React.useEffect(() => {
+    if (authLoading || !isAdmin) return;
+    let disposed = false;
+    const refreshUnreadCount = async () => {
+      try {
+        const { data, error } = await supabase.auth.getSession();
+        const token = data.session?.access_token;
+        if (error || !token) return;
+        const response = await fetch('/api/admin/notifications?limit=1', {
+          headers: { Authorization: `Bearer ${token}` },
+          cache: 'no-store',
+        });
+        if (!response.ok) return;
+        const payload = await response.json().catch(() => ({}));
+        if (!disposed && Number.isFinite(payload.unreadCount)) {
+          setUnreadNotificationCount(Math.max(0, payload.unreadCount));
+        }
+      } catch {
+        // A transient badge refresh failure must not disrupt admin operations.
+      }
+    };
+    void refreshUnreadCount();
+    const intervalId = window.setInterval(() => void refreshUnreadCount(), 30_000);
+    return () => {
+      disposed = true;
+      window.clearInterval(intervalId);
+    };
+  }, [authLoading, isAdmin]);
 
   // Search & Filters in admin
   const [adminOrderSearch, setAdminOrderSearch] = useState('');
