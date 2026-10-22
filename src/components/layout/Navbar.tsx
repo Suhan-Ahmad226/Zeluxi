@@ -131,7 +131,7 @@ export const Navbar: React.FC = () => {
             className="flex items-center gap-2 group text-left"
           >
             {settings.logoUrl?.trim().startsWith('https://') ? (
-              <StoreImage src={settings.logoUrl.trim()} alt={`${settings.storeName || 'Store'} logo`} className="h-9 max-w-36 sm:max-w-44 object-contain" loading="eager" decoding="async" />
+              <StoreImage src={settings.logoUrl.trim()} alt={`${settings.storeName || 'Store'} logo`} className="h-9 max-w-36 sm:max-w-44 object-contain" loading="eager" decoding="async" preset="logo" />
             ) : (
               <span className="text-xl sm:text-2xl font-black tracking-tight text-slate-950 group-hover:text-indigo-600 transition-colors uppercase font-mono">
                 {settings.storeName?.trim() || 'Zelux'}
