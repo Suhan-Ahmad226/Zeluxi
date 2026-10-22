@@ -24,7 +24,7 @@
       "purpose": "any"
     },
     {
-      "src": "/api/brand/icon?size=512",
+      "src": "/api/brand/icon?size=512&maskable=1",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
