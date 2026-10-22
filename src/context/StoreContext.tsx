@@ -1401,10 +1401,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
   };
 
   const addAuditLog = (action: string, details: string, actor: string = 'Admin') => {
-    const now = new Date();
-    const timestampStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(
-      now.getDate()
-    ).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    // Store audit timestamps in UTC like the rest of the app; format only at display time.
+    const timestampStr = new Date().toISOString();
 
     const newLog: AuditLog = {
       id: `log-${Date.now()}`,
