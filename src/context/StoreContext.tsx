@@ -414,7 +414,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
     } catch (e) {
       console.warn('Storage sync failed', e);
     }
-  }, [hasHydratedStorage, products, categories, cart, wishlist, orders, coupons, customers, pages, storefrontCMS, settings, auditLogs, reviews, questions]);
+  }, [hasHydratedStorage, cart, wishlist]);
 
   const addRecentlyViewed = (productId: string) => {
     setRecentlyViewed((prev) => {
