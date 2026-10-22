@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
     // Keep a safe manifest fallback if store content is temporarily unavailable.
   }
 
-  const iconUrl = (size: number) => new URL(`/api/brand/icon?size=${size}`, request.nextUrl.origin).toString();
+  const iconUrl = (size: number, maskable = false) => new URL(`/api/brand/icon?size=${size}${maskable ? '&maskable=1' : ''}`, request.nextUrl.origin).toString();
   return NextResponse.json({
     id: '/',
     name: storeName,
@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
     icons: [
       { src: iconUrl(192), sizes: '192x192', type: 'image/png', purpose: 'any' },
       { src: iconUrl(512), sizes: '512x512', type: 'image/png', purpose: 'any' },
-      { src: iconUrl(512), sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+      { src: iconUrl(512, true), sizes: '512x512', type: 'image/png', purpose: 'maskable' },
     ],
   }, {
     headers: { 'Cache-Control': 'no-store, max-age=0', 'Content-Type': 'application/manifest+json; charset=utf-8' },
