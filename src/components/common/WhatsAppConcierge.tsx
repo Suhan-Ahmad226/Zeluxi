@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useStore } from '../../context/StoreContext';
 import { MessageSquare, Phone, X, ArrowUpRight, Truck } from 'lucide-react';
+import { StoreBrandMark } from './StoreBrandMark';
 
 export const WhatsAppConcierge: React.FC = () => {
   const { settings, setActiveView } = useStore();
@@ -17,7 +18,7 @@ export const WhatsAppConcierge: React.FC = () => {
         : '';
   const whatsappUrl = normalizedWhatsappNumber
     ? `https://wa.me/${normalizedWhatsappNumber}?text=${encodeURIComponent(
-        'Hello Zelux, I have an inquiry regarding a product / order.'
+        `Hello ${settings.storeName?.trim() || 'the store'}, I have an inquiry regarding a product / order.`
       )}`
     : '';
 
@@ -27,9 +28,13 @@ export const WhatsAppConcierge: React.FC = () => {
         <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-[calc(100vw-1.5rem)] sm:w-80 max-w-sm p-4 sm:p-5 space-y-4 animate-in slide-in-from-bottom-5 duration-200">
           <div className="flex items-center justify-between border-b pb-3">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-xs">
-                Z
-              </div>
+              <StoreBrandMark
+                name={settings.storeName}
+                logoUrl={settings.logoUrl}
+                className="h-8 w-8 rounded-full"
+                fallbackClassName="bg-indigo-100 text-indigo-700"
+                imageClassName="h-full w-full object-contain p-1"
+              />
               <div>
                 <h4 className="text-xs font-bold text-slate-900">{settings.storeName} Concierge</h4>
                 <p className="text-[10px] text-emerald-600 font-medium">● Available 10am - 9pm</p>
