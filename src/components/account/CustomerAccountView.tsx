@@ -1261,15 +1261,19 @@ export const CustomerAccountView: React.FC = () => {
                     'Instant assistance for orders, returns, and questions'
                   </p>
                 </div>
-                <a
-                  href="https://wa.me/8801712334455?text=Hello%20Zelux%20Team%2C%20I%20have%20an%20inquiry%20regarding%20my%20account"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg shadow-xs transition-colors"
-                >
-                  <MessageCircle className="w-3.5 h-3.5" />
-                  <span>'Chat on WhatsApp'</span>
-                </a>
+                {settings.whatsappNumber?.trim() ? (
+                  <a
+                    href={`https://wa.me/${settings.whatsappNumber.replace(/\D/g, '')}?text=${encodeURIComponent(`Hello ${settings.storeName?.trim() || 'the store'} Team, I have an inquiry regarding my account`)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 font-semibold text-white shadow-xs transition-colors hover:bg-emerald-700"
+                  >
+                    <MessageCircle className="h-3.5 w-3.5" />
+                    <span>Chat on WhatsApp</span>
+                  </a>
+                ) : (
+                  <p className="text-amber-700">WhatsApp support has not been configured yet.</p>
+                )}
               </div>
 
               <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 space-y-3">
@@ -1285,8 +1289,9 @@ export const CustomerAccountView: React.FC = () => {
                   </p>
                 </div>
                 <div className="space-y-1 font-mono text-[11px] text-slate-700">
-                  <p>📞 +880 1712-334455</p>
-                  <p>✉️ support@zelux.com.bd</p>
+                  {settings.phone?.trim() && <p><a href={`tel:${settings.phone.replace(/[^\d+]/g, '')}`}>{settings.phone}</a></p>}
+                  {settings.email?.trim() && <p><a href={`mailto:${settings.email}`}>{settings.email}</a></p>}
+                  {!settings.phone?.trim() && !settings.email?.trim() && <p className="font-sans text-amber-700">Support contact details have not been configured yet.</p>}
                 </div>
               </div>
             </div>
