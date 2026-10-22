@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useStore } from '../../context/StoreContext';
 import { CustomerRecord, Order } from '../../types';
-import { formatPrice } from '../../utils/formatters';
+import { formatPrice, formatDate } from '../../utils/formatters';
 import {
   Users,
   Search,
@@ -350,7 +350,7 @@ export const CustomersManager: React.FC<CustomersManagerProps> = ({ onViewOrderD
                         <div>
                           <div className="flex items-center gap-2">
                             <span className="font-mono font-bold text-slate-900">{ord.id}</span>
-                            <span className="text-[10px] text-slate-400 font-mono">{ord.createdAt}</span>
+                            <span className="text-[10px] text-slate-400 font-mono">{formatDate(ord.createdAt, language)}</span>
                           </div>
                           <p className="text-slate-500 text-[11px] mt-0.5">
                             {ord.items.length} items · {ord.paymentMethod}

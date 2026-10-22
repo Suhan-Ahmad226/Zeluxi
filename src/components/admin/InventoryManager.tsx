@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useStore } from '../../context/StoreContext';
 import { StoreImage } from '../common/StoreImage';
 import { Product } from '../../types';
-import { formatPrice } from '../../utils/formatters';
+import { formatPrice, formatDate } from '../../utils/formatters';
 import {
   Boxes,
   AlertTriangle,
@@ -402,7 +402,7 @@ export const InventoryManager: React.FC = () => {
                 <span className="text-slate-600">{log.details}</span>
               </div>
               <div className="text-right shrink-0 ml-4">
-                <span className="text-[10px] text-slate-400 font-mono block">{log.timestamp}</span>
+                <span className="text-[10px] text-slate-400 font-mono block">{formatDate(log.timestamp, language)}</span>
                 <span className="text-[10px] text-indigo-600 font-medium">{log.actor}</span>
               </div>
             </div>

@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { useStore } from '../../context/StoreContext';
 import { StoreImage } from '../common/StoreImage';
 import { useAuth } from '../../context/AuthContext';
-import { formatPrice } from '../../utils/formatters';
+import { formatPrice, formatDate, formatDateOnly } from '../../utils/formatters';
 import {
   LayoutDashboard,
   Package,
@@ -370,7 +370,7 @@ export const AdminDashboard: React.FC = () => {
     ];
     const rows = orders.map((o) => [
       o.orderNumber || o.id,
-      o.createdAt,
+      formatDate(o.createdAt, language),
       `"${o.customer.fullName.replace(/"/g, '""')}"`,
       o.customer.phone,
       o.customer.division,
@@ -388,7 +388,7 @@ export const AdminDashboard: React.FC = () => {
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
     link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `zelux_orders_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.setAttribute('download', `zelux_orders_${new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Dhaka', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date())}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -1533,7 +1533,7 @@ export const AdminDashboard: React.FC = () => {
                         >
                           #{ord.orderNumber || ord.id}
                         </button>
-                        <span className="text-[11px] text-slate-400">{ord.createdAt}</span>
+                        <span className="text-[11px] text-slate-400">{formatDate(ord.createdAt, language)}</span>
                       </td>
                       <td className="p-3">
                         <p className="font-semibold text-slate-900">{ord.customer.fullName}</p>
@@ -2186,7 +2186,7 @@ export const AdminDashboard: React.FC = () => {
                       {selectedAdminOrder.status}
                     </span>
                   </div>
-                  <p className="text-xs text-slate-500 mt-1">Placed on {selectedAdminOrder.createdAt}</p>
+                  <p className="text-xs text-slate-500 mt-1">Placed on {formatDate(selectedAdminOrder.createdAt, language)}</p>
                 </div>
                 <button
                   onClick={() => setSelectedAdminOrder(null)}
@@ -2352,7 +2352,7 @@ export const AdminDashboard: React.FC = () => {
                 <div className="border border-slate-200 rounded-xl p-3 bg-slate-50 space-y-2 text-xs font-mono">
                   {selectedAdminOrder.statusHistory.map((sh, idx) => (
                     <div key={idx} className="flex items-start gap-2 text-[11px]">
-                      <span className="text-slate-400 shrink-0">{sh.timestamp}</span>
+                      <span className="text-slate-400 shrink-0">{formatDate(sh.timestamp, language)}</span>
                       <span className="font-bold text-indigo-700 shrink-0">[{sh.status}]</span>
                       <span className="text-slate-700 font-sans">{sh.note}</span>
                     </div>
@@ -2680,7 +2680,7 @@ export const AdminDashboard: React.FC = () => {
                     {orders.slice(0, 15).map((ord) => (
                       <tr key={ord.id} className="hover:bg-slate-50/70">
                         <td className="p-3.5 font-mono font-bold text-slate-900">{ord.orderNumber || ord.id}</td>
-                        <td className="p-3.5 text-slate-500">{ord.createdAt}</td>
+                        <td className="p-3.5 text-slate-500">{formatDate(ord.createdAt, language)}</td>
                         <td className="p-3.5 font-medium text-slate-800">{ord.customer.fullName}</td>
                         <td className="p-3.5">
                           <span className="px-2 py-0.5 rounded font-mono text-[11px] font-semibold bg-slate-100 text-slate-700 border border-slate-200">
@@ -2846,7 +2846,7 @@ export const AdminDashboard: React.FC = () => {
                       <span className="font-bold text-slate-900 text-sm">
                         Product: {prod?.name || 'General Inquiry'}
                       </span>
-                      <span className="text-[11px] text-slate-400 font-mono">{q.createdAt}</span>
+                      <span className="text-[11px] text-slate-400 font-mono">{formatDateOnly(q.createdAt, language)}</span>
                     </div>
 
                     <p className="text-slate-800">
@@ -2859,7 +2859,7 @@ export const AdminDashboard: React.FC = () => {
                           <strong>Concierge Published Answer:</strong> {q.answer}
                         </p>
                         <span className="text-[10px] text-emerald-700 font-mono mt-0.5 block">
-                          Answered on {q.answeredAt}
+                          Answered on {formatDate(q.answeredAt, language)}
                         </span>
                       </div>
                     ) : (
@@ -3298,7 +3298,7 @@ export const AdminDashboard: React.FC = () => {
                 <tbody className="divide-y divide-slate-100 font-mono text-[11px]">
                   {auditLogs.map((log) => (
                     <tr key={log.id} className="hover:bg-slate-50/70">
-                      <td className="p-3 text-slate-500 whitespace-nowrap">{log.timestamp}</td>
+                      <td className="p-3 text-slate-500 whitespace-nowrap">{formatDate(log.timestamp, language)}</td>
                       <td className="p-3 text-slate-800 whitespace-nowrap">{log.actor}</td>
                       <td className="p-3 font-bold text-indigo-700">{log.action}</td>
                       <td className="p-3 text-slate-600 font-sans">{log.details}</td>
