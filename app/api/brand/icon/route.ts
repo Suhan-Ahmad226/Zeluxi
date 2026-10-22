@@ -21,9 +21,11 @@ export async function GET(request: NextRequest) {
     const size = [180, 192, 512].includes(requestedSize) ? requestedSize : 512;
     // Generate correctly-sized variants for Cloudinary-hosted logos without changing stored settings.
     if (logoUrl.hostname === 'res.cloudinary.com' && /\/image\/upload\//.test(logoUrl.pathname)) {
+      const isMaskable = request.nextUrl.searchParams.get('maskable') === '1';
+      const background = isMaskable ? 'b_rgb:FFFFFF' : 'b_transparent';
       logoUrl.pathname = logoUrl.pathname.replace(
         '/image/upload/',
-        `/image/upload/c_pad,w_${size},h_${size},b_transparent,f_png,q_auto/`,
+        `/image/upload/c_pad,w_${size},h_${size},${background},f_png,q_auto/`,
       );
     }
     return NextResponse.redirect(logoUrl, { headers: { 'Cache-Control': 'no-store, max-age=0' } });
