@@ -67,7 +67,7 @@ export function formatDate(dateString: string, _lang?: Language): string {
 /** Format date-only values (for example coupon expiry dates) without inventing a time. */
 export function formatDateOnly(dateString: string, _lang?: Language): string {
   try {
-    const match = /^(\\d{4})-(\\d{2})-(\\d{2})$/.exec(dateString.trim());
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateString.trim());
     if (!match) return formatDate(dateString, _lang);
     const date = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3]), 12));
     if (Number.isNaN(date.getTime())) return dateString;
