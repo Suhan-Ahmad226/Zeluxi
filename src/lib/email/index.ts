@@ -90,7 +90,7 @@ export class EmailService {
               </div>
             </div>
             <p style="font-size: 12px; color: #94A3B8; text-align: center; margin: 0;">
-              Zelux Customer Support
+              ${escapeHtml(storeName)} Customer Support
             </p>
           </div>
         </div>
