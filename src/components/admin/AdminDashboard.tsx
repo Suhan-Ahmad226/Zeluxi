@@ -422,6 +422,27 @@ export const AdminDashboard: React.FC = () => {
 
   const handleSaveSettings = (e: React.FormEvent) => {
     e.preventDefault();
+    const nonNegativeValues = [shippingDhakaInput, shippingOutsideInput, freeThresholdInput];
+    if (nonNegativeValues.some((value) => !Number.isFinite(Number(value)) || Number(value) < 0)) {
+      showToast('Shipping fees and the free-shipping threshold must be valid non-negative amounts.', 'error');
+      return;
+    }
+    const publicUrls = [
+      ['Store logo', logoUrlInput],
+      ['Facebook', facebookInput],
+      ['Instagram', instagramInput],
+      ['TikTok', tiktokInput],
+      ['YouTube', youtubeInput],
+    ] as const;
+    for (const [label, value] of publicUrls) {
+      if (!value.trim()) continue;
+      try {
+        if (new URL(value.trim()).protocol !== 'https:') throw new Error('HTTPS required');
+      } catch {
+        showToast(`${label} must use a valid HTTPS URL.`, 'error');
+        return;
+      }
+    }
     updateSettings({
       storeName: storeNameInput.trim() || 'Zelux',
       logoUrl: logoUrlInput.trim().startsWith('https://') ? logoUrlInput.trim() : '',
