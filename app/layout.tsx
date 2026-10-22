@@ -52,7 +52,7 @@ export async function generateMetadata(): Promise<Metadata> {
     icons: {
       icon: [{ url: '/api/brand/icon?size=192' }],
       apple: [{ url: '/api/brand/icon?size=180' }],
-      shortcut: [{ url: '/api/brand/icon?kind=favicon' }],
+      shortcut: [{ url: '/api/brand/icon?size=180' }],
     },
     manifest: '/api/brand/manifest',
   };
