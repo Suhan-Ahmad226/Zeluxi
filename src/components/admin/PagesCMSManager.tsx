@@ -97,6 +97,16 @@ export const PagesCMSManager: React.FC = () => {
       showToast('This URL slug is already in use. Choose a unique slug.', 'error');
       return;
     }
+    if (ogImageUrl.trim()) {
+      try {
+        const parsedImageUrl = new URL(ogImageUrl.trim());
+        if (parsedImageUrl.protocol !== 'https:') throw new Error('HTTPS required');
+      } catch {
+        showToast('Social preview image must be a valid public HTTPS URL.', 'error');
+        return;
+      }
+    }
+
     const pageData: StaticPageContent = {
       slug: cleanedSlug,
       title: title.trim(),
