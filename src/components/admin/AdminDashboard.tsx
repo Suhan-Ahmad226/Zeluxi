@@ -2352,7 +2352,7 @@ export const AdminDashboard: React.FC = () => {
                 <div className="border border-slate-200 rounded-xl p-3 bg-slate-50 space-y-2 text-xs font-mono">
                   {selectedAdminOrder.statusHistory.map((sh, idx) => (
                     <div key={idx} className="flex items-start gap-2 text-[11px]">
-                      <span className="text-slate-400 shrink-0">{sh.timestamp}</span>
+                      <span className="text-slate-400 shrink-0">{formatDate(sh.timestamp, language)}</span>
                       <span className="font-bold text-indigo-700 shrink-0">[{sh.status}]</span>
                       <span className="text-slate-700 font-sans">{sh.note}</span>
                     </div>
@@ -3298,7 +3298,7 @@ export const AdminDashboard: React.FC = () => {
                 <tbody className="divide-y divide-slate-100 font-mono text-[11px]">
                   {auditLogs.map((log) => (
                     <tr key={log.id} className="hover:bg-slate-50/70">
-                      <td className="p-3 text-slate-500 whitespace-nowrap">{log.timestamp}</td>
+                      <td className="p-3 text-slate-500 whitespace-nowrap">{formatDate(log.timestamp, language)}</td>
                       <td className="p-3 text-slate-800 whitespace-nowrap">{log.actor}</td>
                       <td className="p-3 font-bold text-indigo-700">{log.action}</td>
                       <td className="p-3 text-slate-600 font-sans">{log.details}</td>
