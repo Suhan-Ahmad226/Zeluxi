@@ -23,7 +23,7 @@ async function readPublicStoreSettings(origin: string): Promise<Record<string, u
 export async function generateMetadata(): Promise<Metadata> {
   const requestHeaders = await headers();
   const rawHost = requestHeaders.get('x-forwarded-host') || requestHeaders.get('host') || '';
-  const host = /^[a-z0-9.-]+(?::\\d{1,5})?$/i.test(rawHost) ? rawHost : '';
+  const host = /^[a-z0-9.-]+(?::\d{1,5})?$/i.test(rawHost) ? rawHost : '';
   const forwardedProtocol = requestHeaders.get('x-forwarded-proto')?.split(',')[0]?.trim();
   const protocol = forwardedProtocol === 'http' ? 'http' : 'https';
   const origin = host ? `${protocol}://${host}` : fallbackSiteUrl;
