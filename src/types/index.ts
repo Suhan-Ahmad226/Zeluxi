@@ -263,6 +263,8 @@ export interface AuditLog {
 
 export interface StoreSettings {
   storeName: string;
+  /** Optional public logo URL; use a trusted HTTPS media URL. */
+  logoUrl?: string;
   tagline: string;
   phone: string;
   email: string;
