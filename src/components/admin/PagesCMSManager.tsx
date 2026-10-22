@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useStore } from '../../context/StoreContext';
 import { formatDateOnly } from '../../utils/formatters';
 import { StaticPageContent } from '../../types';
+import { RichTextEditor } from '../common/RichTextEditor';
 import {
   FileText,
   Plus,
@@ -317,14 +318,14 @@ export const PagesCMSManager: React.FC = () => {
 
               <div>
                 <label className="block font-semibold text-slate-700 mb-1">Content *</label>
-                <textarea
-                  rows={8}
-                  required
+                <RichTextEditor
                   value={content}
-                  onChange={(e) => setContent(e.target.value)}
-                  placeholder="Enter policy text, terms, or customer information..."
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg font-sans leading-relaxed focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                  onChange={setContent}
+                  placeholder="Write your page content. Add headings, bold text, lists, and links..."
                 />
+                <p className="mt-1 text-[11px] text-slate-500">
+                  Use the toolbar to format content. Existing plain-text pages remain editable; unsafe HTML and unsupported formatting are removed when displayed.
+                </p>
               </div>
 
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
