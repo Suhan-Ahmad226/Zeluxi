@@ -63,6 +63,7 @@ import { CategoriesManager } from './CategoriesManager';
 import { StorefrontCMSManager } from './StorefrontCMSManager';
 import { PagesCMSManager } from './PagesCMSManager';
 import { InventoryManager } from './InventoryManager';
+import { NotificationsManager } from './NotificationsManager';
 import { CustomersManager } from './CustomersManager';
 import { RefundModal } from './RefundModal';
 
@@ -164,6 +165,7 @@ export const AdminDashboard: React.FC = () => {
     | 'payments'
     | 'coupons'
     | 'qa'
+    | 'notifications'
     | 'audit'
     | 'settings'
     | 'security'
@@ -172,6 +174,8 @@ export const AdminDashboard: React.FC = () => {
   // Collapsible nested navigation groups
   const [isProductsGroupOpen, setIsProductsGroupOpen] = useState(true);
   const [isSettingsGroupOpen, setIsSettingsGroupOpen] = useState(false);
+  const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
+  const handleUnreadNotificationCountChange = React.useCallback((count: number) => setUnreadNotificationCount(count), []);
 
   // Search & Filters in admin
   const [adminOrderSearch, setAdminOrderSearch] = useState('');
@@ -558,7 +562,8 @@ export const AdminDashboard: React.FC = () => {
       case 'payments': return 'Payments & Finance';
       case 'coupons': return 'Marketing & Coupons';
       case 'qa': return 'Reviews & Support';
-      case 'audit': return 'Notifications & Audit';
+      case 'notifications': return 'Notifications';
+      case 'audit': return 'Audit Trail';
       case 'settings': return 'Settings / Store Settings';
       case 'security': return 'Settings / Admin Security';
       default: return 'Dashboard';
@@ -940,13 +945,40 @@ export const AdminDashboard: React.FC = () => {
             )}
           </button>
 
-          {/* 10. Notifications & Audit */}
+          {/* Notifications: real operational alerts, separate from audit history */}
+          <button
+            onClick={() => {
+              setActiveTab('notifications');
+              setIsMobileDrawerOpen(false);
+            }}
+            title={isSidebarCollapsed ? 'Notifications' : undefined}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-colors group relative ${
+              activeTab === 'notifications'
+                ? 'bg-indigo-600 text-white shadow-sm'
+                : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
+            } ${isSidebarCollapsed ? 'md:justify-center md:px-0' : ''}`}
+          >
+            <Bell className={`w-4 h-4 shrink-0 ${activeTab === 'notifications' ? 'text-white' : 'text-slate-400 group-hover:text-slate-200'}`} />
+            {!isSidebarCollapsed && <span className="truncate flex-1 text-left">Notifications</span>}
+            {!isSidebarCollapsed && unreadNotificationCount > 0 && (
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-600 text-white">
+                {unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}
+              </span>
+            )}
+            {isSidebarCollapsed && (
+              <span className="hidden md:group-hover:block absolute left-full ml-2.5 px-2.5 py-1.5 bg-slate-950 text-white text-[11px] font-medium rounded-lg shadow-xl whitespace-nowrap z-50 border border-slate-800 pointer-events-none">
+                Notifications ({unreadNotificationCount})
+              </span>
+            )}
+          </button>
+
+          {/* Audit trail remains separate from actionable notifications */}
           <button
             onClick={() => {
               setActiveTab('audit');
               setIsMobileDrawerOpen(false);
             }}
-            title={isSidebarCollapsed ? 'Notifications' : undefined}
+            title={isSidebarCollapsed ? 'Audit Trail' : undefined}
             className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-colors group relative ${
               activeTab === 'audit'
                 ? 'bg-indigo-600 text-white shadow-sm'
@@ -954,15 +986,10 @@ export const AdminDashboard: React.FC = () => {
             } ${isSidebarCollapsed ? 'md:justify-center md:px-0' : ''}`}
           >
             <ShieldAlert className={`w-4 h-4 shrink-0 ${activeTab === 'audit' ? 'text-white' : 'text-slate-400 group-hover:text-slate-200'}`} />
-            {!isSidebarCollapsed && <span className="truncate flex-1 text-left">Notifications</span>}
-            {!isSidebarCollapsed && auditLogs.length > 0 && (
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-800 text-slate-300">
-                {auditLogs.length}
-              </span>
-            )}
+            {!isSidebarCollapsed && <span className="truncate flex-1 text-left">Audit Trail</span>}
             {isSidebarCollapsed && (
               <span className="hidden md:group-hover:block absolute left-full ml-2.5 px-2.5 py-1.5 bg-slate-950 text-white text-[11px] font-medium rounded-lg shadow-xl whitespace-nowrap z-50 border border-slate-800 pointer-events-none">
-                Notifications ({auditLogs.length})
+                Audit Trail
               </span>
             )}
           </button>
@@ -2909,7 +2936,20 @@ export const AdminDashboard: React.FC = () => {
           </div>
         )}
 
-        {/* TAB 8: AUDIT LOGS */}
+        {/* TAB: OPERATIONAL NOTIFICATIONS */}
+        {activeTab === 'notifications' && (
+          <NotificationsManager
+            onUnreadCountChange={handleUnreadNotificationCountChange}
+            onOpenOrder={(orderId) => {
+              const order = orders.find((item) => item.id === orderId);
+              setActiveTab('orders');
+              if (order) setSelectedAdminOrder(order);
+              setIsMobileDrawerOpen(false);
+            }}
+          />
+        )}
+
+        {/* TAB: SECURITY & OPERATIONAL AUDIT TRAIL */}
         {activeTab === 'audit' && (
           <div className="bg-white rounded-xl border border-slate-200 p-6 space-y-4">
             <div>
