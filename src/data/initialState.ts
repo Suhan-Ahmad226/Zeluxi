@@ -21,6 +21,7 @@ import {
  */
 export const INITIAL_SETTINGS: StoreSettings = {
   storeName: 'Zelux',
+  logoUrl: '',
   tagline: '',
   phone: '',
   email: '',
