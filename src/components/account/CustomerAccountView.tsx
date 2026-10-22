@@ -5,6 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../lib/supabase';
 import { BANGLADESH_DIVISIONS, getDistrictsByDivision, getUpazilasByDistrict } from '../../lib/address/bangladesh-locations';
 import { formatPrice, formatDate } from '../../utils/formatters';
+import { downloadOrderInvoicePdf, printOrderInvoice } from '../../utils/order-invoice';
 import {
   Package,
   Heart,
@@ -41,29 +42,14 @@ import {
   Download,
 } from 'lucide-react';
 
-function escapeInvoiceText(value: unknown): string {
-  return String(value ?? '').replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch] || ch);
-}
-function openOrderInvoice(order: import('../../types').Order, settings: import('../../types').StoreSettings, language: import('../../types').Language) {
-  const popup = window.open('', '_blank', 'width=900,height=720');
-  if (!popup) { window.alert('Allow pop-ups to print or save your invoice as PDF.'); return; }
-  const rows = order.items.map((item) => {
-    const attributes = Object.entries(item.variantAttributes || {}).map(([key, value]) => escapeInvoiceText(key) + ': ' + escapeInvoiceText(value)).join(' · ');
-    const image = item.image ? '<img class="item-image" src="' + escapeInvoiceText(item.image) + '" alt="' + escapeInvoiceText(item.productName) + '">' : '';
-    const specifications = Object.entries(item.specifications || {}).map(([key, value]) => escapeInvoiceText(key) + ': ' + escapeInvoiceText(value)).join(' · ');
-    const details = [
-      item.productSku ? 'Product SKU: ' + escapeInvoiceText(item.productSku) : '',
-      item.brand ? 'Brand: ' + escapeInvoiceText(item.brand) : '',
-      item.barcode ? 'Barcode: ' + escapeInvoiceText(item.barcode) : '',
-      item.description ? escapeInvoiceText(item.description) : '',
-      specifications,
-    ].filter(Boolean).map((value) => '<div>' + value + '</div>').join('');
-    return '<tr><td><div class="item"><div>' + image + '</div><div><strong>' + escapeInvoiceText(item.productName) + '</strong>' + (item.variantLabel ? '<div>' + escapeInvoiceText(item.variantLabel) + '</div>' : '') + (attributes ? '<div>' + attributes + '</div>' : '') + (item.variantSku ? '<div>Variant SKU: ' + escapeInvoiceText(item.variantSku) + '</div>' : '') + details + '</div></div></td><td>' + item.quantity + '</td><td>' + escapeInvoiceText(formatPrice(item.price, language)) + '</td><td>' + escapeInvoiceText(formatPrice(item.price * item.quantity, language)) + '</td></tr>';
-  }).join('');
-  const customer = order.customer;
-  const address = [customer.addressDetails, customer.upazila || customer.thanaCity, customer.district, customer.division, customer.postalCode].filter(Boolean).join(', ');
-  popup.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Invoice ' + escapeInvoiceText(order.orderNumber || order.id) + '</title><style>body{font:14px Arial;color:#0f172a;padding:24px;max-width:850px;margin:auto}header{display:flex;justify-content:space-between;border-bottom:2px solid;padding-bottom:16px}section{margin:20px 0}table{width:100%;border-collapse:collapse}td,th{padding:10px 6px;border-bottom:1px solid #ddd;text-align:left;vertical-align:top}.item{display:flex;gap:10px;align-items:flex-start}.item-image{width:56px;height:56px;object-fit:contain;border:1px solid #e5e7eb;border-radius:6px}.totals{max-width:330px;margin-left:auto}.total{display:flex;justify-content:space-between;padding:5px 0}.grand{border-top:1px solid #aaa;font-size:18px;font-weight:bold;padding-top:12px}@media print{.no-print{display:none}}@media(max-width:600px){header{display:block}td,th{font-size:11px;padding:5px 2px}}</style></head><body><header><div><h1>' + escapeInvoiceText(settings.storeName || 'Zeluxi') + '</h1><div>' + escapeInvoiceText(settings.address || '') + '</div><div>' + escapeInvoiceText(settings.phone || '') + ' · ' + escapeInvoiceText(settings.email || '') + '</div></div><div><h2>INVOICE</h2><strong>Order #' + escapeInvoiceText(order.orderNumber || order.id) + '</strong><div>' + escapeInvoiceText(formatDate(order.createdAt, language)) + '</div><div>Status: ' + escapeInvoiceText(order.status) + '</div></div></header><section><h2>Customer & delivery</h2><strong>' + escapeInvoiceText(customer.fullName) + '</strong><div>' + escapeInvoiceText(customer.phone) + ' · ' + escapeInvoiceText(customer.email || '') + '</div><div>' + escapeInvoiceText(address) + '</div>' + (customer.notes ? '<div>Delivery notes: ' + escapeInvoiceText(customer.notes) + '</div>' : '') + '</section><table><thead><tr><th>Item</th><th>Qty</th><th>Unit price</th><th>Total</th></tr></thead><tbody>' + rows + '</tbody></table><section class="totals"><div class="total"><span>Subtotal</span><strong>' + escapeInvoiceText(formatPrice(order.subtotal, language)) + '</strong></div><div class="total"><span>Shipping</span><strong>' + escapeInvoiceText(formatPrice(order.shippingFee, language)) + '</strong></div>' + (order.discount > 0 ? '<div class="total"><span>Discount</span><strong>-' + escapeInvoiceText(formatPrice(order.discount, language)) + '</strong></div>' : '') + '<div class="total"><span>Payment method / status</span><strong>' + escapeInvoiceText(order.paymentMethod) + ' / ' + escapeInvoiceText(order.paymentStatus) + '</strong></div>' + (order.courier?.trackingCode ? '<div class="total"><span>Courier tracking</span><strong>' + escapeInvoiceText(order.courier.trackingCode) + '</strong></div>' : '') + '<div class="total grand"><span>Grand total</span><strong>' + escapeInvoiceText(formatPrice(order.grandTotal, language)) + '</strong></div></section><p>Thank you for shopping with ' + escapeInvoiceText(settings.storeName || 'Zeluxi') + '.</p><button class="no-print" onclick="window.print()">Print / Save as PDF</button></body></html>');
-  popup.document.close(); popup.focus();
+async function openOrderInvoice(order: import('../../types').Order, settings: import('../../types').StoreSettings, language: import('../../types').Language) {
+  try {
+    await downloadOrderInvoicePdf(order, settings, language);
+  } catch (error) {
+    console.error('Direct invoice PDF export failed; opening the printable invoice instead.', error);
+    window.alert('The PDF could not be generated in this browser. The print-ready invoice will open so you can choose Save as PDF.');
+    printOrderInvoice(order, settings, language);
+  }
 }
 
 export const CustomerAccountView: React.FC = () => {
@@ -719,7 +705,7 @@ export const CustomerAccountView: React.FC = () => {
                       </div>
                       <div className="rounded-lg bg-white border border-slate-200 p-3 space-y-2 text-xs"><h4 className="font-bold">Price summary</h4><div className="flex justify-between"><span>Subtotal</span><strong>{formatPrice(ord.subtotal, language)}</strong></div><div className="flex justify-between"><span>Shipping</span><strong>{formatPrice(ord.shippingFee, language)}</strong></div>{ord.discount > 0 && <div className="flex justify-between text-emerald-700"><span>Discount</span><strong>−{formatPrice(ord.discount, language)}</strong></div>}<div className="flex justify-between border-t pt-2 text-sm"><strong>Grand total</strong><strong className="text-indigo-700">{formatPrice(ord.grandTotal, language)}</strong></div></div>
                       {ord.statusHistory.length > 0 && <div className="rounded-lg bg-white border border-slate-200 p-3"><h4 className="text-xs font-bold mb-2">Order activity</h4><ol className="space-y-2">{ord.statusHistory.slice().reverse().map((event, index) => <li key={event.status + event.timestamp + index} className="text-xs"><strong>{event.status.replaceAll('_', ' ')}</strong><p className="text-slate-500">{event.timestamp}</p>{event.note && <p className="text-slate-600">{event.note}</p>}</li>)}</ol></div>}
-                      <button onClick={() => openOrderInvoice(ord, settings, language)} className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white"><Download className="h-4 w-4" />Print / Save invoice as PDF</button>
+                      <button onClick={() => openOrderInvoice(ord, settings, language)} className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white"><Download className="h-4 w-4" />Download PDF</button>
                     </section>
                   )}
 
