@@ -34,6 +34,7 @@ export const PagesCMSManager: React.FC = () => {
   const [content, setContent] = useState('');
   const [isPublished, setIsPublished] = useState(true);
   const [showInFooter, setShowInFooter] = useState(false);
+  const [showInHeader, setShowInHeader] = useState(false);
   const [navigationLabel, setNavigationLabel] = useState('');
   const [navigationOrder, setNavigationOrder] = useState(100);
 
@@ -44,6 +45,7 @@ export const PagesCMSManager: React.FC = () => {
     setContent('');
     setIsPublished(true);
     setShowInFooter(false);
+    setShowInHeader(false);
     setNavigationLabel('');
     setNavigationOrder(100);
     setIsModalOpen(true);
@@ -56,6 +58,7 @@ export const PagesCMSManager: React.FC = () => {
     setContent(page.content);
     setIsPublished(page.isPublished ?? true);
     setShowInFooter(page.showInFooter ?? false);
+    setShowInHeader(page.showInHeader ?? false);
     setNavigationLabel(page.navigationLabel || '');
     setNavigationOrder(page.navigationOrder ?? 100);
     setIsModalOpen(true);
@@ -92,6 +95,7 @@ export const PagesCMSManager: React.FC = () => {
       lastUpdated: new Date().toISOString().slice(0, 10),
       isPublished,
       showInFooter: showInFooter && isPublished,
+      showInHeader: showInHeader && isPublished,
       navigationLabel: navigationLabel.trim() || title.trim(),
       navigationGroup: 'customer-care',
       navigationOrder: Number.isFinite(navigationOrder) ? Math.max(0, navigationOrder) : 100,
@@ -304,6 +308,19 @@ export const PagesCMSManager: React.FC = () => {
                   />
                 </div>
               </div>
+              <label className="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
+                <input
+                  type="checkbox"
+                  checked={showInHeader}
+                  onChange={(e) => setShowInHeader(e.target.checked)}
+                  disabled={!isPublished}
+                  className="mt-0.5 h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                />
+                <span>
+                  <span className="block font-semibold text-slate-800">Show in storefront header</span>
+                  <span className="mt-0.5 block text-[11px] text-slate-500">Adds this published page to the desktop store navigation. Keep labels short for smaller screens.</span>
+                </span>
+              </label>
               <label className="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
                 <input
                   type="checkbox"
