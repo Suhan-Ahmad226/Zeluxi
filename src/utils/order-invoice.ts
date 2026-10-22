@@ -44,13 +44,19 @@ export function buildOrderInvoiceHtml(
     customer.division,
     customer.postalCode,
   ].filter(Boolean).join(', ');
+  const storeName = settings.storeName?.trim() || 'Zelux';
+  const logoUrl = typeof settings.logoUrl === 'string' && /^https:\/\//i.test(settings.logoUrl.trim())
+    ? settings.logoUrl.trim()
+    : '';
 
   return `<article class="zeluxi-invoice">
     <style>
       .zeluxi-invoice{font-family:Arial,Helvetica,sans-serif;color:#172033;background:#fff;width:100%;max-width:900px;margin:0 auto;font-size:12px;line-height:1.5}
       .zeluxi-invoice *{box-sizing:border-box}.zeluxi-invoice .topbar{height:7px;background:#4338ca;border-radius:5px;margin-bottom:22px}
       .zeluxi-invoice .header{display:flex;justify-content:space-between;gap:24px;border-bottom:1px solid #e2e8f0;padding-bottom:18px}
-      .zeluxi-invoice .brand{font-size:24px;font-weight:800;letter-spacing:-.6px;margin:0 0 6px;color:#111827}
+      .zeluxi-invoice .brand-lockup{display:flex;align-items:center;gap:10px;min-width:0;margin:0 0 6px}
+      .zeluxi-invoice .brand-logo{width:54px;height:54px;object-fit:contain;flex:none}
+      .zeluxi-invoice .brand{font-size:24px;font-weight:800;letter-spacing:-.6px;margin:0;color:#111827;overflow-wrap:anywhere}
       .zeluxi-invoice .muted{font-size:10px;color:#64748b;margin-top:3px;overflow-wrap:anywhere}
       .zeluxi-invoice .invoice-title{font-size:26px;letter-spacing:1.5px;margin:0;color:#4338ca;text-align:right}
       .zeluxi-invoice .order-meta{text-align:right;color:#475569;margin-top:7px}
@@ -66,12 +72,16 @@ export function buildOrderInvoiceHtml(
       .zeluxi-invoice .totals{width:100%;max-width:330px;margin:20px 0 0 auto}.zeluxi-invoice .total-row{display:flex;justify-content:space-between;gap:18px;padding:5px 0;color:#475569}
       .zeluxi-invoice .grand-total{border-top:2px solid #cbd5e1;margin-top:6px;padding-top:12px;font-size:15px;font-weight:800;color:#111827}
       .zeluxi-invoice .grand-total strong{color:#4338ca}.zeluxi-invoice .footer{border-top:1px solid #e2e8f0;margin-top:26px;padding-top:14px;color:#64748b;text-align:center;font-size:10px}
-      @media(max-width:600px){.zeluxi-invoice .header{gap:10px}.zeluxi-invoice .brand{font-size:19px}.zeluxi-invoice .invoice-title{font-size:20px}.zeluxi-invoice .details{gap:12px}.zeluxi-invoice th,.zeluxi-invoice td{padding:7px 4px;font-size:10px}.zeluxi-invoice .product-cell{gap:5px}.zeluxi-invoice .product-image{width:34px;height:34px}}
+      @media(max-width:600px){.zeluxi-invoice .header{gap:10px}.zeluxi-invoice .brand{font-size:19px}.zeluxi-invoice .brand-logo{width:42px;height:42px}.zeluxi-invoice .invoice-title{font-size:20px}.zeluxi-invoice .details{gap:12px}.zeluxi-invoice th,.zeluxi-invoice td{padding:7px 4px;font-size:10px}.zeluxi-invoice .product-cell{gap:5px}.zeluxi-invoice .product-image{width:34px;height:34px}}
       @media print{.zeluxi-invoice{max-width:none!important;font-size:10pt!important}.zeluxi-invoice .topbar{background:#4338ca!important;print-color-adjust:exact;-webkit-print-color-adjust:exact}.zeluxi-invoice .header,.zeluxi-invoice .details,.zeluxi-invoice table tr{break-inside:avoid;page-break-inside:avoid}.zeluxi-invoice table thead{display:table-header-group}.zeluxi-invoice .muted{font-size:8pt}}
     </style>
     <div class="topbar"></div>
     <header class="header">
-      <div><h1 class="brand">${escapeHtml(settings.storeName || 'Zeluxi')}</h1>
+      <div>
+        <div class="brand-lockup">
+          ${logoUrl ? `<img class="brand-logo" src="${escapeHtml(logoUrl)}" alt="${escapeHtml(storeName)} logo" crossorigin="anonymous">` : ''}
+          <h1 class="brand">${escapeHtml(storeName)}</h1>
+        </div>
         ${settings.address ? `<div>${escapeHtml(settings.address)}</div>` : ''}
         ${settings.phone ? `<div class="muted">Phone: ${escapeHtml(settings.phone)}</div>` : ''}
         ${settings.email ? `<div class="muted">Email: ${escapeHtml(settings.email)}</div>` : ''}
@@ -91,7 +101,7 @@ export function buildOrderInvoiceHtml(
       ${order.courier?.trackingCode ? `<div class="total-row"><span>Courier tracking</span><strong>${escapeHtml(order.courier.trackingCode)}</strong></div>` : ''}
       <div class="total-row grand-total"><span>Grand total</span><strong>${escapeHtml(formatPrice(order.grandTotal, language))}</strong></div>
     </section>
-    <footer class="footer">Thank you for shopping with ${escapeHtml(settings.storeName || 'Zeluxi')}.</footer>
+    <footer class="footer">Thank you for shopping with ${escapeHtml(storeName)}.</footer>
   </article>`;
 }
 
@@ -109,7 +119,7 @@ export async function downloadOrderInvoicePdf(
     const html2pdf = imported.default;
     await html2pdf().set({
       margin: [8, 8, 8, 8],
-      filename: `Zeluxi-Invoice-${String(order.orderNumber || order.id).replace(/[^a-zA-Z0-9_-]/g, '-')}.pdf`,
+      filename: `${(settings.storeName?.trim() || 'Store').replace(/[^a-zA-Z0-9_-]/g, '-')}-Invoice-${String(order.orderNumber || order.id).replace(/[^a-zA-Z0-9_-]/g, '-')}.pdf`,
       image: { type: 'jpeg', quality: 0.98 },
       html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false },
       jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
@@ -131,6 +141,6 @@ export function printOrderInvoice(
     return;
   }
   const invoiceHtml = buildOrderInvoiceHtml(order, settings, language);
-  popup.document.write(`<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Invoice ${escapeHtml(order.orderNumber || order.id)}</title><style>@page{size:A4;margin:12mm}body{margin:0;padding:0;background:#fff}</style></head><body>${invoiceHtml}<script>window.addEventListener('load',function(){setTimeout(function(){window.focus();window.print()},300)})<\/script></body></html>`);
+  popup.document.write(`<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(settings.storeName?.trim() || 'Store')} Invoice ${escapeHtml(order.orderNumber || order.id)}</title><style>@page{size:A4;margin:12mm}body{margin:0;padding:0;background:#fff}</style></head><body>${invoiceHtml}<script>window.addEventListener('load',function(){setTimeout(function(){window.focus();window.print()},300)})<\\/script></body></html>`);
   popup.document.close();
 }

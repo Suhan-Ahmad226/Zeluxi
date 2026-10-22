@@ -59,6 +59,22 @@ function validateStoreSettings(value: unknown): string | null {
     }
   }
 
+  if (settings.logoUrl !== undefined) {
+    if (typeof settings.logoUrl !== 'string' || settings.logoUrl.length > 2048) {
+      return 'Store logo must be an HTTPS image URL of 2048 characters or fewer.';
+    }
+    if (settings.logoUrl.trim()) {
+      try {
+        const logo = new URL(settings.logoUrl.trim());
+        if (logo.protocol !== 'https:' || !logo.hostname) {
+          return 'Store logo must be a valid HTTPS image URL.';
+        }
+      } catch {
+        return 'Store logo must be a valid HTTPS image URL.';
+      }
+    }
+  }
+
   for (const field of ['facebookUrl', 'instagramUrl', 'tiktokUrl', 'youtubeUrl']) {
     const fieldValue = settings[field];
     if (fieldValue !== undefined && (typeof fieldValue !== 'string' || fieldValue.length > 500)) {
