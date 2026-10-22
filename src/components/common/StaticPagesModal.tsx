@@ -1,5 +1,6 @@
 import React from 'react';
 import { useStore } from '../../context/StoreContext';
+import { formatDateOnly } from '../../utils/formatters';
 import { X, ShieldCheck, Truck, RefreshCw, Mail, FileText } from 'lucide-react';
 
 export type StaticPageType = string;
@@ -56,7 +57,7 @@ export const StaticPagesModal: React.FC<StaticPagesModalProps> = ({ page, onClos
           ) : (
             <p className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-900">{builtIn?.description || 'This page has not been published yet.'} Please check back later.</p>
           )}
-          {dynamicPage && <p className="border-t border-slate-100 pt-3 text-xs text-slate-500">Last updated: {dynamicPage.lastUpdated}</p>}
+          {dynamicPage && <p className="border-t border-slate-100 pt-3 text-xs text-slate-500">Last updated: {formatDateOnly(dynamicPage.lastUpdated)}</p>}
         </div>
       </section>
     </div>
