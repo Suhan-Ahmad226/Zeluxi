@@ -216,6 +216,10 @@ export const StorefrontCMSManager: React.FC = () => {
       showToast('Every active banner needs a headline before publishing.', 'error');
       return;
     }
+    if (formData.announcement.active && !formData.announcement.text.trim()) {
+      showToast('Add announcement text or turn off the announcement bar before publishing.', 'error');
+      return;
+    }
     setIsSaving(true);
     try {
       const saved = await updateStorefrontCMS(formData);
