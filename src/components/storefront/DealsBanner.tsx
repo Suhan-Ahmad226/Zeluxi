@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useStore } from '../../context/StoreContext';
+import { formatDateOnly } from '../../utils/formatters';
 import { Tag, Copy, Check } from 'lucide-react';
 
 export const DealsBanner: React.FC = () => {
