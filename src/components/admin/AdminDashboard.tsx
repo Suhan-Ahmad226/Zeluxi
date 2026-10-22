@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { useStore } from '../../context/StoreContext';
 import { StoreImage } from '../common/StoreImage';
 import { useAuth } from '../../context/AuthContext';
-import { formatPrice, formatDate } from '../../utils/formatters';
+import { formatPrice, formatDate, formatDateOnly } from '../../utils/formatters';
 import {
   LayoutDashboard,
   Package,
@@ -2846,7 +2846,7 @@ export const AdminDashboard: React.FC = () => {
                       <span className="font-bold text-slate-900 text-sm">
                         Product: {prod?.name || 'General Inquiry'}
                       </span>
-                      <span className="text-[11px] text-slate-400 font-mono">{formatDate(q.createdAt, language)}</span>
+                      <span className="text-[11px] text-slate-400 font-mono">{formatDateOnly(q.createdAt, language)}</span>
                     </div>
 
                     <p className="text-slate-800">
