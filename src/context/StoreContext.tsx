@@ -320,7 +320,12 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData.session?.access_token;
       const catalogHeaders = token ? { Authorization: `Bearer ${token}` } : {};
-      const response = await fetch('/api/products?limit=12&offset=0', { headers: catalogHeaders, cache: 'no-store' });
+      // Catalog and CMS are independent resources; request them together to reduce startup latency.
+      const [response, contentResponse] = await Promise.all([
+        fetch('/api/products?limit=12&offset=0', { headers: catalogHeaders, cache: 'no-store' }),
+        fetch('/api/content', { headers: catalogHeaders, cache: 'no-store' }),
+      ]);
+
       if (response.ok) {
         const payload = await response.json().catch(() => null);
         if (!cancelled && Array.isArray(payload?.products)) {
@@ -329,7 +334,6 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
         }
       }
 
-      const contentResponse = await fetch('/api/content', { headers: catalogHeaders, cache: 'no-store' });
       if (contentResponse.ok) {
         const contentPayload = await contentResponse.json().catch(() => null);
         const content = contentPayload?.content;
