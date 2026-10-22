@@ -4,7 +4,7 @@
  * server-side SMTP/Resend/SendGrid adapter is implemented.
  */
 
-import { Order } from '../../types';
+import { Order, StoreSettings } from '../../types';
 import { formatPrice } from '../../utils/formatters';
 
 const escapeHtml = (value: string): string => value
@@ -25,7 +25,10 @@ export class EmailService {
   /**
    * Generates formatted order confirmation email template
    */
-  static renderOrderConfirmationHtml(order: Order): string {
+  static renderOrderConfirmationHtml(order: Order, settings?: Pick<StoreSettings, 'storeName' | 'tagline' | 'logoUrl'>): string {
+    const storeName = settings?.storeName?.trim() || 'Store';
+    const tagline = settings?.tagline?.trim() || '';
+    const logoUrl = typeof settings?.logoUrl === 'string' && settings.logoUrl.trim().startsWith('https://') ? settings.logoUrl.trim() : '';
     const itemsHtml = order.items
       .map(
         (item) => `
@@ -47,8 +50,10 @@ export class EmailService {
       <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #F8FAFC; padding: 24px 0; margin: 0;">
         <div style="max-width: 600px; margin: 0 auto; background: #FFFFFF; border-radius: 12px; border: 1px solid #E2E8F0; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
           <div style="background-color: #4F46E5; padding: 24px; text-align: center;">
-            <h1 style="color: #FFFFFF; margin: 0; font-size: 24px; letter-spacing: 1px;">ZELUX</h1>
-            <p style="color: #E0E7FF; margin: 6px 0 0; font-size: 13px;">Bangladesh Atelier & Lifestyle Goods</p>
+            ${logoUrl ? '<img src="' + escapeHtml(logoUrl) + '" alt="' + escapeHtml(storeName) + '" style="display:block;max-width:180px;max-height:64px;object-fit:contain;margin:0 auto 8px;" />' : ''}
+          <h1 style="color: #FFFFFF; margin: 0; font-size: 24px; letter-spacing: 1px;">${escapeHtml(storeName)}</h1>
+          ${tagline ? '<p style="color: #E0E7FF; margin: 6px 0 0; font-size: 13px;">' + escapeHtml(tagline) + '</p>' : ''}
+
           </div>
           <div style="padding: 24px;">
             <h2 style="font-size: 18px; color: #0F172A; margin: 0 0 12px;">Thank you for your order, ${escapeHtml(order.customer.fullName)}!</h2>
