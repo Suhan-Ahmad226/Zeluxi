@@ -1,5 +1,5 @@
 /**
- * Transactional Email Notification Adapter for Zelux
+ * Transactional Email Notification Adapter for the store
  * Generates a branded HTML email template. Delivery is intentionally disabled until a real
  * server-side SMTP/Resend/SendGrid adapter is implemented.
  */
