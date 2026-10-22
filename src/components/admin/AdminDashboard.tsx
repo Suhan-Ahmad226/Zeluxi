@@ -370,7 +370,7 @@ export const AdminDashboard: React.FC = () => {
     ];
     const rows = orders.map((o) => [
       o.orderNumber || o.id,
-      o.createdAt,
+      formatDate(o.createdAt, language),
       `"${o.customer.fullName.replace(/"/g, '""')}"`,
       o.customer.phone,
       o.customer.division,
@@ -388,7 +388,7 @@ export const AdminDashboard: React.FC = () => {
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
     link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `zelux_orders_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.setAttribute('download', `zelux_orders_${new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Dhaka', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date())}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
