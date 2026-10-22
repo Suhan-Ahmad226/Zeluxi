@@ -129,3 +129,18 @@ export async function downloadOrderInvoicePdf(
     container.remove();
   }
 }
+
+export function printOrderInvoice(
+  order: Order,
+  settings: StoreSettings,
+  language: Language = 'en',
+): void {
+  const popup = window.open('', '_blank', 'width=900,height=720');
+  if (!popup) {
+    window.alert('Please allow pop-ups to print your invoice.');
+    return;
+  }
+  const invoiceHtml = buildOrderInvoiceHtml(order, settings, language);
+  popup.document.write(`<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(settings.storeName?.trim() || 'Store')} Invoice ${escapeHtml(order.orderNumber || order.id)}</title><style>@page{size:A4;margin:12mm}body{margin:0;padding:0;background:#fff}</style></head><body>${invoiceHtml}<script>window.addEventListener('load',function(){setTimeout(function(){window.focus();window.print()},300)})<\\/script></body></html>`);
+  popup.document.close();
+}
