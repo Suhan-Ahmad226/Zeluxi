@@ -150,7 +150,7 @@ export const AuthModal: React.FC = () => {
           setActiveView('verify-email');
           showToast('Verification code sent! Enter your 6-digit OTP code below.', 'info');
         } else {
-          showToast('Account created successfully! Welcome to Zelux.', 'success');
+          showToast(`Account created successfully! Welcome to ${settings.storeName?.trim() || 'the store'}.`, 'success');
           handleClose();
         }
       } else if (authModalMode === 'forgot') {
