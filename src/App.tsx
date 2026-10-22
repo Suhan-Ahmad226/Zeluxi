@@ -44,6 +44,7 @@ const MainStoreContent: React.FC<{ productSlug?: string }> = ({ productSlug }) =
           <AdminDashboard />
         </React.Suspense>
         <AuthModal />
+        <OrderSuccessModal />
         <NotificationToast />
       </div>
     );
