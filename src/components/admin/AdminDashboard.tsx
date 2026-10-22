@@ -278,7 +278,6 @@ export const AdminDashboard: React.FC = () => {
   const [shippingDhakaInput, setShippingDhakaInput] = useState(settings.shippingDhaka);
   const [shippingOutsideInput, setShippingOutsideInput] = useState(settings.shippingOutsideDhaka);
   const [freeThresholdInput, setFreeThresholdInput] = useState(settings.freeShippingThreshold);
-  const [announcementInput, setAnnouncementInput] = useState(settings.announcementText);
 
   // Settings may arrive asynchronously from the content API after this component mounts.
   React.useEffect(() => {
@@ -310,7 +309,6 @@ export const AdminDashboard: React.FC = () => {
     setShippingDhakaInput(settings.shippingDhaka);
     setShippingOutsideInput(settings.shippingOutsideDhaka);
     setFreeThresholdInput(settings.freeShippingThreshold);
-    setAnnouncementInput(settings.announcementText);
   }, [settings]);
 
   // Quick Edit Price & Delete Product States
@@ -471,7 +469,6 @@ export const AdminDashboard: React.FC = () => {
       shippingDhaka: Number(shippingDhakaInput),
       shippingOutsideDhaka: Number(shippingOutsideInput),
       freeShippingThreshold: Number(freeThresholdInput),
-      announcementText: announcementInput,
     });
   };
 
@@ -547,7 +544,7 @@ export const AdminDashboard: React.FC = () => {
   }
 
   const isProductActive = ['products', 'categories', 'inventory'].includes(activeTab);
-  const isSettingActive = ['settings', 'security'].includes(activeTab);
+  const isSettingActive = ['appearance', 'pages', 'settings', 'security'].includes(activeTab);
 
   const getBreadcrumbTitle = () => {
     switch (activeTab) {
@@ -811,60 +808,6 @@ export const AdminDashboard: React.FC = () => {
             )}
           </div>
 
-          {/* 3B. Storefront Appearance & CMS */}
-          <button
-            onClick={() => {
-              setActiveTab('appearance');
-              setIsMobileDrawerOpen(false);
-            }}
-            title={isSidebarCollapsed ? 'Appearance & CMS' : undefined}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-colors group relative ${
-              activeTab === 'appearance'
-                ? 'bg-indigo-600 text-white shadow-sm'
-                : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
-            } ${isSidebarCollapsed ? 'md:justify-center md:px-0' : ''}`}
-          >
-            <Palette className={`w-4 h-4 shrink-0 ${activeTab === 'appearance' ? 'text-white' : 'text-slate-400 group-hover:text-slate-200'}`} />
-            {!isSidebarCollapsed && <span className="truncate flex-1 text-left">Appearance & CMS</span>}
-            {!isSidebarCollapsed && (
-              <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-indigo-950 text-indigo-300 border border-indigo-800">
-                Hero
-              </span>
-            )}
-            {isSidebarCollapsed && (
-              <span className="hidden md:group-hover:block absolute left-full ml-2.5 px-2.5 py-1.5 bg-slate-950 text-white text-[11px] font-medium rounded-lg shadow-xl whitespace-nowrap z-50 border border-slate-800 pointer-events-none">
-                Appearance & CMS
-              </span>
-            )}
-          </button>
-
-          {/* 3C. Pages & Legal CMS */}
-          <button
-            onClick={() => {
-              setActiveTab('pages');
-              setIsMobileDrawerOpen(false);
-            }}
-            title={isSidebarCollapsed ? 'Pages & Legal CMS' : undefined}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-colors group relative ${
-              activeTab === 'pages'
-                ? 'bg-indigo-600 text-white shadow-sm'
-                : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
-            } ${isSidebarCollapsed ? 'md:justify-center md:px-0' : ''}`}
-          >
-            <FileText className={`w-4 h-4 shrink-0 ${activeTab === 'pages' ? 'text-white' : 'text-slate-400 group-hover:text-slate-200'}`} />
-            {!isSidebarCollapsed && <span className="truncate flex-1 text-left">Pages & CMS</span>}
-            {!isSidebarCollapsed && pages && pages.length > 0 && (
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-800 text-slate-300">
-                {pages.length}
-              </span>
-            )}
-            {isSidebarCollapsed && (
-              <span className="hidden md:group-hover:block absolute left-full ml-2.5 px-2.5 py-1.5 bg-slate-950 text-white text-[11px] font-medium rounded-lg shadow-xl whitespace-nowrap z-50 border border-slate-800 pointer-events-none">
-                Pages & CMS ({pages?.length || 0})
-              </span>
-            )}
-          </button>
-
           {/* 4. Customers */}
           <button
             onClick={() => {
@@ -1049,79 +992,79 @@ export const AdminDashboard: React.FC = () => {
             )}
           </button>
 
-          {/* 11. Settings (Nested Collapsible Group) */}
+          {/* Storefront & Content: one home for all public-site configuration */}
           <div>
             <button
               onClick={() => {
-                if (isSidebarCollapsed) {
+                if (isSidebarCollapsed && !isMobileDrawerOpen) {
                   setActiveTab('settings');
                 } else {
                   setIsSettingsGroupOpen(!isSettingsGroupOpen);
                 }
               }}
-              title={isSidebarCollapsed ? 'Settings' : undefined}
+              title={isSidebarCollapsed && !isMobileDrawerOpen ? 'Storefront & Content' : undefined}
+              aria-expanded={(!isSidebarCollapsed || isMobileDrawerOpen) && isSettingsGroupOpen}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-colors group relative ${
                 isSettingActive && isSidebarCollapsed
                   ? 'bg-indigo-600 text-white shadow-sm'
                   : isSettingActive
                   ? 'text-white bg-slate-800/60 font-bold'
                   : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
-              } ${isSidebarCollapsed ? 'md:justify-center md:px-0' : ''}`}
+              } ${isSidebarCollapsed && !isMobileDrawerOpen ? 'md:justify-center md:px-0' : ''}`}
             >
-              <Settings className={`w-4 h-4 shrink-0 ${isSettingActive ? 'text-indigo-400' : 'text-slate-400 group-hover:text-slate-200'}`} />
-              {!isSidebarCollapsed && (
+              <Palette className={`w-4 h-4 shrink-0 ${isSettingActive ? 'text-indigo-400' : 'text-slate-400 group-hover:text-slate-200'}`} />
+              {(!isSidebarCollapsed || isMobileDrawerOpen) && (
                 <>
-                  <span className="truncate flex-1 text-left">Settings</span>
-                  <ChevronDown
-                    className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${
-                      isSettingsGroupOpen ? 'rotate-180 text-white' : ''
-                    }`}
-                  />
+                  <span className="truncate flex-1 text-left">Storefront & Content</span>
+                  <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${isSettingsGroupOpen ? 'rotate-180 text-white' : ''}`} />
                 </>
               )}
-              {isSidebarCollapsed && (
+              {isSidebarCollapsed && !isMobileDrawerOpen && (
                 <span className="hidden md:group-hover:block absolute left-full ml-2.5 px-2.5 py-1.5 bg-slate-950 text-white text-[11px] font-medium rounded-lg shadow-xl whitespace-nowrap z-50 border border-slate-800 pointer-events-none">
-                  Settings
+                  Storefront & Content
                 </span>
               )}
             </button>
 
-            {/* Nested Settings Sub-navigation */}
-            {!isSidebarCollapsed && isSettingsGroupOpen && (
+            {(!isSidebarCollapsed || isMobileDrawerOpen) && isSettingsGroupOpen && (
               <div className="pl-6 pr-1 pt-1 pb-1 space-y-0.5 border-l border-slate-800 ml-4 mt-1">
                 <button
-                  onClick={() => {
-                    setActiveTab('settings');
-                    setIsMobileDrawerOpen(false);
-                  }}
-                  className={`w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-xs transition-colors ${
-                    activeTab === 'settings'
-                      ? 'bg-indigo-600 text-white font-bold'
-                      : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                  onClick={() => { setActiveTab('appearance'); setIsMobileDrawerOpen(false); }}
+                  className={`w-full flex items-center justify-between gap-2 px-3 py-1.5 rounded-lg text-xs transition-colors ${
+                    activeTab === 'appearance' ? 'bg-indigo-600 text-white font-bold' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
                   }`}
                 >
-                  <span className="truncate">Store Settings</span>
+                  <span className="truncate flex items-center gap-1.5"><Palette className="w-3 h-3" /> Homepage Design</span>
                 </button>
-
                 <button
-                  onClick={() => {
-                    setActiveTab('security');
-                    setIsMobileDrawerOpen(false);
-                  }}
-                  className={`w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-xs transition-colors ${
-                    activeTab === 'security'
-                      ? 'bg-indigo-600 text-white font-bold'
-                      : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                  onClick={() => { setActiveTab('pages'); setIsMobileDrawerOpen(false); }}
+                  className={`w-full flex items-center justify-between gap-2 px-3 py-1.5 rounded-lg text-xs transition-colors ${
+                    activeTab === 'pages' ? 'bg-indigo-600 text-white font-bold' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
                   }`}
                 >
-                  <span className="truncate flex items-center gap-1.5">
-                    <Lock className="w-3 h-3 text-slate-400" />
-                    <span>Admin Security</span>
-                  </span>
+                  <span className="truncate flex items-center gap-1.5"><FileText className="w-3 h-3" /> Pages & Navigation</span>
+                  {pages?.length > 0 && <span className="text-[10px] rounded-full bg-slate-800 px-1.5 py-0.5">{pages.length}</span>}
+                </button>
+                <button
+                  onClick={() => { setActiveTab('settings'); setIsMobileDrawerOpen(false); }}
+                  className={`w-full flex items-center justify-between gap-2 px-3 py-1.5 rounded-lg text-xs transition-colors ${
+                    activeTab === 'settings' ? 'bg-indigo-600 text-white font-bold' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                  }`}
+                >
+                  <span className="truncate flex items-center gap-1.5"><Settings className="w-3 h-3" /> Store Information & Fees</span>
+                </button>
+                <button
+                  onClick={() => { setActiveTab('security'); setIsMobileDrawerOpen(false); }}
+                  className={`w-full flex items-center justify-between gap-2 px-3 py-1.5 rounded-lg text-xs transition-colors ${
+                    activeTab === 'security' ? 'bg-indigo-600 text-white font-bold' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                  }`}
+                >
+                  <span className="truncate flex items-center gap-1.5"><Lock className="w-3 h-3 text-slate-400" /> Admin Security</span>
                 </button>
               </div>
             )}
           </div>
+
         </nav>
 
         {/* Sidebar Footer with Return to Store */}
@@ -2922,8 +2865,8 @@ export const AdminDashboard: React.FC = () => {
         {activeTab === 'settings' && (
           <div className="bg-white rounded-xl border border-slate-200 p-6 max-w-3xl space-y-6">
             <div>
-              <h3 className="text-base font-bold text-slate-900">Store Settings & CMS Configuration</h3>
-              <p className="text-xs text-slate-500">Live configuration for fees, brand parameters, and top announcements</p>
+              <h3 className="text-base font-bold text-slate-900">Store Information & Delivery Fees</h3>
+              <p className="text-xs text-slate-500">Manage store contact details, footer content, and delivery pricing. Homepage announcements are managed under Homepage Design.</p>
             </div>
 
             <form onSubmit={handleSaveSettings} className="space-y-4 text-xs">
@@ -2973,17 +2916,6 @@ export const AdminDashboard: React.FC = () => {
                   />
                 </div>
               </div>
-
-              <div>
-                <label className="font-semibold block mb-1">Announcement Banner Message</label>
-                <input
-                  type="text"
-                  value={announcementInput}
-                  onChange={(e) => setAnnouncementInput(e.target.value)}
-                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:border-indigo-600"
-                />
-              </div>
-
 
               <div className="border-t border-slate-200 pt-5">
                 <h4 className="mb-1 text-sm font-bold text-slate-900">Footer & Contact Details</h4>

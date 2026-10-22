@@ -12,7 +12,7 @@ export const AnnouncementBar: React.FC = () => {
 
   const announcement = storefrontCMS?.announcement;
   const isEnabled = announcement?.active !== undefined ? announcement.active : settings.announcementActive;
-  const text = announcement?.text || settings.announcementText || 'Complimentary delivery across Bangladesh on orders over ৳3,500 with code FREEDELIVERY';
+  const text = announcement?.text ?? settings.announcementText ?? 'Complimentary delivery across Bangladesh on orders over ৳3,500 with code FREEDELIVERY';
 
   useEffect(() => {
     const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
