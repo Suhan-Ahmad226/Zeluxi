@@ -7,7 +7,7 @@ import { StoreImage } from '../common/StoreImage';
 import type { HeroBannerItem } from '../../types';
 
 export const HeroBanner: React.FC = () => {
-  const { categories, setActiveView, setSelectedCategoryFilter, storefrontCMS } = useStore();
+  const { categories, setActiveView, setSelectedCategoryFilter, storefrontCMS, settings } = useStore();
   const banners = getHeroBanners(storefrontCMS).filter((banner) => banner.active);
   const [activeIndex, setActiveIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
@@ -129,7 +129,7 @@ export const HeroBanner: React.FC = () => {
         <div className="grid grid-cols-1 items-center gap-6 sm:gap-8 lg:grid-cols-12 lg:gap-10">
           <div className="min-w-0 space-y-5 lg:col-span-7">
             <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-indigo-300">
-              <span>{banner.tagline || 'Zelux Atelier'}</span>
+              <span>{banner.tagline && banner.tagline !== 'Zelux Atelier' ? banner.tagline : (settings.tagline?.trim() || settings.storeName?.trim() || 'Store')}</span>
               <span aria-hidden="true">·</span>
               <span>Curated for you</span>
             </div>
@@ -165,7 +165,7 @@ export const HeroBanner: React.FC = () => {
                   preset="hero"
                   srcSet={imageSrcSet || undefined}
                   sizes="(max-width: 639px) calc(100vw - 2rem), (max-width: 1023px) calc(100vw - 3rem), 40vw"
-                  alt={banner.highlightSubtitle || banner.headline || 'Featured Zelux collection'}
+                  alt={banner.highlightSubtitle || banner.headline || `Featured ${settings.storeName?.trim() || 'store'} collection`}
                   fetchPriority="high"
                   loading="eager"
                   decoding="async"
