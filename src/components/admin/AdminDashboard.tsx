@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { useStore } from '../../context/StoreContext';
 import { StoreImage } from '../common/StoreImage';
 import { useAuth } from '../../context/AuthContext';
-import { formatPrice } from '../../utils/formatters';
+import { formatPrice, formatDate } from '../../utils/formatters';
 import {
   LayoutDashboard,
   Package,
@@ -1533,7 +1533,7 @@ export const AdminDashboard: React.FC = () => {
                         >
                           #{ord.orderNumber || ord.id}
                         </button>
-                        <span className="text-[11px] text-slate-400">{ord.createdAt}</span>
+                        <span className="text-[11px] text-slate-400">{formatDate(ord.createdAt, language)}</span>
                       </td>
                       <td className="p-3">
                         <p className="font-semibold text-slate-900">{ord.customer.fullName}</p>
@@ -2186,7 +2186,7 @@ export const AdminDashboard: React.FC = () => {
                       {selectedAdminOrder.status}
                     </span>
                   </div>
-                  <p className="text-xs text-slate-500 mt-1">Placed on {selectedAdminOrder.createdAt}</p>
+                  <p className="text-xs text-slate-500 mt-1">Placed on {formatDate(selectedAdminOrder.createdAt, language)}</p>
                 </div>
                 <button
                   onClick={() => setSelectedAdminOrder(null)}
@@ -2680,7 +2680,7 @@ export const AdminDashboard: React.FC = () => {
                     {orders.slice(0, 15).map((ord) => (
                       <tr key={ord.id} className="hover:bg-slate-50/70">
                         <td className="p-3.5 font-mono font-bold text-slate-900">{ord.orderNumber || ord.id}</td>
-                        <td className="p-3.5 text-slate-500">{ord.createdAt}</td>
+                        <td className="p-3.5 text-slate-500">{formatDate(ord.createdAt, language)}</td>
                         <td className="p-3.5 font-medium text-slate-800">{ord.customer.fullName}</td>
                         <td className="p-3.5">
                           <span className="px-2 py-0.5 rounded font-mono text-[11px] font-semibold bg-slate-100 text-slate-700 border border-slate-200">
@@ -2846,7 +2846,7 @@ export const AdminDashboard: React.FC = () => {
                       <span className="font-bold text-slate-900 text-sm">
                         Product: {prod?.name || 'General Inquiry'}
                       </span>
-                      <span className="text-[11px] text-slate-400 font-mono">{q.createdAt}</span>
+                      <span className="text-[11px] text-slate-400 font-mono">{formatDate(q.createdAt, language)}</span>
                     </div>
 
                     <p className="text-slate-800">
