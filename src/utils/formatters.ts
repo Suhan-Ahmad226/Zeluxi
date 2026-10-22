@@ -40,7 +40,7 @@ export function calculateShipping(
 export function formatDate(dateString: string, _lang?: Language): string {
   try {
     const normalized = dateString.trim().replace(' ', 'T');
-    const hasTimezone = /(?:Z|[+-]\\d{2}:\\d{2})$/i.test(normalized);
+    const hasTimezone = /(?:Z|[+-]\d{2}:\d{2})$/i.test(normalized);
     const value = !hasTimezone && normalized.includes('T') ? `${normalized}Z` : normalized;
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return dateString;
