@@ -4,7 +4,7 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
-  let storeName = 'Zelux';
+  let storeName = 'Store';
   let description = 'Shop online with our store in Bangladesh.';
   try {
     const response = await fetch(new URL('/api/content', request.nextUrl.origin), { cache: 'no-store' });
@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
     // Keep a safe manifest fallback if store content is temporarily unavailable.
   }
 
-  const iconUrl = new URL('/api/brand/icon?kind=app', request.nextUrl.origin).toString();
+  const iconUrl = (size: number, maskable = false) => new URL(`/api/brand/icon?size=${size}${maskable ? '&maskable=1' : ''}`, request.nextUrl.origin).toString();
   return NextResponse.json({
     id: '/',
     name: storeName,
@@ -38,7 +38,9 @@ export async function GET(request: NextRequest) {
     theme_color: '#4F46E5',
     categories: ['shopping', 'lifestyle', 'business'],
     icons: [
-      { src: iconUrl, purpose: 'any' },
+      { src: iconUrl(192), sizes: '192x192', type: 'image/png', purpose: 'any' },
+      { src: iconUrl(512), sizes: '512x512', type: 'image/png', purpose: 'any' },
+      { src: iconUrl(512, true), sizes: '512x512', type: 'image/png', purpose: 'maskable' },
     ],
   }, {
     headers: { 'Cache-Control': 'no-store, max-age=0', 'Content-Type': 'application/manifest+json; charset=utf-8' },

@@ -2,6 +2,7 @@ import PathaoCourierManager from './PathaoCourierManager';
 import React, { useState } from 'react';
 import { useStore } from '../../context/StoreContext';
 import { StoreImage } from '../common/StoreImage';
+import { StoreBrandMark } from '../common/StoreBrandMark';
 import { useAuth } from '../../context/AuthContext';
 import { formatPrice, formatDate, formatDateOnly } from '../../utils/formatters';
 import {
@@ -316,7 +317,7 @@ export const AdminDashboard: React.FC = () => {
 
   // Settings may arrive asynchronously from the content API after this component mounts.
   React.useEffect(() => {
-    setStoreNameInput(settings.storeName || 'Zelux');
+    setStoreNameInput(settings.storeName || 'Store');
     setLogoUrlInput(settings.logoUrl || '');
     setTaglineInput(settings.tagline || '');
     setPhoneInput(settings.phone || '');
@@ -493,7 +494,7 @@ export const AdminDashboard: React.FC = () => {
       }
     }
     updateSettings({
-      storeName: storeNameInput.trim() || 'Zelux',
+      storeName: storeNameInput.trim() || 'Store',
       logoUrl: logoUrlInput.trim().startsWith('https://') ? logoUrlInput.trim() : '',
       tagline: taglineInput.trim(),
       phone: phoneInput.trim(),
@@ -641,16 +642,19 @@ export const AdminDashboard: React.FC = () => {
         {/* Sidebar Header Brand */}
         <div className="h-16 flex items-center justify-between px-4 border-b border-slate-800 shrink-0">
           <div className="flex items-center gap-3 overflow-hidden">
-            <div className="p-2 bg-indigo-600 rounded-xl text-white shrink-0 shadow-sm">
-              <LayoutDashboard className="w-5 h-5" />
-            </div>
+            <StoreBrandMark
+              name={settings.storeName}
+              logoUrl={settings.logoUrl}
+              className="h-10 w-10 rounded-xl"
+              fallbackClassName="bg-indigo-600 text-white shadow-sm"
+            />
             {!isSidebarCollapsed && (
               <div className="min-w-0">
-                <span className="font-mono font-black text-sm tracking-tight text-white block truncate uppercase">
-                  ZELUX ADMIN
+                <span className="block truncate text-sm font-black tracking-tight text-white">
+                  {settings.storeName?.trim() || 'Store'} Admin
                 </span>
-                <span className="text-[10px] text-emerald-400 font-medium block truncate">
-                  Dhaka Operations
+                <span className="block truncate text-[10px] font-medium text-emerald-400">
+                  Store management
                 </span>
               </div>
             )}
@@ -2637,7 +2641,7 @@ export const AdminDashboard: React.FC = () => {
                 </div>
                 <label htmlFor="store-logo-url" className="mt-4 mb-1 block font-semibold">Or use logo URL</label>
                 <input id="store-logo-url" type="url" maxLength={2048} value={logoUrlInput} onChange={(e) => setLogoUrlInput(e.target.value)} placeholder="https://res.cloudinary.com/.../logo.webp" className="w-full rounded-lg border bg-white px-3 py-2 focus:border-indigo-600 focus:outline-none" aria-describedby="store-logo-help" />
-                {logoUrlInput.trim().startsWith('https://') && <div className="mt-3 flex min-h-16 items-center gap-3 rounded-lg border border-dashed border-slate-300 bg-white p-3"><img src={logoUrlInput.trim()} alt="Store logo preview" className="h-12 w-12 object-contain" onError={(event) => { event.currentTarget.style.visibility = 'hidden'; }} /><span className="min-w-0 break-words text-sm font-bold text-slate-900">{storeNameInput.trim() || 'Zelux'}</span><span className="text-[11px] text-slate-500">Header & footer preview</span></div>}
+                {logoUrlInput.trim().startsWith('https://') && <div className="mt-3 flex min-h-16 items-center gap-3 rounded-lg border border-dashed border-slate-300 bg-white p-3"><img src={logoUrlInput.trim()} alt="Store logo preview" className="h-12 w-12 object-contain" onError={(event) => { event.currentTarget.style.visibility = 'hidden'; }} /><span className="min-w-0 break-words text-sm font-bold text-slate-900">{storeNameInput.trim() || 'Store'}</span><span className="text-[11px] text-slate-500">Header & footer preview</span></div>}
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

@@ -538,7 +538,7 @@ export const ProductModal: React.FC = () => {
                             </p>
                             {q.answer ? (
                               <p className="text-slate-600 pl-4 border-l-2 border-emerald-500 text-[11px]">
-                                <strong className="text-emerald-700">Zelux Concierge:</strong> {q.answer}
+                                <strong className="text-emerald-700">{settings.storeName?.trim() || 'Store'} Concierge:</strong> {q.answer}
                               </p>
                             ) : (
                               <p className="text-[11px] text-slate-400 italic pl-4">Awaiting concierge response...</p>

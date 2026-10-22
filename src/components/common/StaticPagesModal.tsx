@@ -13,7 +13,7 @@ interface StaticPagesModalProps {
 }
 
 const builtInPages: Record<string, { title: string; description: string; Icon: React.ComponentType<{ className?: string }> }> = {
-  about: { title: 'About Zelux', description: 'Store information has not been configured yet.', Icon: ShieldCheck },
+  about: { title: 'About the store', description: 'Store information has not been configured yet.', Icon: ShieldCheck },
   shipping: { title: 'Shipping & Delivery Policy', description: 'The store owner has not published a shipping policy yet.', Icon: Truck },
   refund: { title: 'Returns & Refunds', description: 'The store owner has not published a returns and refunds policy yet.', Icon: RefreshCw },
   support: { title: 'Contact Support', description: 'Please use the contact details configured by the store owner.', Icon: Mail },
@@ -26,7 +26,7 @@ export const StaticPagesModal: React.FC<StaticPagesModalProps> = ({ page, onClos
   const { settings, pages } = useStore();
   const dynamicPage = pages.find((item) => item.slug === page && item.isPublished);
   const builtIn = page ? builtInPages[page] : undefined;
-  const title = dynamicPage?.title || builtIn?.title || (page || '').replace(/-/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
+  const title = dynamicPage?.title || (page === 'about' ? `About ${settings.storeName?.trim() || 'the store'}` : builtIn?.title) || (page || '').replace(/-/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
   const Icon = builtIn?.Icon || FileText;
   const content = dynamicPage?.content?.trim();
 

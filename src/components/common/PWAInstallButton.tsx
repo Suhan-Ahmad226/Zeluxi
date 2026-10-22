@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { usePWAInstall } from '../../hooks/usePWAInstall';
 import { Download, X, Share2, PlusSquare } from 'lucide-react';
+import { useStore } from '../../context/StoreContext';
 
 interface PWAInstallButtonProps {
   className?: string;
@@ -12,6 +13,8 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({
   variant = 'primary',
 }) => {
   const { isInstallable, isInstalled, isIOS, install } = usePWAInstall();
+  const { settings } = useStore();
+  const storeName = settings.storeName?.trim() || 'Store';
   const [showIOSModal, setShowIOSModal] = useState(false);
   const [isInstalling, setIsInstalling] = useState(false);
 
@@ -36,8 +39,8 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({
       {variant === 'icon' ? (
         <button
           onClick={handleInstallClick}
-          aria-label="Install Zelux App"
-          title="Install Zelux Web App"
+          aria-label={`Install ${storeName} App`}
+          title={`Install ${storeName} Web App`}
           className={`p-2 text-slate-600 hover:text-indigo-600 hover:bg-slate-100 rounded-lg transition-colors ${className}`}
         >
           <Download className="w-4 h-4" />
@@ -84,7 +87,7 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({
             </div>
 
             <p className="text-slate-600 leading-relaxed">
-              Install <strong>Zelux</strong> to your home screen for instantaneous access, fullscreen shopping, and smooth navigation:
+              Install <strong>{storeName}</strong> to your home screen for instantaneous access, fullscreen shopping, and smooth navigation:
             </p>
 
             <div className="space-y-3 bg-slate-50 p-3.5 rounded-xl border border-slate-100">

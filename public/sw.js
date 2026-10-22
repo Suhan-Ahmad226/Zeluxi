@@ -1,12 +1,6 @@
-const CACHE_NAME = 'zelux-next-v1';
-const STATIC_ASSETS = [
-  '/favicon.svg',
-  '/icon-192.png',
-  '/icon-512.png',
-  '/icon-maskable-512.png',
-  '/apple-touch-icon.png',
-  '/manifest.webmanifest'
-];
+const CACHE_NAME = 'store-pwa-v2-branding';
+// Brand icons are resolved dynamically from Admin Settings. Do not pin old static logo files.
+const STATIC_ASSETS = ['/manifest.webmanifest'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -34,7 +28,7 @@ self.addEventListener('fetch', (event) => {
   if (url.origin !== self.location.origin || url.pathname.startsWith('/api/') || url.pathname.includes('/auth/')) return;
 
   if (request.mode === 'navigate') {
-    event.respondWith(fetch(request).catch(() => new Response('You are offline. Reconnect to load Zelux.', {
+    event.respondWith(fetch(request).catch(() => new Response('You are offline. Reconnect to continue shopping.', {
       status: 503,
       headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' }
     })));

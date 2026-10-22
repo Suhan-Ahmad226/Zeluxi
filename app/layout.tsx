@@ -30,7 +30,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const settings = await readPublicStoreSettings(origin);
   const storeName = typeof settings.storeName === 'string' && settings.storeName.trim()
     ? settings.storeName.trim()
-    : 'Zelux';
+    : 'Store';
   const description = typeof settings.seoDescription === 'string' && settings.seoDescription.trim()
     ? settings.seoDescription.trim()
     : typeof settings.tagline === 'string' && settings.tagline.trim()
@@ -50,9 +50,9 @@ export async function generateMetadata(): Promise<Metadata> {
     openGraph: { type: 'website', siteName: storeName, title, description, url: '/' },
     twitter: { card: 'summary_large_image', title, description },
     icons: {
-      icon: [{ url: '/api/brand/icon?kind=favicon' }],
-      apple: [{ url: '/api/brand/icon?kind=apple' }],
-      shortcut: [{ url: '/api/brand/icon?kind=favicon' }],
+      icon: [{ url: '/api/brand/icon?size=192' }],
+      apple: [{ url: '/api/brand/icon?size=180' }],
+      shortcut: [{ url: '/api/brand/icon?size=180' }],
     },
     manifest: '/api/brand/manifest',
   };
