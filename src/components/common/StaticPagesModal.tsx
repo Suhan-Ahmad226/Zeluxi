@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { useStore } from '../../context/StoreContext';
 import { formatDateOnly } from '../../utils/formatters';
 import { X, ShieldCheck, Truck, RefreshCw, Mail, FileText } from 'lucide-react';
+import { sanitizeRichTextHtml } from '../../utils/richText';
 
 export type StaticPageType = string;
 
@@ -81,7 +82,7 @@ export const StaticPagesModal: React.FC<StaticPagesModalProps> = ({ page, onClos
         </header>
         <div className="space-y-4 overflow-y-auto p-5 text-sm leading-7 text-slate-700 sm:p-6">
           {content ? (
-            <div className="whitespace-pre-wrap break-words">{content}</div>
+            <div className="cms-rich-content break-words" dangerouslySetInnerHTML={{ __html: sanitizeRichTextHtml(content) }} />
           ) : page === 'support' ? (
             <div className="space-y-3">
               <p>{builtIn?.description}</p>
