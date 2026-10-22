@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useStore } from '../../context/StoreContext';
+import { formatDateOnly } from '../../utils/formatters';
 import { StaticPageContent } from '../../types';
 import {
   FileText,
@@ -185,7 +186,7 @@ export const PagesCMSManager: React.FC = () => {
                     {page.isPublished ? 'Published' : 'Draft'}
                   </span>
                 </td>
-                <td className="p-3.5 font-mono text-slate-500 text-[11px]">{page.lastUpdated}</td>
+                <td className="p-3.5 font-mono text-slate-500 text-[11px]">{formatDateOnly(page.lastUpdated, language)}</td>
                 <td className="p-3.5 text-right space-x-1">
                   <button
                     onClick={() => setActiveStaticPage(page.slug as any)}
