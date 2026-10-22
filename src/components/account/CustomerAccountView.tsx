@@ -1559,7 +1559,7 @@ export const CustomerAccountView: React.FC = () => {
               </div>
 
               <p className="text-xs text-slate-600">
-                Zelux offers a 7-day hassle-free return and exchange policy. Select the reason for your return:
+                {settings.storeName?.trim() || 'The store'} offers a 7-day hassle-free return and exchange policy. Select the reason for your return:
               </p>
 
               <select
