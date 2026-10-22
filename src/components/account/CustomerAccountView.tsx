@@ -959,7 +959,7 @@ export const CustomerAccountView: React.FC = () => {
                     <p className="text-xs text-slate-600 mt-2">{c.description}</p>
                     <div className="flex flex-wrap items-center gap-1.5 mt-2">
                       <span className="text-[11px] text-slate-400">
-                        Min. spend: ৳{c.minSpend.toLocaleString()} · Valid till {c.expiresAt}
+                        Min. spend: ৳{c.minSpend.toLocaleString()} · Valid till {formatDateOnly(c.expiresAt, language)}
                       </span>
                       <span className="inline-block text-[10px] font-medium text-indigo-700 bg-indigo-100/70 px-1.5 py-0.5 rounded">
                         1 use per customer
