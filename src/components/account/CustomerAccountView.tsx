@@ -326,7 +326,7 @@ export const CustomerAccountView: React.FC = () => {
                 </span>
               </div>
               <p className="text-xs text-slate-500">{profilePhone} · {profileEmail}</p>
-              <p className="text-xs text-slate-400 mt-1">{userProfile.division || 'Bangladesh'} · Member since {userProfile.createdAt || '—'}</p>
+              <p className="text-xs text-slate-400 mt-1">{userProfile.division || 'Bangladesh'} · Member since {userProfile.createdAt ? formatDate(userProfile.createdAt, language) : '—'}</p>
             </div>
           </div>
 
@@ -650,7 +650,7 @@ export const CustomerAccountView: React.FC = () => {
                         </span>
                         <span className="text-[11px] text-slate-400 font-mono">({ord.paymentMethod})</span>
                       </div>
-                      <p className="text-slate-400 mt-0.5">{ord.createdAt}</p>
+                      <p className="text-slate-400 mt-0.5">{formatDate(ord.createdAt, language)}</p>
                     </div>
 
                     <div className="flex items-center gap-3">
@@ -704,7 +704,7 @@ export const CustomerAccountView: React.FC = () => {
                         <div className="rounded-lg bg-white border border-slate-200 p-3"><h4 className="text-xs font-bold mb-2">Payment & delivery</h4><p className="text-xs">Method: <strong>{ord.paymentMethod}</strong></p><p className="text-xs mt-1">Payment status: <strong>{ord.paymentStatus}</strong></p><p className="text-xs mt-1">Courier: <strong>{ord.courier.provider}</strong></p><p className="text-xs mt-1">ETA: <strong>{ord.courier.estimatedDelivery || 'Not available yet'}</strong></p>{ord.courier.trackingCode && <p className="text-xs mt-1">Tracking code: <strong className="font-mono">{ord.courier.trackingCode}</strong></p>}{ord.courier.consignmentId && <p className="text-xs mt-1">Consignment: <strong className="font-mono">{ord.courier.consignmentId}</strong></p>}</div>
                       </div>
                       <div className="rounded-lg bg-white border border-slate-200 p-3 space-y-2 text-xs"><h4 className="font-bold">Price summary</h4><div className="flex justify-between"><span>Subtotal</span><strong>{formatPrice(ord.subtotal, language)}</strong></div><div className="flex justify-between"><span>Shipping</span><strong>{formatPrice(ord.shippingFee, language)}</strong></div>{ord.discount > 0 && <div className="flex justify-between text-emerald-700"><span>Discount</span><strong>−{formatPrice(ord.discount, language)}</strong></div>}<div className="flex justify-between border-t pt-2 text-sm"><strong>Grand total</strong><strong className="text-indigo-700">{formatPrice(ord.grandTotal, language)}</strong></div></div>
-                      {ord.statusHistory.length > 0 && <div className="rounded-lg bg-white border border-slate-200 p-3"><h4 className="text-xs font-bold mb-2">Order activity</h4><ol className="space-y-2">{ord.statusHistory.slice().reverse().map((event, index) => <li key={event.status + event.timestamp + index} className="text-xs"><strong>{event.status.replaceAll('_', ' ')}</strong><p className="text-slate-500">{event.timestamp}</p>{event.note && <p className="text-slate-600">{event.note}</p>}</li>)}</ol></div>}
+                      {ord.statusHistory.length > 0 && <div className="rounded-lg bg-white border border-slate-200 p-3"><h4 className="text-xs font-bold mb-2">Order activity</h4><ol className="space-y-2">{ord.statusHistory.slice().reverse().map((event, index) => <li key={event.status + event.timestamp + index} className="text-xs"><strong>{event.status.replaceAll('_', ' ')}</strong><p className="text-slate-500">{formatDate(event.timestamp, language)}</p>{event.note && <p className="text-slate-600">{event.note}</p>}</li>)}</ol></div>}
                       <button onClick={() => openOrderInvoice(ord, settings, language)} className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white"><Download className="h-4 w-4" />Download PDF</button>
                     </section>
                   )}
@@ -851,7 +851,7 @@ export const CustomerAccountView: React.FC = () => {
                         </span>
                       </div>
                       <p className="text-[11px] text-slate-400 mt-1">
-                        Placed on {ord.createdAt} · ETA: {ord.courier.estimatedDelivery}
+                        Placed on {formatDate(ord.createdAt, language)} · ETA: {ord.courier.estimatedDelivery}
                       </p>
                     </div>
 
