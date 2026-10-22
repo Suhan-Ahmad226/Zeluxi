@@ -27,6 +27,8 @@ export const PagesCMSManager: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingPage, setEditingPage] = useState<StaticPageContent | null>(null);
   const [deleteCandidate, setDeleteCandidate] = useState<StaticPageContent | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Form states
   const [slug, setSlug] = useState('');
@@ -80,9 +82,10 @@ export const PagesCMSManager: React.FC = () => {
     }
   };
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim() || !slug.trim()) {
+    if (isSaving) return;
+    if (!title.trim() || !slug.trim() || !content.trim()) {
       showToast('Page title and slug are required', 'error');
       return;
     }
@@ -123,13 +126,19 @@ export const PagesCMSManager: React.FC = () => {
       ogImageUrl: ogImageUrl.trim() || undefined,
     };
 
-    if (editingPage) {
-      updatePage(pageData);
-    } else {
-      addPage(pageData);
+    setIsSaving(true);
+    try {
+      if (editingPage) {
+        await updatePage(pageData);
+      } else {
+        await addPage(pageData);
+      }
+      setIsModalOpen(false);
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Page could not be saved. Your edits are still available to retry.', 'error');
+    } finally {
+      setIsSaving(false);
     }
-
-    setIsModalOpen(false);
   };
 
   const filteredPages = pages.filter((p) => {
@@ -397,15 +406,17 @@ export const PagesCMSManager: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-50 font-medium"
+                  disabled={isSaving}
+                  className="px-4 py-2 border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-50 font-medium disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold shadow-xs active:scale-95 transition-all"
+                  disabled={isSaving}
+                  className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold shadow-xs active:scale-95 transition-all disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {editingPage ? 'Save Changes' : 'Publish Page'}
+                  {isSaving ? 'Saving…' : editingPage ? 'Save Changes' : 'Publish Page'}
                 </button>
               </div>
             </form>
@@ -434,13 +445,22 @@ export const PagesCMSManager: React.FC = () => {
                 Cancel
               </button>
               <button
-                onClick={() => {
-                  deletePage(deleteCandidate.slug);
-                  setDeleteCandidate(null);
+                disabled={isDeleting}
+                onClick={async () => {
+                  if (isDeleting) return;
+                  setIsDeleting(true);
+                  try {
+                    await deletePage(deleteCandidate.slug);
+                    setDeleteCandidate(null);
+                  } catch (error) {
+                    showToast(error instanceof Error ? error.message : 'Page could not be deleted. Please retry.', 'error');
+                  } finally {
+                    setIsDeleting(false);
+                  }
                 }}
-                className="flex-1 py-2 text-xs font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-xl"
+                className="flex-1 py-2 text-xs font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-xl disabled:cursor-not-allowed disabled:opacity-60"
               >
-                Delete Page
+                {isDeleting ? 'Deleting…' : 'Delete Page'}
               </button>
             </div>
           </div>
