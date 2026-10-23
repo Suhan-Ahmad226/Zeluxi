@@ -2,8 +2,7 @@
 
 import React from 'react';
 import { StoreProvider, useStore } from './context/StoreContext';
-import { AuthProvider } from './context/AuthContext';
-import { AuthModal } from './components/auth/AuthModal';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import { AnnouncementBar } from './components/layout/AnnouncementBar';
 import { Navbar } from './components/layout/Navbar';
 import { Footer } from './components/layout/Footer';
@@ -12,11 +11,7 @@ import { TrustBadges } from './components/storefront/TrustBadges';
 import { CategoryList } from './components/storefront/CategoryList';
 import { ProductGrid } from './components/storefront/ProductGrid';
 import { DealsBanner } from './components/storefront/DealsBanner';
-import { ProductModal } from './components/storefront/ProductModal';
 import { RecentlyViewedBar } from './components/storefront/RecentlyViewedBar';
-import { CartDrawer } from './components/cart/CartDrawer';
-import { CheckoutModal } from './components/checkout/CheckoutModal';
-import { OrderSuccessModal } from './components/checkout/OrderSuccessModal';
 import { NotificationToast } from './components/common/NotificationToast';
 import { OfflineIndicator } from './components/common/OfflineIndicator';
 import { StoreLoadingSkeleton } from './components/common/StoreLoadingSkeleton';
@@ -24,6 +19,13 @@ import { SlidersHorizontal } from 'lucide-react';
 
 // Code-split heavy modals and workspace to optimize initial storefront bundle
 const AdminDashboard = React.lazy(() => import('./components/admin/AdminDashboard').then((m) => ({ default: m.AdminDashboard })));
+// Load commerce overlays only when first opened; keep them mounted afterwards so
+// their form state survives closing/reopening during the same visit.
+const AuthModal = React.lazy(() => import('./components/auth/AuthModal').then((m) => ({ default: m.AuthModal })));
+const ProductModal = React.lazy(() => import('./components/storefront/ProductModal').then((m) => ({ default: m.ProductModal })));
+const CartDrawer = React.lazy(() => import('./components/cart/CartDrawer').then((m) => ({ default: m.CartDrawer })));
+const CheckoutModal = React.lazy(() => import('./components/checkout/CheckoutModal').then((m) => ({ default: m.CheckoutModal })));
+const OrderSuccessModal = React.lazy(() => import('./components/checkout/OrderSuccessModal').then((m) => ({ default: m.OrderSuccessModal })));
 // Route-specific screens are split out so the initial storefront doesn't download
 // account, order-tracking, email-verification, or product-detail code unnecessarily.
 const ProductDetailsPage = React.lazy(() => import('./components/storefront/ProductDetailsPage').then((m) => ({ default: m.ProductDetailsPage })));
@@ -36,7 +38,19 @@ const StaticPagesModal = React.lazy(() => import('./components/common/StaticPage
 const WhatsAppConcierge = React.lazy(() => import('./components/common/WhatsAppConcierge').then((m) => ({ default: m.WhatsAppConcierge })));
 
 const MainStoreContent: React.FC<{ productSlug?: string }> = ({ productSlug }) => {
-  const { activeView, language, compareList, setIsCompareOpen, activeStaticPage, setActiveStaticPage, storefrontCMS } = useStore();
+  const { activeView, language, compareList, setIsCompareOpen, activeStaticPage, setActiveStaticPage, storefrontCMS, selectedProduct, isCartOpen, isCheckoutOpen, lastCreatedOrder } = useStore();
+  const { isAuthModalOpen } = useAuth();
+  const [authModalLoaded, setAuthModalLoaded] = React.useState(false);
+  const [productModalLoaded, setProductModalLoaded] = React.useState(false);
+  const [cartDrawerLoaded, setCartDrawerLoaded] = React.useState(false);
+  const [checkoutModalLoaded, setCheckoutModalLoaded] = React.useState(false);
+  const [orderSuccessLoaded, setOrderSuccessLoaded] = React.useState(false);
+
+  React.useEffect(() => { if (isAuthModalOpen) setAuthModalLoaded(true); }, [isAuthModalOpen]);
+  React.useEffect(() => { if (selectedProduct) setProductModalLoaded(true); }, [selectedProduct]);
+  React.useEffect(() => { if (isCartOpen) setCartDrawerLoaded(true); }, [isCartOpen]);
+  React.useEffect(() => { if (isCheckoutOpen) setCheckoutModalLoaded(true); }, [isCheckoutOpen]);
+  React.useEffect(() => { if (lastCreatedOrder) setOrderSuccessLoaded(true); }, [lastCreatedOrder]);
 
   // Admin Dashboard has its own dedicated sidebar and compact top header
   if (activeView === 'admin') {
@@ -45,8 +59,10 @@ const MainStoreContent: React.FC<{ productSlug?: string }> = ({ productSlug }) =
         <React.Suspense fallback={<StoreLoadingSkeleton variant="admin" />} >
           <AdminDashboard />
         </React.Suspense>
-        <AuthModal />
-        <OrderSuccessModal />
+        <React.Suspense fallback={null}>
+          {authModalLoaded && <AuthModal />}
+          {orderSuccessLoaded && <OrderSuccessModal />}
+        </React.Suspense>
         <NotificationToast />
       </div>
     );
@@ -115,9 +131,12 @@ const MainStoreContent: React.FC<{ productSlug?: string }> = ({ productSlug }) =
       )}
 
       {/* Global Modals & Drawers */}
-      <AuthModal />
-      <ProductModal />
       <React.Suspense fallback={null}>
+        {authModalLoaded && <AuthModal />}
+        {productModalLoaded && <ProductModal />}
+        {cartDrawerLoaded && <CartDrawer />}
+        {checkoutModalLoaded && <CheckoutModal />}
+        {orderSuccessLoaded && <OrderSuccessModal />}
         <SizeGuideModal />
         <ProductCompareModal />
         <WhatsAppConcierge />
@@ -126,9 +145,6 @@ const MainStoreContent: React.FC<{ productSlug?: string }> = ({ productSlug }) =
           onClose={() => setActiveStaticPage(null)}
         />
       </React.Suspense>
-      <CartDrawer />
-      <CheckoutModal />
-      <OrderSuccessModal />
       <NotificationToast />
       <OfflineIndicator />
     </div>
