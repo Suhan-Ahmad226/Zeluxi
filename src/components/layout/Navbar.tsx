@@ -19,6 +19,10 @@ import {
   Truck,
   Layers,
   ArrowRight,
+  Home,
+  Store,
+  PackageSearch,
+  UserRound,
 } from 'lucide-react';
 
 export const Navbar: React.FC = () => {
@@ -51,6 +55,8 @@ export const Navbar: React.FC = () => {
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [isMobileNavVisible, setIsMobileNavVisible] = useState(true);
+  const lastScrollYRef = useRef(0);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const searchContainerRef = useRef<HTMLDivElement>(null);
 
@@ -103,6 +109,65 @@ export const Navbar: React.FC = () => {
     setActiveFilterTab(tab);
   };
 
+  // Adapt mobile navigation to scroll direction, including nested scroll containers.
+  useEffect(() => {
+    const media = window.matchMedia('(max-width: 767px)');
+    let lastPosition = window.scrollY;
+    lastScrollYRef.current = lastPosition;
+
+    const handleScroll = (event: Event) => {
+      const target = event.target;
+      const currentY = target instanceof HTMLElement && target !== document.documentElement && target !== document.body
+        ? Math.max(0, target.scrollTop)
+        : Math.max(0, window.scrollY);
+      const delta = currentY - lastPosition;
+
+      if (!media.matches || currentY < 48 || isMobileSearchOpen || isUserMenuOpen) {
+        setIsMobileNavVisible(true);
+      } else if (Math.abs(delta) >= 10) {
+        setIsMobileNavVisible(delta < 0);
+      }
+
+      if (Math.abs(delta) >= 2) {
+        lastPosition = currentY;
+        lastScrollYRef.current = currentY;
+      }
+    };
+
+    const handleViewportChange = () => {
+      setIsMobileNavVisible(true);
+      lastPosition = window.scrollY;
+      lastScrollYRef.current = lastPosition;
+    };
+
+    // A single capture-phase listener handles both document and nested element scrolling.
+    // Registering on window as well can process the same viewport scroll twice and cancel the direction change.
+    document.addEventListener('scroll', handleScroll, { passive: true, capture: true });
+    media.addEventListener('change', handleViewportChange);
+    return () => {
+      document.removeEventListener('scroll', handleScroll, true);
+      media.removeEventListener('change', handleViewportChange);
+    };
+  }, [isMobileSearchOpen, isUserMenuOpen]);
+
+  // Reserve space for the fixed mobile bottom bar so it never covers page content.
+  useEffect(() => {
+    const body = document.body;
+    const originalPaddingBottom = body.style.paddingBottom;
+    const media = window.matchMedia('(max-width: 767px)');
+    const updateBottomSpace = () => {
+      body.style.paddingBottom = media.matches && activeView !== 'admin'
+        ? 'calc(4.25rem + env(safe-area-inset-bottom))'
+        : originalPaddingBottom;
+    };
+    updateBottomSpace();
+    media.addEventListener('change', updateBottomSpace);
+    return () => {
+      media.removeEventListener('change', updateBottomSpace);
+      body.style.paddingBottom = originalPaddingBottom;
+    };
+  }, [activeView]);
+
   // Close dropdown on click outside
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -118,7 +183,8 @@ export const Navbar: React.FC = () => {
   }, []);
 
   return (
-    <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200 transition-colors shadow-xs">
+    <>
+    <header className={"sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200 transition-all duration-200 motion-reduce:transition-none shadow-xs " + (isMobileNavVisible ? "translate-y-0" : "-translate-y-full") + " md:translate-y-0"}>
       {/* Top Primary Bar */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
         {/* Brand Wordmark */}
@@ -502,24 +568,86 @@ export const Navbar: React.FC = () => {
         </div>
       </div>
 
-      {/* Compact mobile navigation keeps key shop links reachable without a hamburger drawer. */}
-      <nav aria-label="Mobile store navigation" className="md:hidden border-t border-slate-100 bg-white/95">
-        <div className="mx-auto flex max-w-7xl items-center gap-2 overflow-x-auto px-4 py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          <button type="button" onClick={() => handleTabClick('all')} className="shrink-0 rounded-full border border-slate-200 px-3 py-1.5 text-[11px] font-semibold text-slate-700 active:bg-slate-100">All products</button>
-          <button type="button" onClick={() => handleTabClick('new-arrivals')} className="shrink-0 rounded-full border border-slate-200 px-3 py-1.5 text-[11px] font-semibold text-slate-700 active:bg-slate-100">New arrivals</button>
-          <button type="button" onClick={() => handleTabClick('deals')} className="shrink-0 rounded-full border border-rose-100 bg-rose-50 px-3 py-1.5 text-[11px] font-semibold text-rose-700 active:bg-rose-100">Deals</button>
-          <button type="button" onClick={() => handleNavClick('tracking')} className="shrink-0 rounded-full border border-slate-200 px-3 py-1.5 text-[11px] font-semibold text-slate-700 active:bg-slate-100">Track order</button>
-          {pages
-            .filter((page) => page.isPublished && page.showInHeader === true)
-            .sort((left, right) => (left.navigationOrder ?? 100) - (right.navigationOrder ?? 100))
-            .slice(0, 6)
-            .map((page) => (
-              <button key={page.slug} type="button" onClick={() => setActiveStaticPage(page.slug)} className="max-w-36 shrink-0 truncate rounded-full border border-slate-200 px-3 py-1.5 text-[11px] font-semibold text-slate-700 active:bg-slate-100">
-                {page.navigationLabel || page.title}
-              </button>
-            ))}
+    </header>
+
+    {/* Adaptive mobile bottom navigation; only changes the customer-facing mobile navigation. */}
+    {activeView !== 'admin' && (
+      <nav
+        aria-label="Mobile bottom navigation"
+        className={"fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 pb-[env(safe-area-inset-bottom)] shadow-[0_-4px_16px_rgba(15,23,42,0.06)] backdrop-blur-md transition-transform duration-200 motion-reduce:transition-none md:hidden " + (isMobileNavVisible ? "translate-y-0" : "translate-y-full")}
+      >
+        <div className="mx-auto grid h-16 max-w-lg grid-cols-5 items-center px-1">
+          <button
+            type="button"
+            onClick={() => {
+              handleNavClick('store');
+              setActiveFilterTab('all');
+              setIsMobileNavVisible(true);
+            }}
+            aria-current={activeView === 'store' ? 'page' : undefined}
+            className={"flex h-12 min-w-0 flex-col items-center justify-center gap-1 rounded-lg text-[10px] font-medium transition-colors " + (activeView === 'store' ? 'text-indigo-600' : 'text-slate-500 hover:text-slate-900')}
+          >
+            <Home className="h-5 w-5" />
+            <span>Home</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              handleTabClick('all');
+              setIsMobileNavVisible(true);
+            }}
+            aria-current={activeView === 'shop' ? 'page' : undefined}
+            className={"flex h-12 min-w-0 flex-col items-center justify-center gap-1 rounded-lg text-[10px] font-medium transition-colors " + (activeView === 'shop' ? 'text-indigo-600' : 'text-slate-500 hover:text-slate-900')}
+          >
+            <Store className="h-5 w-5" />
+            <span>Shop</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              handleNavClick('tracking');
+              setIsMobileNavVisible(true);
+            }}
+            aria-current={activeView === 'tracking' ? 'page' : undefined}
+            className={"flex h-12 min-w-0 flex-col items-center justify-center gap-1 rounded-lg text-[10px] font-medium transition-colors " + (activeView === 'tracking' ? 'text-indigo-600' : 'text-slate-500 hover:text-slate-900')}
+          >
+            <PackageSearch className="h-5 w-5" />
+            <span>Orders</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              handleNavClick('account');
+              setIsMobileNavVisible(true);
+            }}
+            aria-current={activeView === 'account' ? 'page' : undefined}
+            className={"flex h-12 min-w-0 flex-col items-center justify-center gap-1 rounded-lg text-[10px] font-medium transition-colors " + (activeView === 'account' ? 'text-indigo-600' : 'text-slate-500 hover:text-slate-900')}
+          >
+            <UserRound className="h-5 w-5" />
+            <span>Account</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setIsCartOpen(true);
+              setIsMobileNavVisible(true);
+            }}
+            aria-label={"Cart, " + cartItemCount + " items"}
+            className="relative flex h-12 min-w-0 flex-col items-center justify-center gap-1 rounded-lg text-[10px] font-medium text-slate-500 transition-colors hover:text-slate-900"
+          >
+            <span className="relative">
+              <ShoppingBag className="h-5 w-5" />
+              {cartItemCount > 0 && (
+                <span className="absolute -right-2 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-indigo-600 px-1 text-[9px] font-bold leading-none text-white">
+                  {cartItemCount > 99 ? '99+' : cartItemCount}
+                </span>
+              )}
+            </span>
+            <span>Cart</span>
+          </button>
         </div>
       </nav>
-    </header>
+    )}
+    </>
   );
 };
