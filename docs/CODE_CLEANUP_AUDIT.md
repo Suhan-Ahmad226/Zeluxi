@@ -42,7 +42,7 @@ No test files, migrations, API route adapters, PWA assets, or production data/sc
 
 ## Repository inventory and test coverage
 
-The recursive Git tree at the audited head contains 157 tracked files. It includes app/source code, API handlers and route adapters, Supabase migrations/schema, documentation, PWA assets, and 14 unit tests. No standalone tracked `logs/` directory or obvious runtime log files were found. The test suite covers Bangladesh address data, catalog API contracts, Cloudinary, hero banners, Next migration constraints, order numbers/orders/pricing, production contracts/hardening/safety, rich text, Supabase auth, and validation. The production hardening and safety tests overlap in theme but exercise distinct fail-closed contracts; no test file was proven obsolete.
+The recursive Git tree at the audited head contains 156 tracked files. It includes app/source code, API handlers and route adapters, Supabase migrations/schema, documentation, PWA assets, and 14 unit tests. No standalone tracked `logs/` directory or obvious runtime log files were found. The test suite covers Bangladesh address data, catalog API contracts, Cloudinary, hero banners, Next migration constraints, order numbers/orders/pricing, production contracts/hardening/safety, rich text, Supabase auth, and validation. The production hardening and safety tests overlap in theme but exercise distinct fail-closed contracts; no test file was proven obsolete.
 
 ## Validation status
 
