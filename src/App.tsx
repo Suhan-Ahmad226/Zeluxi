@@ -23,6 +23,7 @@ import { CustomerAccountView } from './components/account/CustomerAccountView';
 import { VerifyEmailScreen } from './components/auth/VerifyEmailScreen';
 import { NotificationToast } from './components/common/NotificationToast';
 import { OfflineIndicator } from './components/common/OfflineIndicator';
+import { StoreLoadingSkeleton } from './components/common/StoreLoadingSkeleton';
 import { SlidersHorizontal } from 'lucide-react';
 
 // Code-split heavy modals and workspace to optimize initial storefront bundle
@@ -39,7 +40,7 @@ const MainStoreContent: React.FC<{ productSlug?: string }> = ({ productSlug }) =
   if (activeView === 'admin') {
     return (
       <div className="min-h-screen bg-slate-900 text-slate-100 antialiased selection:bg-indigo-500 selection:text-white">
-        <React.Suspense fallback={<div className="min-h-screen flex items-center justify-center text-xs font-mono text-slate-400">Loading admin workspace...</div>}>
+        <React.Suspense fallback={<StoreLoadingSkeleton variant="admin" />} >
           <AdminDashboard />
         </React.Suspense>
         <AuthModal />
