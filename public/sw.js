@@ -74,7 +74,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  if (!/\\.(png|jpg|jpeg|svg|webp|ico|woff2?)$/i.test(url.pathname)) return;
+  if (!/\.(png|jpg|jpeg|svg|webp|ico|woff2?)$/i.test(url.pathname)) return;
   event.respondWith(
     caches.match(request).then((cached) => cached || fetch(request).then((response) => {
       if (response.ok && response.type === 'basic') {
