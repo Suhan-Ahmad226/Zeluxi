@@ -1265,223 +1265,177 @@ export const AdminDashboard: React.FC = () => {
         <div className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
         {/* TAB 1: OVERVIEW */}
         {activeTab === 'overview' && (
-          <div className="space-y-6">
-            {/* Quick Administration Operations Bar */}
-            <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white p-4 sm:p-5 rounded-2xl border border-indigo-900/50 shadow-md">
-              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="p-1 rounded-md bg-amber-400/20 text-amber-300">
-                      <Sparkles className="w-4 h-4" />
-                    </span>
-                    <h3 className="text-sm sm:text-base font-bold text-white">
-                      Quick Operations & Catalog Tools
-                    </h3>
-                  </div>
-                  <p className="text-xs text-slate-300 mt-1">
-                    Direct shortcuts to create products, manage categories/sub-categories, or update hero banner
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-2 flex-wrap">
-                  <button
-                    onClick={() => {
-                      setEditingProductForModal(null);
-                      setActiveTab('add-product');
-                    }}
-                    className="flex items-center gap-1.5 px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-xl shadow-xs transition-colors active:scale-95"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>+ Add Product</span>
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setCategoryInitialAction('add-category');
-                      setActiveTab('categories');
-                    }}
-                    className="flex items-center gap-1.5 px-3.5 py-2 bg-white/10 hover:bg-white/20 text-white text-xs font-semibold rounded-xl border border-white/20 transition-colors active:scale-95"
-                  >
-                    <Layers className="w-3.5 h-3.5 text-indigo-300" />
-                    <span>+ Add Category</span>
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setCategoryInitialAction('add-subcategory');
-                      setActiveTab('categories');
-                    }}
-                    className="flex items-center gap-1.5 px-3.5 py-2 bg-white/10 hover:bg-white/20 text-white text-xs font-semibold rounded-xl border border-white/20 transition-colors active:scale-95"
-                  >
-                    <FolderPlus className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>+ Add Sub-Category</span>
-                  </button>
-
-                  <button
-                    onClick={() => setActiveTab('appearance')}
-                    className="flex items-center gap-1.5 px-3.5 py-2 bg-white/10 hover:bg-white/20 text-white text-xs font-semibold rounded-xl border border-white/20 transition-colors active:scale-95"
-                  >
-                    <Palette className="w-3.5 h-3.5 text-amber-300" />
-                    <span>Change Banner</span>
-                  </button>
-                </div>
+          <div className="space-y-5 sm:space-y-6">
+            {/* Overview heading */}
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+              <div className="min-w-0">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-indigo-600">Store control center</p>
+                <h1 className="mt-1 text-2xl sm:text-3xl font-bold tracking-tight text-slate-950">Overview</h1>
+                <p className="mt-1.5 text-sm text-slate-500">A clear snapshot of orders, paid revenue, and inventory that needs attention.</p>
               </div>
-            </div>
-
-            {/* Key Stat Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-2">
-                <div className="flex items-center justify-between text-xs text-slate-500">
-                  <span>Estimated Revenue</span>
-                  <TrendingUp className="w-4 h-4 text-emerald-600" />
-                </div>
-                <p className="text-2xl font-extrabold text-slate-900 tabular-nums">
-                  {formatPrice(totalRevenue, language)}
-                </p>
-                <span className="text-[11px] text-emerald-600 font-semibold">
-                  Estimate based on local order statuses
-                </span>
-              </div>
-
-              <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-2">
-                <div className="flex items-center justify-between text-xs text-slate-500">
-                  <span>Total Orders Placed</span>
-                  <ShoppingBag className="w-4 h-4 text-indigo-600" />
-                </div>
-                <p className="text-2xl font-extrabold text-slate-900 tabular-nums">
-                  {orders.length}
-                </p>
-                <span className="text-[11px] text-indigo-600 font-semibold">
-                  {pendingOrders} awaiting dispatch
-                </span>
-              </div>
-
-              <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-2">
-                <div className="flex items-center justify-between text-xs text-slate-500">
-                  <span>Low Stock Warning</span>
-                  <AlertTriangle className="w-4 h-4 text-amber-500" />
-                </div>
-                <p className="text-2xl font-extrabold text-slate-900 tabular-nums">
-                  {lowStockProducts.length}
-                </p>
-                <span className="text-[11px] text-amber-700 font-semibold">
-                  Items below safe threshold
-                </span>
-              </div>
-
-              <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-2">
-                <div className="flex items-center justify-between text-xs text-slate-500">
-                  <span>Courier Success Rate</span>
-                  <Truck className="w-4 h-4 text-emerald-600" />
-                </div>
-                <p className="text-2xl font-extrabold text-slate-900 tabular-nums">
-                  Not available
-                </p>
-                <span className="text-[11px] text-emerald-600 font-semibold">
-                  Courier APIs are not configured
-                </span>
-              </div>
-            </div>
-
-            {/* Recent Orders Overview */}
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-              <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between">
-                <div>
-                  <h3 className="text-sm font-bold text-slate-900">Recent Customer Orders</h3>
-                  <p className="text-xs text-slate-500">Order records in this browser only; not a shared live order feed</p>
-                </div>
+              <div className="flex flex-wrap gap-2">
                 <button
+                  type="button"
                   onClick={() => setActiveTab('orders')}
-                  className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 flex items-center gap-1"
+                  className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
                 >
-                  <span>View All Orders</span>
-                  <ChevronRight className="w-4 h-4" />
+                  <ShoppingBag className="h-4 w-4" />
+                  View orders
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setEditingProductForModal(null); setActiveTab('add-product'); }}
+                  className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-3.5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+                >
+                  <Plus className="h-4 w-4" />
+                  Add product
                 </button>
               </div>
-
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-50 text-slate-500 uppercase tracking-wider text-[10px] border-b border-slate-200">
-                    <tr>
-                      <th className="p-3">Order ID</th>
-                      <th className="p-3">Customer</th>
-                      <th className="p-3">Method</th>
-                      <th className="p-3">Status</th>
-                      <th className="p-3">Courier</th>
-                      <th className="p-3 text-right">Grand Total</th>
-                      <th className="p-3 text-center">Quick Action</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {orders.slice(0, 5).map((ord) => (
-                      <tr key={ord.id} className="hover:bg-slate-50/70">
-                        <td className="p-3 font-mono font-bold text-slate-900">#{ord.orderNumber || ord.id}</td>
-                        <td className="p-3">
-                          <p className="font-semibold text-slate-800">{ord.customer.fullName}</p>
-                          <p className="text-[11px] text-slate-400">{ord.customer.phone}</p>
-                        </td>
-                        <td className="p-3 font-mono text-[11px]">{ord.paymentMethod}</td>
-                        <td className="p-3">
-                          <span
-                            className={`px-2 py-0.5 rounded text-[11px] font-bold ${
-                              ord.status === 'DELIVERED'
-                                ? 'bg-emerald-100 text-emerald-800'
-                                : ord.status === 'SHIPPED'
-                                ? 'bg-blue-100 text-blue-800'
-                                : 'bg-amber-100 text-amber-800'
-                            }`}
-                          >
-                            {ord.status}
-                          </span>
-                        </td>
-                        <td className="p-3">
-                          <p className="font-semibold text-slate-800">{ord.courier.provider}</p>
-                          <p className="text-[10px] font-mono text-indigo-600">{ord.courier.trackingCode}</p>
-                        </td>
-                        <td className="p-3 text-right font-bold text-slate-900 tabular-nums">
-                          {formatPrice(ord.grandTotal, language)}
-                        </td>
-                        <td className="p-3 text-center">
-                          <button
-                            onClick={() => setLastCreatedOrder(ord)}
-                            className="p-1.5 text-slate-600 hover:text-indigo-600 hover:bg-slate-100 rounded"
-                            title="Print / View Invoice"
-                          >
-                            <Printer className="w-4 h-4" />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
             </div>
 
-            {/* Low Stock Alerts */}
-            {lowStockProducts.length > 0 && (
-              <div className="bg-amber-50/70 border border-amber-200 rounded-xl p-5 space-y-3">
-                <div className="flex items-center gap-2 text-amber-900 font-bold text-xs uppercase tracking-wider">
-                  <AlertTriangle className="w-4 h-4 text-amber-600" />
-                  <span>Immediate Restock Required</span>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                  {lowStockProducts.map((p) => (
-                    <div key={p.id} className="p-3 bg-white rounded-lg border border-amber-200 flex items-center justify-between text-xs">
-                      <div>
-                        <p className="font-semibold text-slate-900 truncate max-w-[180px]">{p.name}</p>
-                        <p className="text-[11px] text-amber-700 font-mono">Stock: {p.stock} units</p>
-                      </div>
-                      <button
-                        onClick={() => adjustStock(p.id, p.stock + 10, 'Admin Quick Restock')}
-                        className="px-2.5 py-1 bg-amber-600 text-white rounded font-semibold text-[11px] hover:bg-amber-700"
-                      >
-                        +10 Units
-                      </button>
-                    </div>
-                  ))}
+            {/* High-frequency actions */}
+            <section aria-label="Quick actions" className="rounded-2xl border border-slate-200 bg-white p-3 sm:p-4 shadow-sm">
+              <div className="mb-3 flex items-center gap-2 px-1">
+                <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
+                  <Sparkles className="h-4 w-4" />
+                </span>
+                <div>
+                  <h2 className="text-sm font-bold text-slate-900">Quick actions</h2>
+                  <p className="text-xs text-slate-500">Get to common tasks in one tap</p>
                 </div>
               </div>
-            )}
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                <button type="button" onClick={() => { setEditingProductForModal(null); setActiveTab('add-product'); }} className="group flex min-h-[76px] items-center gap-3 rounded-xl border border-slate-200 p-3 text-left transition hover:border-indigo-200 hover:bg-indigo-50/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 group-hover:bg-white"><Plus className="h-5 w-5" /></span>
+                  <span className="min-w-0"><span className="block text-xs sm:text-sm font-semibold text-slate-800">Add product</span><span className="mt-0.5 hidden text-[11px] text-slate-500 sm:block">Create a listing</span></span>
+                </button>
+                <button type="button" onClick={() => { setCategoryInitialAction('add-category'); setActiveTab('categories'); }} className="group flex min-h-[76px] items-center gap-3 rounded-xl border border-slate-200 p-3 text-left transition hover:border-indigo-200 hover:bg-indigo-50/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-50 text-violet-600 group-hover:bg-white"><Layers className="h-5 w-5" /></span>
+                  <span className="min-w-0"><span className="block text-xs sm:text-sm font-semibold text-slate-800">Categories</span><span className="mt-0.5 hidden text-[11px] text-slate-500 sm:block">Organize catalog</span></span>
+                </button>
+                <button type="button" onClick={() => setActiveTab('inventory')} className="group flex min-h-[76px] items-center gap-3 rounded-xl border border-slate-200 p-3 text-left transition hover:border-amber-200 hover:bg-amber-50/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-700 group-hover:bg-white"><Package className="h-5 w-5" /></span>
+                  <span className="min-w-0"><span className="block text-xs sm:text-sm font-semibold text-slate-800">Inventory</span><span className="mt-0.5 hidden text-[11px] text-slate-500 sm:block">{lowStockProducts.length} need attention</span></span>
+                </button>
+                <button type="button" onClick={() => setActiveTab('appearance')} className="group flex min-h-[76px] items-center gap-3 rounded-xl border border-slate-200 p-3 text-left transition hover:border-amber-200 hover:bg-amber-50/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-rose-50 text-rose-600 group-hover:bg-white"><Palette className="h-5 w-5" /></span>
+                  <span className="min-w-0"><span className="block text-xs sm:text-sm font-semibold text-slate-800">Storefront</span><span className="mt-0.5 hidden text-[11px] text-slate-500 sm:block">Update homepage</span></span>
+                </button>
+              </div>
+            </section>
+
+            {/* Store metrics */}
+            <section aria-label="Store metrics" className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+              <article className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0"><p className="text-xs sm:text-sm font-medium text-slate-500">Paid revenue</p><p className="mt-2 break-words text-xl sm:text-2xl font-bold tracking-tight text-slate-950 tabular-nums">{formatPrice(totalRevenue, language)}</p></div>
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600"><TrendingUp className="h-4.5 w-4.5" /></span>
+                </div>
+                <p className="mt-3 text-[11px] leading-4 text-slate-500">Sum of orders marked as paid</p>
+              </article>
+              <button type="button" onClick={() => setActiveTab('orders')} className="rounded-2xl border border-slate-200 bg-white p-4 text-left shadow-sm transition hover:border-indigo-200 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0"><p className="text-xs sm:text-sm font-medium text-slate-500">Total orders</p><p className="mt-2 text-2xl font-bold tracking-tight text-slate-950 tabular-nums">{orders.length}</p></div>
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600"><ShoppingBag className="h-4.5 w-4.5" /></span>
+                </div>
+                <p className="mt-3 text-[11px] leading-4 text-indigo-700">{pendingOrders} awaiting dispatch <ArrowUpRight className="ml-1 inline h-3.5 w-3.5" /></p>
+              </button>
+              <button type="button" onClick={() => setActiveTab('orders')} className="rounded-2xl border border-slate-200 bg-white p-4 text-left shadow-sm transition hover:border-amber-200 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0"><p className="text-xs sm:text-sm font-medium text-slate-500">Needs attention</p><p className="mt-2 text-2xl font-bold tracking-tight text-slate-950 tabular-nums">{pendingOrders}</p></div>
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-700"><Clock className="h-4.5 w-4.5" /></span>
+                </div>
+                <p className="mt-3 text-[11px] leading-4 text-slate-500">Pending or confirmed orders</p>
+              </button>
+              <button type="button" onClick={() => setActiveTab('inventory')} className="rounded-2xl border border-slate-200 bg-white p-4 text-left shadow-sm transition hover:border-rose-200 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0"><p className="text-xs sm:text-sm font-medium text-slate-500">Low-stock products</p><p className="mt-2 text-2xl font-bold tracking-tight text-slate-950 tabular-nums">{lowStockProducts.length}</p></div>
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-rose-50 text-rose-600"><AlertTriangle className="h-4.5 w-4.5" /></span>
+                </div>
+                <p className="mt-3 text-[11px] leading-4 text-rose-700">{lowStockProducts.length > 0 ? 'Review stock levels' : 'No low-stock alerts'}</p>
+              </button>
+            </section>
+
+            {/* Order pipeline at a glance */}
+            <section className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm">
+              <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                <div><h2 className="text-sm font-bold text-slate-900">Order pipeline</h2><p className="mt-0.5 text-xs text-slate-500">Current status of orders available to this dashboard</p></div>
+                <button type="button" onClick={() => setActiveTab('orders')} className="mt-2 inline-flex w-fit items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-indigo-800 sm:mt-0">Manage orders <ChevronRight className="h-4 w-4" /></button>
+              </div>
+              <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <div className="rounded-xl bg-amber-50 p-3"><p className="text-[11px] font-semibold text-amber-800">Pending</p><p className="mt-1 text-xl font-bold text-amber-950 tabular-nums">{orders.filter((o) => o.status === 'PENDING').length}</p></div>
+                <div className="rounded-xl bg-indigo-50 p-3"><p className="text-[11px] font-semibold text-indigo-800">Processing</p><p className="mt-1 text-xl font-bold text-indigo-950 tabular-nums">{orders.filter((o) => o.status === 'PROCESSING' || o.status === 'CONFIRMED').length}</p></div>
+                <div className="rounded-xl bg-sky-50 p-3"><p className="text-[11px] font-semibold text-sky-800">Shipped</p><p className="mt-1 text-xl font-bold text-sky-950 tabular-nums">{orders.filter((o) => o.status === 'SHIPPED').length}</p></div>
+                <div className="rounded-xl bg-emerald-50 p-3"><p className="text-[11px] font-semibold text-emerald-800">Delivered</p><p className="mt-1 text-xl font-bold text-emerald-950 tabular-nums">{orders.filter((o) => o.status === 'DELIVERED').length}</p></div>
+              </div>
+            </section>
+
+            {/* Recent orders: cards on small screens, table on desktop */}
+            <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+              <div className="flex items-center justify-between gap-3 border-b border-slate-100 p-4 sm:p-5">
+                <div className="min-w-0"><h2 className="text-sm sm:text-base font-bold text-slate-900">Recent orders</h2><p className="mt-1 text-xs text-slate-500">Latest order records currently available</p></div>
+                <button type="button" onClick={() => setActiveTab('orders')} className="inline-flex shrink-0 items-center gap-1 rounded-lg px-2 py-2 text-xs font-semibold text-indigo-600 transition hover:bg-indigo-50 hover:text-indigo-800">View all <ChevronRight className="h-4 w-4" /></button>
+              </div>
+              {orders.length === 0 ? (
+                <div className="px-5 py-10 text-center">
+                  <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 text-slate-500"><ShoppingBag className="h-6 w-6" /></span>
+                  <h3 className="mt-3 text-sm font-semibold text-slate-900">No orders to show yet</h3>
+                  <p className="mt-1 text-xs text-slate-500">New customer orders will appear here when they are available.</p>
+                  <button type="button" onClick={() => setActiveTab('orders')} className="mt-4 inline-flex min-h-10 items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">Open order management <ArrowUpRight className="h-3.5 w-3.5" /></button>
+                </div>
+              ) : (
+                <>
+                  <div className="divide-y divide-slate-100 sm:hidden">
+                    {orders.slice(0, 5).map((ord) => (
+                      <article key={ord.id} className="p-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0"><p className="truncate text-sm font-bold text-slate-900">#{ord.orderNumber || ord.id}</p><p className="mt-1 truncate text-xs text-slate-500">{ord.customer.fullName}</p><p className="mt-0.5 text-[11px] text-slate-400">{formatDate(ord.createdAt, language)}</p></div>
+                          <span className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold ${ord.status === 'DELIVERED' ? 'bg-emerald-100 text-emerald-800' : ord.status === 'CANCELLED' ? 'bg-rose-100 text-rose-800' : ord.status === 'SHIPPED' ? 'bg-sky-100 text-sky-800' : 'bg-amber-100 text-amber-800'}`}>{ord.status.replace(/_/g, ' ')}</span>
+                        </div>
+                        <div className="mt-3 flex items-center justify-between gap-3">
+                          <div className="min-w-0"><p className="text-xs font-semibold text-slate-700">{ord.paymentMethod}</p><p className="mt-0.5 text-[11px] text-slate-500">{ord.courier.provider}{ord.courier.trackingCode ? ` · ${ord.courier.trackingCode}` : ''}</p></div>
+                          <p className="shrink-0 text-sm font-bold text-slate-950 tabular-nums">{formatPrice(ord.grandTotal, language)}</p>
+                        </div>
+                        <div className="mt-3 flex gap-2">
+                          <button type="button" onClick={() => setSelectedAdminOrder(ord)} className="inline-flex min-h-9 flex-1 items-center justify-center gap-1.5 rounded-lg border border-slate-200 px-3 text-xs font-semibold text-slate-700 hover:bg-slate-50"><Eye className="h-3.5 w-3.5" /> Details</button>
+                          <button type="button" onClick={() => setLastCreatedOrder(ord)} className="inline-flex min-h-9 flex-1 items-center justify-center gap-1.5 rounded-lg border border-slate-200 px-3 text-xs font-semibold text-slate-700 hover:bg-slate-50"><Printer className="h-3.5 w-3.5" /> Invoice</button>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                  <div className="hidden overflow-x-auto sm:block">
+                    <table className="w-full min-w-[760px] text-left text-sm">
+                      <thead className="bg-slate-50 text-[11px] uppercase tracking-wide text-slate-500"><tr><th className="px-5 py-3 font-semibold">Order</th><th className="px-5 py-3 font-semibold">Customer</th><th className="px-5 py-3 font-semibold">Payment</th><th className="px-5 py-3 font-semibold">Status</th><th className="px-5 py-3 font-semibold">Courier</th><th className="px-5 py-3 text-right font-semibold">Total</th><th className="px-5 py-3 text-right font-semibold">Actions</th></tr></thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {orders.slice(0, 5).map((ord) => (
+                          <tr key={ord.id} className="transition hover:bg-slate-50/80">
+                            <td className="px-5 py-3"><button type="button" onClick={() => setSelectedAdminOrder(ord)} className="font-semibold text-indigo-700 hover:underline">#{ord.orderNumber || ord.id}</button><p className="mt-1 text-[11px] text-slate-400">{formatDate(ord.createdAt, language)}</p></td>
+                            <td className="px-5 py-3"><p className="font-semibold text-slate-800">{ord.customer.fullName}</p><p className="mt-1 text-xs text-slate-500">{ord.customer.phone}</p></td>
+                            <td className="px-5 py-3"><p className="text-xs font-medium text-slate-700">{ord.paymentMethod}</p><p className={`mt-1 text-[10px] font-bold ${ord.paymentStatus === 'PAID' ? 'text-emerald-700' : 'text-slate-500'}`}>{ord.paymentStatus}</p></td>
+                            <td className="px-5 py-3"><span className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${ord.status === 'DELIVERED' ? 'bg-emerald-100 text-emerald-800' : ord.status === 'CANCELLED' ? 'bg-rose-100 text-rose-800' : ord.status === 'SHIPPED' ? 'bg-sky-100 text-sky-800' : 'bg-amber-100 text-amber-800'}`}>{ord.status.replace(/_/g, ' ')}</span></td>
+                            <td className="px-5 py-3"><p className="text-xs font-medium text-slate-700">{ord.courier.provider}</p><p className="mt-1 max-w-32 truncate text-[11px] text-slate-500">{ord.courier.trackingCode || 'Not booked'}</p></td>
+                            <td className="px-5 py-3 text-right font-bold text-slate-900 tabular-nums">{formatPrice(ord.grandTotal, language)}</td>
+                            <td className="px-5 py-3"><div className="flex justify-end gap-1"><button type="button" onClick={() => setSelectedAdminOrder(ord)} className="rounded-lg p-2 text-slate-500 hover:bg-indigo-50 hover:text-indigo-700" aria-label={`View order ${ord.orderNumber || ord.id} details`} title="View details"><Eye className="h-4 w-4" /></button><button type="button" onClick={() => setLastCreatedOrder(ord)} className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-800" aria-label={`Print invoice for order ${ord.orderNumber || ord.id}`} title="Print invoice"><Printer className="h-4 w-4" /></button></div></td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              )}
+            </section>
+
+            {/* Low-stock action center */}
+            <section className="rounded-2xl border border-amber-200 bg-amber-50/70 p-4 sm:p-5">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div className="flex items-start gap-3">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-700"><AlertTriangle className="h-5 w-5" /></span>
+                  <div><h2 className="text-sm font-bold text-amber-950">Inventory attention</h2><p className="mt-1 text-xs leading-5 text-amber-900/80">{lowStockProducts.length > 0 ? `${lowStockProducts.length} product(s) are at or below their low-stock threshold. Review them before accepting more demand.` : 'No products are currently at or below their low-stock threshold.'}</p></div>
+                </div>
+                <button type="button" onClick={() => setActiveTab('inventory')} className="inline-flex min-h-10 shrink-0 items-center justify-center gap-2 rounded-xl border border-amber-300 bg-white px-3.5 py-2 text-xs font-semibold text-amber-900 transition hover:bg-amber-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"><Package className="h-4 w-4" /> Manage inventory <ChevronRight className="h-4 w-4" /></button>
+              </div>
+              {lowStockProducts.length > 0 && <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">{lowStockProducts.slice(0, 3).map((p) => <div key={p.id} className="flex min-w-0 items-center justify-between gap-3 rounded-xl border border-amber-200/80 bg-white p-3"><div className="min-w-0"><p className="truncate text-xs font-semibold text-slate-900">{p.name}</p><p className="mt-1 text-[11px] text-slate-500">Stock: <span className="font-bold text-amber-700">{p.stock}</span> · Alert at {p.lowStockThreshold}</p></div><span className="shrink-0 rounded-full bg-amber-100 px-2 py-1 text-[10px] font-bold text-amber-800">{p.stock <= 0 ? 'Out of stock' : 'Low stock'}</span></div>)}</div>}
+            </section>
           </div>
         )}
 
