@@ -361,6 +361,14 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
     void loadCatalog().catch((error) => {
       console.warn('Persistent catalog or admin orders could not be loaded.', error);
     });
+    const handleOnline = () => {
+      // Refresh durable server data in place; do not reload the document or discard open UI state.
+      if (!cancelled) void loadCatalog().catch((error) => {
+        console.warn('Persistent catalog or account data could not be refreshed after reconnecting.', error);
+      });
+    };
+    window.addEventListener('online', handleOnline);
+
     const { data: authListener } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
         // Defer work until the auth callback has returned to avoid re-entering Supabase auth APIs.
@@ -373,6 +381,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
     });
     return () => {
       cancelled = true;
+      window.removeEventListener('online', handleOnline);
       authListener.subscription.unsubscribe();
     };
   }, []);
