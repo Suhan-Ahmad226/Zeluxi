@@ -13,7 +13,6 @@ export const ModalPortal: React.FC<{ children: React.ReactNode }> = ({ children 
 
   useEffect(() => {
     setMounted(true);
-    return () => setMounted(false);
   }, []);
 
   if (!mounted || typeof document === 'undefined') return null;
