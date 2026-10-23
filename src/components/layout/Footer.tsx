@@ -130,8 +130,6 @@ export const Footer: React.FC = () => {
                 <li><button type="button" onClick={() => setActiveStaticPage('refund')} className="text-left transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400">Returns & refunds</button></li>
                 <li><button type="button" onClick={() => setActiveStaticPage('faq')} className="text-left transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400">Frequently asked questions</button></li>
                 <li><button type="button" onClick={() => setActiveStaticPage('support')} className="text-left transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400">Contact support</button></li>
-                <li><button type="button" onClick={() => setActiveStaticPage('privacy')} className="text-left transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400">Privacy policy</button></li>
-                <li><button type="button" onClick={() => setActiveStaticPage('terms')} className="text-left transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400">Terms of service</button></li>
                 {pages
                   .filter((page) => page.isPublished && page.showInFooter === true && !['about', 'shipping', 'refund', 'support', 'faq', 'privacy', 'terms'].includes(page.slug))
                   .sort((a, b) => (a.navigationOrder ?? 100) - (b.navigationOrder ?? 100))
