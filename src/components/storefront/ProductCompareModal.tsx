@@ -3,8 +3,8 @@ import { useStore } from '../../context/StoreContext';
 import { formatPrice } from '../../utils/formatters';
 import { StoreImage } from '../common/StoreImage';
 import { X, ShoppingBag, Trash2 } from 'lucide-react';
-import { ModalPortal } from '../common/ModalPortal';
 
+import { ModalPortal } from '../common/ModalPortal';
 export const ProductCompareModal: React.FC = () => {
   const {
     compareList,
