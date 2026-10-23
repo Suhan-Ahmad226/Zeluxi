@@ -1786,13 +1786,14 @@ export const AdminDashboard: React.FC = () => {
                 <span className="text-slate-400 text-[11px] font-semibold uppercase tracking-wider mr-2">Status:</span>
                 {(
                   [
-                    { id: 'ALL', label: `All (${products.length})` },
-                    { id: 'PUBLISHED', label: `Published (${products.filter((p) => p.published).length})` },
-                    { id: 'DRAFT', label: `Draft (${products.filter((p) => !p.published).length})` },
+                    { id: 'ALL', label: `All (${products.filter((p) => !p.archived).length})` },
+                    { id: 'PUBLISHED', label: `Published (${products.filter((p) => !p.archived && p.published).length})` },
+                    { id: 'DRAFT', label: `Draft (${products.filter((p) => !p.archived && !p.published).length})` },
                     {
                       id: 'LOW_STOCK',
-                      label: `Low Stock (${products.filter((p) => p.stock <= p.lowStockThreshold).length})`,
+                      label: `Low Stock (${products.filter((p) => !p.archived && p.stock <= p.lowStockThreshold).length})`,
                     },
+                    { id: 'ARCHIVED', label: `Archived (${products.filter((p) => p.archived).length})` },
                   ] as const
                 ).map((tab) => (
                   <button
@@ -1823,6 +1824,17 @@ export const AdminDashboard: React.FC = () => {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-1.5">
+                  {productStatusFilter === 'ARCHIVED' && (
+                    <button
+                      onClick={() => {
+                        bulkUpdateProducts(selectedProductIds, 'restore');
+                        setSelectedProductIds([]);
+                      }}
+                      className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg shadow-2xs transition-colors"
+                    >
+                      Restore Selected
+                    </button>
+                  )}
                   <button
                     onClick={() => {
                       bulkUpdateProducts(selectedProductIds, 'publish');
@@ -1842,16 +1854,6 @@ export const AdminDashboard: React.FC = () => {
                     className="px-2.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-semibold rounded-lg shadow-2xs transition-colors"
                   >
                     Unpublish (Draft)
-                  </button>
-                  <button
-                    onClick={() => {
-                      bulkUpdateProducts(selectedProductIds, 'archive');
-                      setSelectedProductIds([]);
-                      showToast('Selected products archived', 'info');
-                    }}
-                    className="px-2.5 py-1.5 bg-slate-700 hover:bg-slate-800 text-white font-semibold rounded-lg shadow-2xs transition-colors"
-                  >
-                    Archive Selected
                   </button>
                   <button
                     onClick={() => {
