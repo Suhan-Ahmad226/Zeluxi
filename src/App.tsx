@@ -21,7 +21,6 @@ import { OrderSuccessModal } from './components/checkout/OrderSuccessModal';
 import { OrderTrackingView } from './components/tracking/OrderTrackingView';
 import { CustomerAccountView } from './components/account/CustomerAccountView';
 import { VerifyEmailScreen } from './components/auth/VerifyEmailScreen';
-import { MobileBottomNav } from './components/layout/MobileBottomNav';
 import { NotificationToast } from './components/common/NotificationToast';
 import { OfflineIndicator } from './components/common/OfflineIndicator';
 import { SlidersHorizontal } from 'lucide-react';
@@ -51,7 +50,7 @@ const MainStoreContent: React.FC<{ productSlug?: string }> = ({ productSlug }) =
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#FAFAFA] text-[#0F172A] pb-16 md:pb-0">
+    <div className="min-h-screen flex flex-col bg-[#FAFAFA] text-[#0F172A]">
       <AnnouncementBar />
       <Navbar />
 
@@ -129,7 +128,6 @@ const MainStoreContent: React.FC<{ productSlug?: string }> = ({ productSlug }) =
       <OrderSuccessModal />
       <NotificationToast />
       <OfflineIndicator />
-      <MobileBottomNav />
     </div>
   );
 };
