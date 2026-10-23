@@ -294,10 +294,6 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
       row.id !== product.id && String(row.sku || '').trim().toLocaleLowerCase('en-US') === normalizedSku
     );
     if (skuConflict) return res.status(409).json({ error: 'This SKU is already used by another product.' });
-    if (existingError) return res.status(503).json({ error: 'Product state could not be checked.' });
-    if (req.method === 'POST' && existing) return res.status(409).json({ error: 'Product ID already exists.' });
-    if (req.method === 'PATCH' && !existing) return res.status(404).json({ error: 'Product not found.' });
-
     const { costPrice, ...publicProductData } = product;
     const row = {
       id: product.id,
