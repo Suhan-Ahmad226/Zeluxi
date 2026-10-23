@@ -1,8 +1,8 @@
 import React from 'react';
 import { useStore } from '../../context/StoreContext';
 import { CheckCircle2, AlertCircle, Info, X } from 'lucide-react';
-import { ModalPortal } from './ModalPortal';
 
+import { ModalPortal } from './ModalPortal';
 export const NotificationToast: React.FC = () => {
   const { toast, dismissToast } = useStore();
 
