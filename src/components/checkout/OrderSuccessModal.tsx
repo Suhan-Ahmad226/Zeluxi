@@ -2,8 +2,8 @@ import React from 'react';
 import { useStore } from '../../context/StoreContext';
 import { CheckCircle2, X, Printer, Truck, ArrowRight, Download } from 'lucide-react';
 import { buildOrderInvoiceHtml, downloadOrderInvoicePdf, printOrderInvoice } from '../../utils/order-invoice';
-import { ModalPortal } from '../common/ModalPortal';
 
+import { ModalPortal } from '../common/ModalPortal';
 export const OrderSuccessModal: React.FC = () => {
   const {
     lastCreatedOrder,
