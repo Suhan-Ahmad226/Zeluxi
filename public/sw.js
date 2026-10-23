@@ -24,6 +24,7 @@ const offlinePage = `<!doctype html>
   </style>
 </head>
 <body>
+  <script src="/offline-reconnect.js" defer></script>
   <main>
     <div class="brand">ZELUXI</div>
     <div class="icon" aria-hidden="true">
