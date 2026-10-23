@@ -541,6 +541,13 @@ export const AdminDashboard: React.FC = () => {
 
   const filteredProducts = products.filter((p) => {
     if (productCategoryFilter !== 'ALL' && p.category !== productCategoryFilter) return false;
+    // Archived products must not reappear in the normal catalog after a reload.
+    // Keep them visible only when the explicit Archived filter is selected.
+    if (productStatusFilter === 'ARCHIVED') {
+      if (!p.archived) return false;
+    } else if (p.archived) {
+      return false;
+    }
     if (productStatusFilter === 'PUBLISHED' && !p.published) return false;
     if (productStatusFilter === 'DRAFT' && p.published) return false;
     if (productStatusFilter === 'LOW_STOCK' && p.stock > p.lowStockThreshold) return false;
@@ -1848,15 +1855,14 @@ export const AdminDashboard: React.FC = () => {
                   </button>
                   <button
                     onClick={() => {
-                      if (window.confirm(`Permanently remove ${selectedProductIds.length} selected products?`)) {
+                      if (window.confirm(`Archive ${selectedProductIds.length} selected products and remove them from the storefront?`)) {
                         bulkUpdateProducts(selectedProductIds, 'delete');
                         setSelectedProductIds([]);
-                        showToast('Selected products removed', 'info');
                       }
                     }}
                     className="px-2.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white font-semibold rounded-lg shadow-2xs transition-colors"
                   >
-                    Delete Selected
+                    Archive Selected
                   </button>
                   <button
                     onClick={() => setSelectedProductIds([])}
@@ -2015,7 +2021,7 @@ export const AdminDashboard: React.FC = () => {
                             <button
                               onClick={() => setDeleteProductCandidate(p)}
                               className="p-1 text-slate-500 hover:text-rose-600 rounded hover:bg-slate-100 transition-colors"
-                              title="Delete Product"
+                              title="Archive Product"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
@@ -2108,7 +2114,7 @@ export const AdminDashboard: React.FC = () => {
               <div className="flex justify-between items-center border-b pb-2">
                 <div className="flex items-center gap-2 text-rose-600">
                   <AlertCircle className="w-5 h-5" />
-                  <h3 className="font-bold text-slate-900 text-sm">Delete Product</h3>
+                  <h3 className="font-bold text-slate-900 text-sm">Archive Product</h3>
                 </div>
                 <button onClick={() => setDeleteProductCandidate(null)} className="text-slate-400 hover:text-slate-600">
                   <X className="w-4 h-4" />
@@ -2116,7 +2122,7 @@ export const AdminDashboard: React.FC = () => {
               </div>
 
               <p className="text-xs text-slate-600 leading-relaxed">
-                Are you sure you want to permanently delete <strong className="text-slate-900">{deleteProductCandidate.name}</strong> from your storefront?
+                Are you sure you want to remove <strong className="text-slate-900">{deleteProductCandidate.name}</strong> from the storefront? It will be archived so existing order history remains intact.
               </p>
 
               <div className="flex justify-end gap-2 pt-2">
@@ -2135,7 +2141,7 @@ export const AdminDashboard: React.FC = () => {
                   }}
                   className="px-3.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold rounded-lg shadow-sm"
                 >
-                  Confirm Delete
+                  Archive Product
                 </button>
               </div>
             </div>
