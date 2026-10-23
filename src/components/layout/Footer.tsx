@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   MapPin,
   Phone,
@@ -8,7 +8,7 @@ import {
   Youtube,
   Music2,
   MessageCircle,
-  ArrowUpRight,
+  ArrowUp,
 } from 'lucide-react';
 import { useStore } from '../../context/StoreContext';
 import { PWAInstallButton } from '../common/PWAInstallButton';
@@ -35,6 +35,30 @@ function phoneHref(value?: string): string | null {
 
 export const Footer: React.FC = () => {
   const { settings, pages, setActiveView, setActiveStaticPage } = useStore();
+  const [showBackToTop, setShowBackToTop] = useState(false);
+
+  useEffect(() => {
+    const updateVisibility = (event?: Event) => {
+      const target = event?.target;
+      const nestedScrollTop =
+        target instanceof HTMLElement && target !== document.documentElement && target !== document.body
+          ? target.scrollTop
+          : 0;
+      setShowBackToTop(Math.max(window.scrollY, nestedScrollTop) > 300);
+    };
+
+    updateVisibility();
+    document.addEventListener('scroll', updateVisibility, { passive: true, capture: true });
+    return () => document.removeEventListener('scroll', updateVisibility, true);
+  }, []);
+
+  const handleBackToTop = () => {
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    window.scrollTo({ top: 0, behavior: reduceMotion ? 'auto' : 'smooth' });
+    document.querySelectorAll<HTMLElement>('[data-scroll-container]').forEach((container) => {
+      container.scrollTo({ top: 0, behavior: reduceMotion ? 'auto' : 'smooth' });
+    });
+  };
   const storeName = settings.storeName?.trim() || 'Zelux';
   const phone = settings.phone?.trim() || '';
   const email = settings.email?.trim() || '';
@@ -174,13 +198,21 @@ export const Footer: React.FC = () => {
 
         <div className="flex flex-col gap-4 pt-6 text-xs text-slate-500 sm:flex-row sm:items-center sm:justify-between">
           <p>© {new Date().getFullYear()} {storeName}. {settings.footerCopyright?.trim() || 'All rights reserved.'}</p>
-          <nav aria-label="Legal" className="flex flex-wrap items-center gap-x-4 gap-y-2">
-            <button type="button" onClick={() => setActiveStaticPage('privacy')} className="transition hover:text-slate-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400">Privacy policy</button>
-            <button type="button" onClick={() => setActiveStaticPage('terms')} className="transition hover:text-slate-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400">Terms of service</button>
-            <a href="/" className="inline-flex items-center gap-1 transition hover:text-slate-300">Back to top <ArrowUpRight className="h-3 w-3" aria-hidden="true" /></a>
-          </nav>
+          <span aria-hidden="true" />
+
         </div>
       </div>
+      {showBackToTop && (
+        <button
+          type="button"
+          onClick={handleBackToTop}
+          aria-label="Back to top"
+          title="Back to top"
+          className="fixed bottom-[calc(5.5rem+env(safe-area-inset-bottom))] left-4 z-50 inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-slate-900 text-white shadow-lg shadow-slate-950/20 transition-all duration-200 hover:-translate-y-0.5 hover:bg-indigo-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:ring-offset-2 motion-reduce:transition-none md:bottom-6 md:left-6"
+        >
+          <ArrowUp className="h-5 w-5" aria-hidden="true" />
+        </button>
+      )}
     </footer>
   );
 };

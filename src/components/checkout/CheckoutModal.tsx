@@ -28,7 +28,6 @@ export const CheckoutModal: React.FC = () => {
     setIsCheckoutOpen,
     cart,
     appliedCoupon,
-    isCouponUsedByUser,
     removeCoupon,
     settings,
     createOrder,
@@ -137,17 +136,6 @@ export const CheckoutModal: React.FC = () => {
       const issue = parseResult.error.issues[0]?.message;
       setFormError(issue || 'Please verify your delivery address details.');
       return;
-    }
-
-    // Per-user coupon limit validation
-    if (appliedCoupon) {
-      const isUsedByPhone = isCouponUsedByUser(appliedCoupon.code, candidateAddress.phone);
-      const isUsedByEmail = candidateAddress.email ? isCouponUsedByUser(appliedCoupon.code, candidateAddress.email) : false;
-      if (isUsedByPhone || isUsedByEmail) {
-        setFormError(`Coupon "${appliedCoupon.code}" has already been used by this phone number or email. Limit: 1 use per customer.`);
-        removeCoupon();
-        return;
-      }
     }
 
     setIsProcessing(true);
