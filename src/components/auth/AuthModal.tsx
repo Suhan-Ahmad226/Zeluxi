@@ -3,7 +3,6 @@ import { useAuth, AuthModalMode } from '../../context/AuthContext';
 import { useStore } from '../../context/StoreContext';
 import { StoreImage } from '../common/StoreImage';
 import {
-import { ModalPortal } from '../common/ModalPortal';
   X,
   Lock,
   Mail,
@@ -20,6 +19,7 @@ import { ModalPortal } from '../common/ModalPortal';
   ShieldAlert,
 } from 'lucide-react';
 
+import { ModalPortal } from '../common/ModalPortal';
 export const AuthModal: React.FC = () => {
   const {
     isAuthModalOpen,
