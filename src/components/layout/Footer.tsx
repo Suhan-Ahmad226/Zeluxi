@@ -130,6 +130,8 @@ export const Footer: React.FC = () => {
                 <li><button type="button" onClick={() => setActiveStaticPage('refund')} className="text-left transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400">Returns & refunds</button></li>
                 <li><button type="button" onClick={() => setActiveStaticPage('faq')} className="text-left transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400">Frequently asked questions</button></li>
                 <li><button type="button" onClick={() => setActiveStaticPage('support')} className="text-left transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400">Contact support</button></li>
+                <li><button type="button" onClick={() => setActiveStaticPage('privacy')} className="text-left transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400">Privacy policy</button></li>
+                <li><button type="button" onClick={() => setActiveStaticPage('terms')} className="text-left transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400">Terms of service</button></li>
                 {pages
                   .filter((page) => page.isPublished && page.showInFooter === true && !['about', 'shipping', 'refund', 'support', 'faq', 'privacy', 'terms'].includes(page.slug))
                   .sort((a, b) => (a.navigationOrder ?? 100) - (b.navigationOrder ?? 100))
@@ -172,9 +174,7 @@ export const Footer: React.FC = () => {
 
         <div className="flex flex-col gap-4 pt-6 text-xs text-slate-500 sm:flex-row sm:items-center sm:justify-between">
           <p>© {new Date().getFullYear()} {storeName}. {settings.footerCopyright?.trim() || 'All rights reserved.'}</p>
-          <nav aria-label="Legal" className="flex flex-wrap items-center gap-x-4 gap-y-2">
-            <button type="button" onClick={() => setActiveStaticPage('privacy')} className="transition hover:text-slate-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400">Privacy policy</button>
-            <button type="button" onClick={() => setActiveStaticPage('terms')} className="transition hover:text-slate-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400">Terms of service</button>
+          <nav aria-label="Footer navigation" className="flex flex-wrap items-center gap-x-4 gap-y-2">
             <a href="/" className="inline-flex items-center gap-1 transition hover:text-slate-300">Back to top <ArrowUpRight className="h-3 w-3" aria-hidden="true" /></a>
           </nav>
         </div>
