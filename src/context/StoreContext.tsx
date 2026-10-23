@@ -317,46 +317,81 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
   useEffect(() => {
     let cancelled = false;
     const loadCatalog = async () => {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData.session?.access_token;
-      const catalogHeaders = token ? { Authorization: `Bearer ${token}` } : {};
-      // Catalog and CMS are independent resources; request them together to reduce startup latency.
-      const [response, contentResponse] = await Promise.all([
-        fetch('/api/products?limit=12&offset=0', { headers: catalogHeaders, cache: 'no-store' }),
-        fetch('/api/content', { headers: catalogHeaders, cache: 'no-store' }),
+      // Start public storefront requests while Supabase restores the local session.
+      // This avoids making the first catalog request wait for auth initialization.
+      const [sessionResult, publicProductsResponse, publicContentResponse] = await Promise.all([
+        supabase.auth.getSession(),
+        fetch('/api/products?limit=12&offset=0', { cache: 'no-store' }),
+        fetch('/api/content', { cache: 'no-store' }),
       ]);
+      const sessionData = sessionResult.data;
+      const token = sessionData.session?.access_token;
 
-      if (response.ok) {
-        const payload = await response.json().catch(() => null);
+      // Render public storefront data as soon as it is available, before loading
+      // authenticated-only data such as orders or admin drafts.
+      if (publicProductsResponse.ok) {
+        const payload = await publicProductsResponse.json().catch(() => null);
         if (!cancelled && Array.isArray(payload?.products)) {
           setProducts(payload.products as Product[]);
           setCatalogHasMore(Boolean(payload?.pagination?.hasMore));
         }
       }
 
-      if (contentResponse.ok) {
-        const contentPayload = await contentResponse.json().catch(() => null);
+      if (publicContentResponse.ok) {
+        const contentPayload = await publicContentResponse.json().catch(() => null);
         const content = contentPayload?.content;
         if (!cancelled && content && typeof content === 'object') {
           if (content.storefront_cms) setStorefrontCMS(content.storefront_cms as StorefrontCMS);
           if (Array.isArray(content.categories)) setCategories(content.categories as Category[]);
           if (Array.isArray(content.pages)) setPages(content.pages as StaticPageContent[]);
           if (content.settings && typeof content.settings === 'object') setSettings(content.settings as StoreSettings);
-          if (token && Array.isArray(content.coupons)) setCoupons(content.coupons as Coupon[]);
         }
       }
 
-      // Admins receive durable orders from the protected API; ordinary customers are scoped to their own orders.
-      if (!token) return;
+      if (cancelled || !token) return;
+
+      const catalogHeaders = { Authorization: `Bearer ${token}` };
       const isAdmin = String(sessionData.session?.user?.app_metadata?.role || '').toUpperCase() === 'ADMIN';
-      const orderEndpoint = isAdmin ? '/api/orders' : '/api/orders?scope=mine';
-      const orderResponse = await fetch(orderEndpoint, {
-        headers: { Authorization: `Bearer ${token}` },
-        cache: 'no-store',
-      });
-      if (!orderResponse.ok) return;
-      const orderPayload = await orderResponse.json().catch(() => null);
-      if (!cancelled && Array.isArray(orderPayload?.orders)) setOrders(orderPayload.orders as Order[]);
+      const authenticatedRequests: Promise<Response>[] = [
+        fetch('/api/content', { headers: catalogHeaders, cache: 'no-store' }),
+        fetch(isAdmin ? '/api/orders' : '/api/orders?scope=mine', {
+          headers: catalogHeaders,
+          cache: 'no-store',
+        }),
+      ];
+      if (isAdmin) {
+        authenticatedRequests.push(
+          fetch('/api/products?limit=12&offset=0', { headers: catalogHeaders, cache: 'no-store' })
+        );
+      }
+
+      const [authenticatedContentResponse, orderResponse, adminProductsResponse] = await Promise.all(authenticatedRequests);
+      if (cancelled) return;
+
+      if (authenticatedContentResponse.ok) {
+        const contentPayload = await authenticatedContentResponse.json().catch(() => null);
+        const content = contentPayload?.content;
+        if (content && typeof content === 'object') {
+          if (content.storefront_cms) setStorefrontCMS(content.storefront_cms as StorefrontCMS);
+          if (Array.isArray(content.categories)) setCategories(content.categories as Category[]);
+          if (Array.isArray(content.pages)) setPages(content.pages as StaticPageContent[]);
+          if (content.settings && typeof content.settings === 'object') setSettings(content.settings as StoreSettings);
+          if (Array.isArray(content.coupons)) setCoupons(content.coupons as Coupon[]);
+        }
+      }
+
+      if (isAdmin && adminProductsResponse?.ok) {
+        const payload = await adminProductsResponse.json().catch(() => null);
+        if (Array.isArray(payload?.products)) {
+          setProducts(payload.products as Product[]);
+          setCatalogHasMore(Boolean(payload?.pagination?.hasMore));
+        }
+      }
+
+      if (orderResponse.ok) {
+        const orderPayload = await orderResponse.json().catch(() => null);
+        if (Array.isArray(orderPayload?.orders)) setOrders(orderPayload.orders as Order[]);
+      }
     };
     void loadCatalog().catch((error) => {
       console.warn('Persistent catalog or admin orders could not be loaded.', error);
