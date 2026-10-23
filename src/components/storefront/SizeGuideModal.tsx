@@ -1,8 +1,8 @@
 import React from 'react';
 import { useStore } from '../../context/StoreContext';
 import { X, Ruler, Check } from 'lucide-react';
-import { ModalPortal } from '../common/ModalPortal';
 
+import { ModalPortal } from '../common/ModalPortal';
 export const SizeGuideModal: React.FC = () => {
   const { isSizeGuideOpen, setIsSizeGuideOpen } = useStore();
 
