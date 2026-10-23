@@ -3,6 +3,7 @@ import { useStore } from '../../context/StoreContext';
 import { formatPrice } from '../../utils/formatters';
 import { StoreImage } from '../common/StoreImage';
 import { X, ShoppingBag, Trash2 } from 'lucide-react';
+import { ModalPortal } from '../common/ModalPortal';
 
 export const ProductCompareModal: React.FC = () => {
   const {
@@ -20,7 +21,8 @@ export const ProductCompareModal: React.FC = () => {
   const compareProducts = products.filter((p) => compareList.includes(p.id));
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 animate-in fade-in duration-200">
+    <ModalPortal>
+      <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 animate-in fade-in duration-200">
       <div className="relative w-full max-w-4xl bg-white rounded-2xl shadow-2xl border border-slate-200 p-4 sm:p-6 space-y-4 sm:space-y-6 max-h-[92vh] flex flex-col">
         {/* Top Header */}
         <div className="flex items-center justify-between border-b pb-3">
@@ -124,6 +126,7 @@ export const ProductCompareModal: React.FC = () => {
           )}
         </div>
       </div>
-    </div>
+      </div>
+    </ModalPortal>
   );
 };
