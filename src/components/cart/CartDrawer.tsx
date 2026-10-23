@@ -3,8 +3,8 @@ import { useStore } from '../../context/StoreContext';
 import { StoreImage } from '../common/StoreImage';
 import { formatPrice } from '../../utils/formatters';
 import { ShoppingBag, X, Trash2, ArrowRight, Tag, Sparkles, Check } from 'lucide-react';
-import { ModalPortal } from '../common/ModalPortal';
 
+import { ModalPortal } from '../common/ModalPortal';
 export const CartDrawer: React.FC = () => {
   const {
     cart,
