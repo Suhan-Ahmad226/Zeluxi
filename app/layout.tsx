@@ -9,7 +9,7 @@ const fallbackDescription = 'Discover thoughtfully curated products from our sto
 
 async function readPublicStoreSettings(origin: string): Promise<Record<string, unknown>> {
   try {
-    const response = await fetch(new URL('/api/content', origin), { cache: 'no-store' });
+    const response = await fetch(new URL('/api/content', origin), { next: { revalidate: 60 } });
     if (!response.ok) return {};
     const payload = await response.json();
     return payload?.content?.settings && typeof payload.content.settings === 'object'
@@ -69,9 +69,6 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
   return (
     <html lang="en">
       <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
       </head>
       <body className="bg-[#FAFAFA] text-[#0F172A] antialiased selection:bg-indigo-500 selection:text-white">
         {children}
