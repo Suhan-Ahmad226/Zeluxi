@@ -21,8 +21,8 @@ import {
 import { PaymentMethod, CourierProvider, ShippingAddress } from '../../types';
 import { shippingAddressSchema } from '../../lib/validation/schemas';
 import { BANGLADESH_DIVISIONS, getDistrictsByDivision, getUpazilasByDistrict } from '../../lib/address/bangladesh-locations';
-import { ModalPortal } from '../common/ModalPortal';
 
+import { ModalPortal } from '../common/ModalPortal';
 export const CheckoutModal: React.FC = () => {
   const {
     isCheckoutOpen,
