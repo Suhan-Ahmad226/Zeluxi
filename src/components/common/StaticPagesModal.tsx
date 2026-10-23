@@ -4,8 +4,8 @@ import { formatDateOnly } from '../../utils/formatters';
 import { X, ShieldCheck, Truck, RefreshCw, Mail, FileText } from 'lucide-react';
 import { sanitizeRichTextHtml } from '../../utils/richText';
 import '../../styles/cms-rich-text.css';
-import { ModalPortal } from './ModalPortal';
 
+import { ModalPortal } from './ModalPortal';
 export type StaticPageType = string;
 
 interface StaticPagesModalProps {
