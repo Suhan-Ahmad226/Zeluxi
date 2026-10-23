@@ -140,11 +140,11 @@ export const Navbar: React.FC = () => {
       lastScrollYRef.current = lastPosition;
     };
 
-    window.addEventListener('scroll', handleScroll, { passive: true });
+    // A single capture-phase listener handles both document and nested element scrolling.
+    // Registering on window as well can process the same viewport scroll twice and cancel the direction change.
     document.addEventListener('scroll', handleScroll, { passive: true, capture: true });
     media.addEventListener('change', handleViewportChange);
     return () => {
-      window.removeEventListener('scroll', handleScroll);
       document.removeEventListener('scroll', handleScroll, true);
       media.removeEventListener('change', handleViewportChange);
     };
