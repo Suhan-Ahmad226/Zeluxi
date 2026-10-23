@@ -3,6 +3,7 @@ import { useStore } from '../../context/StoreContext';
 import { StoreImage } from '../common/StoreImage';
 import { formatPrice } from '../../utils/formatters';
 import { ShoppingBag, X, Trash2, ArrowRight, Tag, Sparkles, Check } from 'lucide-react';
+import { ModalPortal } from '../common/ModalPortal';
 
 export const CartDrawer: React.FC = () => {
   const {
@@ -50,7 +51,8 @@ export const CartDrawer: React.FC = () => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden">
+    <ModalPortal>
+      <div className="fixed inset-0 z-50 overflow-hidden">
       {/* Backdrop */}
       <div
         onClick={() => setIsCartOpen(false)}
@@ -256,6 +258,7 @@ export const CartDrawer: React.FC = () => {
           )}
         </div>
       </div>
-    </div>
+      </div>
+    </ModalPortal>
   );
 };
