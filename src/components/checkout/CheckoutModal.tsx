@@ -28,7 +28,6 @@ export const CheckoutModal: React.FC = () => {
     setIsCheckoutOpen,
     cart,
     appliedCoupon,
-    isCouponUsedByUser,
     removeCoupon,
     settings,
     createOrder,
