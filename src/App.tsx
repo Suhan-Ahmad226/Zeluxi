@@ -38,19 +38,25 @@ const StaticPagesModal = React.lazy(() => import('./components/common/StaticPage
 const WhatsAppConcierge = React.lazy(() => import('./components/common/WhatsAppConcierge').then((m) => ({ default: m.WhatsAppConcierge })));
 
 const MainStoreContent: React.FC<{ productSlug?: string }> = ({ productSlug }) => {
-  const { activeView, language, compareList, setIsCompareOpen, activeStaticPage, setActiveStaticPage, storefrontCMS, selectedProduct, isCartOpen, isCheckoutOpen, lastCreatedOrder } = useStore();
+  const { activeView, language, compareList, isCompareOpen, setIsCompareOpen, isSizeGuideOpen, activeStaticPage, setActiveStaticPage, storefrontCMS, selectedProduct, isCartOpen, isCheckoutOpen, lastCreatedOrder } = useStore();
   const { isAuthModalOpen } = useAuth();
   const [authModalLoaded, setAuthModalLoaded] = React.useState(false);
   const [productModalLoaded, setProductModalLoaded] = React.useState(false);
   const [cartDrawerLoaded, setCartDrawerLoaded] = React.useState(false);
   const [checkoutModalLoaded, setCheckoutModalLoaded] = React.useState(false);
   const [orderSuccessLoaded, setOrderSuccessLoaded] = React.useState(false);
+  const [sizeGuideLoaded, setSizeGuideLoaded] = React.useState(false);
+  const [compareModalLoaded, setCompareModalLoaded] = React.useState(false);
+  const [staticPagesLoaded, setStaticPagesLoaded] = React.useState(false);
 
   React.useEffect(() => { if (isAuthModalOpen) setAuthModalLoaded(true); }, [isAuthModalOpen]);
   React.useEffect(() => { if (selectedProduct) setProductModalLoaded(true); }, [selectedProduct]);
   React.useEffect(() => { if (isCartOpen) setCartDrawerLoaded(true); }, [isCartOpen]);
   React.useEffect(() => { if (isCheckoutOpen) setCheckoutModalLoaded(true); }, [isCheckoutOpen]);
   React.useEffect(() => { if (lastCreatedOrder) setOrderSuccessLoaded(true); }, [lastCreatedOrder]);
+  React.useEffect(() => { if (isSizeGuideOpen) setSizeGuideLoaded(true); }, [isSizeGuideOpen]);
+  React.useEffect(() => { if (isCompareOpen) setCompareModalLoaded(true); }, [isCompareOpen]);
+  React.useEffect(() => { if (activeStaticPage) setStaticPagesLoaded(true); }, [activeStaticPage]);
 
   // Admin Dashboard has its own dedicated sidebar and compact top header
   if (activeView === 'admin') {
@@ -137,13 +143,10 @@ const MainStoreContent: React.FC<{ productSlug?: string }> = ({ productSlug }) =
         {cartDrawerLoaded && <CartDrawer />}
         {checkoutModalLoaded && <CheckoutModal />}
         {orderSuccessLoaded && <OrderSuccessModal />}
-        <SizeGuideModal />
-        <ProductCompareModal />
+        {sizeGuideLoaded && <SizeGuideModal />}
+        {compareModalLoaded && <ProductCompareModal />}
         <WhatsAppConcierge />
-        <StaticPagesModal
-          page={activeStaticPage}
-          onClose={() => setActiveStaticPage(null)}
-        />
+        {staticPagesLoaded && <StaticPagesModal page={activeStaticPage} onClose={() => setActiveStaticPage(null)} />}
       </React.Suspense>
       <NotificationToast />
       <OfflineIndicator />
