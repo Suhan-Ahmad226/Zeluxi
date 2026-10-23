@@ -16,7 +16,7 @@ Working branch: `audit/remove-dead-code-2026-10`
 
 1. `api/products.ts`: removed a second copy of product existence/duplicate-ID error checks after the SKU uniqueness check. The same database lookup and all three checks remain before SKU validation; the removal does not remove the original validation.
 2. `src/components/layout/MobileBottomNav.tsx`: deleted after reviewing the tracked TypeScript/TSX application files and unit tests for references. The active responsive mobile navigation is implemented inside `src/components/layout/Navbar.tsx`; the standalone component had no remaining imports/usages in the reviewed source/test set.
-3. `src/components/layout/Footer.tsx`: removed duplicate Privacy Policy and Terms of Service links from Customer Care; the bottom Legal links remain.
+3. `src/components/layout/Footer.tsx`: after the requested layout adjustment, Privacy Policy and Terms of Service appear in Customer Care and are removed from the bottom row.
 4. `src/components/checkout/CheckoutModal.tsx`: removed the per-user coupon-limit check that was unreachable after the existing fail-closed coupon guard, plus the now-unused `isCouponUsedByUser` binding. The secure guard remains; this does not enable coupon discounts.
 5. `docs/CODE_CLEANUP_AUDIT.md`: records findings and decisions.
 
@@ -27,7 +27,7 @@ No test files, migrations, API route adapters, PWA assets, or production data/sc
 | ID | Area | Finding | Classification | Decision |
 |---|---|---|---|---|
 | UI-01 | `src/App.tsx`, `src/components/storefront/ProductGrid.tsx` | Featured products can also appear in the home page's All Products section. | Visible product-list overlap; not dead code | Keep as a separate behavior change until the desired catalog semantics and regression tests are defined. |
-| UI-02 | `src/components/layout/Footer.tsx` | Privacy Policy and Terms of Service appeared in both Customer Care and Legal footer sections. | Confirmed duplicate links | Removed the Customer Care copies; Legal links remain. Browser-level visual verification is still pending. |
+| UI-02 | `src/components/layout/Footer.tsx` | Privacy Policy and Terms of Service had appeared in both Customer Care and the bottom Legal row. | Duplicate placement | Kept both links in Customer Care as requested and removed them from the bottom row. Browser-level visual verification is still pending. |
 | UI-03 | `src/components/layout/Navbar.tsx`, `src/components/layout/MobileBottomNav.tsx` | Navbar owns the active responsive mobile navigation; standalone component had no usages in the reviewed application/test source. | Confirmed unused component in reviewed source | Deleted the standalone component on this branch. |
 | API-01 | `api/products.ts` | Product existence/duplicate-ID validation was repeated after SKU validation. | Confirmed redundant validation | Removed the repeated checks only; original validation remains before SKU validation. |
 | CHECKOUT-01 | `src/components/checkout/CheckoutModal.tsx`, `src/context/StoreContext.tsx` | The applied-coupon guard returns before the later per-user coupon-limit validation, making that later check unreachable in this path. | Confirmed unreachable logic; security-sensitive | Removed the unreachable check and unused binding. Existing fail-closed guard remains; discounts are not enabled by this cleanup. Server-side pricing/eligibility must be proven before enabling coupons. |
