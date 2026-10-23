@@ -11,16 +11,12 @@ import { HeroBanner } from './components/storefront/HeroBanner';
 import { TrustBadges } from './components/storefront/TrustBadges';
 import { CategoryList } from './components/storefront/CategoryList';
 import { ProductGrid } from './components/storefront/ProductGrid';
-import { ProductDetailsPage } from './components/storefront/ProductDetailsPage';
 import { DealsBanner } from './components/storefront/DealsBanner';
 import { ProductModal } from './components/storefront/ProductModal';
 import { RecentlyViewedBar } from './components/storefront/RecentlyViewedBar';
 import { CartDrawer } from './components/cart/CartDrawer';
 import { CheckoutModal } from './components/checkout/CheckoutModal';
 import { OrderSuccessModal } from './components/checkout/OrderSuccessModal';
-import { OrderTrackingView } from './components/tracking/OrderTrackingView';
-import { CustomerAccountView } from './components/account/CustomerAccountView';
-import { VerifyEmailScreen } from './components/auth/VerifyEmailScreen';
 import { NotificationToast } from './components/common/NotificationToast';
 import { OfflineIndicator } from './components/common/OfflineIndicator';
 import { StoreLoadingSkeleton } from './components/common/StoreLoadingSkeleton';
@@ -28,6 +24,12 @@ import { SlidersHorizontal } from 'lucide-react';
 
 // Code-split heavy modals and workspace to optimize initial storefront bundle
 const AdminDashboard = React.lazy(() => import('./components/admin/AdminDashboard').then((m) => ({ default: m.AdminDashboard })));
+// Route-specific screens are split out so the initial storefront doesn't download
+// account, order-tracking, email-verification, or product-detail code unnecessarily.
+const ProductDetailsPage = React.lazy(() => import('./components/storefront/ProductDetailsPage').then((m) => ({ default: m.ProductDetailsPage })));
+const OrderTrackingView = React.lazy(() => import('./components/tracking/OrderTrackingView').then((m) => ({ default: m.OrderTrackingView })));
+const CustomerAccountView = React.lazy(() => import('./components/account/CustomerAccountView').then((m) => ({ default: m.CustomerAccountView })));
+const VerifyEmailScreen = React.lazy(() => import('./components/auth/VerifyEmailScreen').then((m) => ({ default: m.VerifyEmailScreen })));
 const SizeGuideModal = React.lazy(() => import('./components/storefront/SizeGuideModal').then((m) => ({ default: m.SizeGuideModal })));
 const ProductCompareModal = React.lazy(() => import('./components/storefront/ProductCompareModal').then((m) => ({ default: m.ProductCompareModal })));
 const StaticPagesModal = React.lazy(() => import('./components/common/StaticPagesModal').then((m) => ({ default: m.StaticPagesModal })));
@@ -90,13 +92,13 @@ const MainStoreContent: React.FC<{ productSlug?: string }> = ({ productSlug }) =
           </div>
         )}
 
-        {activeView === 'product' && <ProductDetailsPage slug={productSlug || ''} />}
+        {activeView === 'product' && <React.Suspense fallback={<div className="min-h-[40vh]" aria-busy="true" />}><ProductDetailsPage slug={productSlug || ''} /></React.Suspense>}
 
-        {activeView === 'tracking' && <OrderTrackingView />}
+        {activeView === 'tracking' && <React.Suspense fallback={<div className="min-h-[40vh]" aria-busy="true" />}><OrderTrackingView /></React.Suspense>}
 
-        {activeView === 'account' && <CustomerAccountView />}
+        {activeView === 'account' && <React.Suspense fallback={<div className="min-h-[40vh]" aria-busy="true" />}><CustomerAccountView /></React.Suspense>}
 
-        {activeView === 'verify-email' && <VerifyEmailScreen />}
+        {activeView === 'verify-email' && <React.Suspense fallback={<div className="min-h-[40vh]" aria-busy="true" />}><VerifyEmailScreen /></React.Suspense>}
       </main>
 
       <Footer />
