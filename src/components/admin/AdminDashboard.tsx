@@ -57,6 +57,7 @@ import {
   Square,
   Sparkles,
   FolderPlus,
+  Megaphone,
 } from 'lucide-react';
 import { OrderStatus, Product, Order } from '../../types';
 import { CreateProductModal } from './CreateProductModal';
@@ -67,6 +68,7 @@ import { InventoryManager } from './InventoryManager';
 import { NotificationsManager } from './NotificationsManager';
 import { CustomersManager } from './CustomersManager';
 import { RefundModal } from './RefundModal';
+import { SocialPostStudio } from './SocialPostStudio';
 import { supabase } from '../../lib/supabase';
 import { uploadCloudinaryMedia } from '../../lib/productImageStorage';
 
@@ -167,6 +169,7 @@ export const AdminDashboard: React.FC = () => {
     | 'logistics'
     | 'payments'
     | 'coupons'
+    | 'social'
     | 'qa'
     | 'notifications'
     | 'audit'
@@ -179,6 +182,12 @@ export const AdminDashboard: React.FC = () => {
   const [isSettingsGroupOpen, setIsSettingsGroupOpen] = useState(false);
   const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
   const handleUnreadNotificationCountChange = React.useCallback((count: number) => setUnreadNotificationCount(count), []);
+
+  React.useEffect(() => {
+    if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('socialConnection')) {
+      setActiveTab('social');
+    }
+  }, []);
 
   // Keep the sidebar badge current even before the Notifications tab is opened.
   React.useEffect(() => {
@@ -222,6 +231,8 @@ export const AdminDashboard: React.FC = () => {
   const [productCategoryFilter, setProductCategoryFilter] = useState<string>('ALL');
   const [productStatusFilter, setProductStatusFilter] = useState<'ALL' | 'PUBLISHED' | 'DRAFT' | 'LOW_STOCK' | 'ARCHIVED'>('ALL');
   const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
+  const [socialTargetProduct, setSocialTargetProduct] = useState<Product | null>(null);
+  const clearSocialTargetProduct = React.useCallback(() => setSocialTargetProduct(null), []);
 
   // Refund Target Order
   const [refundTargetOrder, setRefundTargetOrder] = useState<Order | null>(null);
@@ -611,6 +622,7 @@ export const AdminDashboard: React.FC = () => {
       case 'logistics': return 'Delivery & Tracking';
       case 'payments': return 'Payments & Finance';
       case 'coupons': return 'Marketing & Coupons';
+      case 'social': return 'Social Media Studio';
       case 'qa': return 'Reviews & Support';
       case 'notifications': return 'Notifications';
       case 'audit': return 'Audit Trail';
@@ -967,6 +979,29 @@ export const AdminDashboard: React.FC = () => {
             {isSidebarCollapsed && (
               <span className="hidden md:group-hover:block absolute left-full ml-2.5 px-2.5 py-1.5 bg-slate-950 text-white text-[11px] font-medium rounded-lg shadow-xl whitespace-nowrap z-50 border border-slate-800 pointer-events-none">
                 Marketing & Coupons ({coupons.length})
+              </span>
+            )}
+          </button>
+
+          {/* Social Media Studio */}
+          <button
+            onClick={() => {
+              setSocialTargetProduct(null);
+              setActiveTab('social');
+              setIsMobileDrawerOpen(false);
+            }}
+            title={isSidebarCollapsed ? 'Social Media Studio' : undefined}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-colors group relative ${
+              activeTab === 'social'
+                ? 'bg-indigo-600 text-white shadow-sm'
+                : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
+            } ${isSidebarCollapsed ? 'md:justify-center md:px-0' : ''}`}
+          >
+            <Megaphone className={`w-4 h-4 shrink-0 ${activeTab === 'social' ? 'text-white' : 'text-slate-400 group-hover:text-slate-200'}`} />
+            {!isSidebarCollapsed && <span className="truncate flex-1 text-left">Social Media Studio</span>}
+            {isSidebarCollapsed && (
+              <span className="hidden md:group-hover:block absolute left-full ml-2.5 px-2.5 py-1.5 bg-slate-950 text-white text-[11px] font-medium rounded-lg shadow-xl whitespace-nowrap z-50 border border-slate-800 pointer-events-none">
+                Social Media Studio
               </span>
             )}
           </button>
@@ -2030,6 +2065,18 @@ export const AdminDashboard: React.FC = () => {
                           <td className="p-3 text-center space-x-1 whitespace-nowrap">
                             <button
                               onClick={() => {
+                                setSocialTargetProduct(p);
+                                setActiveTab('social');
+                                setIsMobileDrawerOpen(false);
+                              }}
+                              disabled={!p.published || p.stock <= 0}
+                              className="inline-flex items-center gap-1 rounded-md bg-indigo-50 px-2 py-1 text-[10px] font-bold text-indigo-700 hover:bg-indigo-100 disabled:cursor-not-allowed disabled:opacity-40"
+                              title={!p.published ? 'Publish this product before promoting it' : p.stock <= 0 ? 'Out-of-stock products cannot be promoted' : 'Create an AI social post for this product'}
+                            >
+                              <Megaphone className="w-3 h-3" /> Boost
+                            </button>
+                            <button
+                              onClick={() => {
                                 setEditingProductForModal(p);
                                 setActiveTab('add-product');
                               }}
@@ -2995,6 +3042,15 @@ export const AdminDashboard: React.FC = () => {
               </form>
             </div>
           </div>
+        )}
+
+        {/* TAB: SOCIAL MEDIA STUDIO */}
+        {activeTab === 'social' && (
+          <SocialPostStudio
+            products={products}
+            initialProduct={socialTargetProduct}
+            onInitialProductHandled={clearSocialTargetProduct}
+          />
         )}
 
         {/* TAB: OPERATIONAL NOTIFICATIONS */}
