@@ -1,6 +1,7 @@
 import React from 'react';
 import { useStore } from '../../context/StoreContext';
 import { X, Ruler, Check } from 'lucide-react';
+import { ModalPortal } from '../common/ModalPortal';
 
 export const SizeGuideModal: React.FC = () => {
   const { isSizeGuideOpen, setIsSizeGuideOpen } = useStore();
@@ -16,7 +17,8 @@ export const SizeGuideModal: React.FC = () => {
   ];
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-200">
+    <ModalPortal>
+      <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-200">
       <div className="relative w-full max-w-2xl bg-white rounded-2xl shadow-2xl border border-slate-200 p-4 sm:p-6 space-y-4 sm:space-y-5 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between border-b pb-3">
           <div className="flex items-center gap-2">
@@ -83,6 +85,7 @@ export const SizeGuideModal: React.FC = () => {
           </button>
         </div>
       </div>
-    </div>
+      </div>
+    </ModalPortal>
   );
 };
