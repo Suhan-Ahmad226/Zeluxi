@@ -208,7 +208,7 @@ export const Footer: React.FC = () => {
           onClick={handleBackToTop}
           aria-label="Back to top"
           title="Back to top"
-          className="fixed bottom-[calc(5.5rem+env(safe-area-inset-bottom))] right-4 z-50 inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-slate-900 text-white shadow-lg shadow-slate-950/20 transition-all duration-200 hover:-translate-y-0.5 hover:bg-indigo-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:ring-offset-2 motion-reduce:transition-none md:bottom-6 md:right-6"
+          className="fixed bottom-[calc(5.5rem+env(safe-area-inset-bottom))] left-4 z-50 inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-slate-900 text-white shadow-lg shadow-slate-950/20 transition-all duration-200 hover:-translate-y-0.5 hover:bg-indigo-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:ring-offset-2 motion-reduce:transition-none md:bottom-6 md:left-6"
         >
           <ArrowUp className="h-5 w-5" aria-hidden="true" />
         </button>
