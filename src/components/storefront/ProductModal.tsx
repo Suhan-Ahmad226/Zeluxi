@@ -20,6 +20,7 @@ import {
   Send,
 } from 'lucide-react';
 
+import { ModalPortal } from '../common/ModalPortal';
 export const ProductModal: React.FC = () => {
   const {
     selectedProduct,
@@ -134,7 +135,8 @@ export const ProductModal: React.FC = () => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 animate-in fade-in duration-200">
+    <ModalPortal>
+      <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 animate-in fade-in duration-200">
       <div className="relative w-full max-w-4xl bg-white rounded-2xl shadow-2xl overflow-hidden border border-slate-200 max-h-[92vh] flex flex-col">
         {/* Top Close bar */}
         <div className="flex items-center justify-between px-6 py-3.5 border-b border-slate-100 bg-slate-50/70">
@@ -593,6 +595,7 @@ export const ProductModal: React.FC = () => {
           </div>
         </div>
       </div>
-    </div>
+      </div>
+    </ModalPortal>
   );
 };

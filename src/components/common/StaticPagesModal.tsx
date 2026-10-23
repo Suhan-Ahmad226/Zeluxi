@@ -5,6 +5,7 @@ import { X, ShieldCheck, Truck, RefreshCw, Mail, FileText } from 'lucide-react';
 import { sanitizeRichTextHtml } from '../../utils/richText';
 import '../../styles/cms-rich-text.css';
 
+import { ModalPortal } from './ModalPortal';
 export type StaticPageType = string;
 
 interface StaticPagesModalProps {
@@ -70,7 +71,8 @@ export const StaticPagesModal: React.FC<StaticPagesModalProps> = ({ page, onClos
   if (!page) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm" role="presentation" onClick={onClose}>
+    <ModalPortal>
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm" role="presentation" onClick={onClose}>
       <section role="dialog" aria-modal="true" aria-labelledby="cms-page-title" className="relative flex max-h-[85vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl" onClick={(event) => event.stopPropagation()}>
         <header className="flex items-center justify-between border-b border-slate-100 bg-slate-50 px-5 py-4 sm:px-6">
           <div className="flex min-w-0 items-center gap-3">
@@ -99,6 +101,7 @@ export const StaticPagesModal: React.FC<StaticPagesModalProps> = ({ page, onClos
           {dynamicPage && <p className="border-t border-slate-100 pt-3 text-xs text-slate-500">Last updated: {formatDateOnly(dynamicPage.lastUpdated)}</p>}
         </div>
       </section>
-    </div>
+      </div>
+    </ModalPortal>
   );
 };

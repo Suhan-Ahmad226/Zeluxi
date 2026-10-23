@@ -2,6 +2,7 @@ import React from 'react';
 import { useStore } from '../../context/StoreContext';
 import { CheckCircle2, AlertCircle, Info, X } from 'lucide-react';
 
+import { ModalPortal } from './ModalPortal';
 export const NotificationToast: React.FC = () => {
   const { toast, dismissToast } = useStore();
 
@@ -11,7 +12,8 @@ export const NotificationToast: React.FC = () => {
   const isError = toast.type === 'error';
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 max-w-md animate-in fade-in slide-in-from-bottom-5 duration-200">
+    <ModalPortal>
+      <div className="fixed bottom-6 right-6 z-50 max-w-md animate-in fade-in slide-in-from-bottom-5 duration-200">
       <div
         className={`flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg border text-sm font-medium ${
           isSuccess
@@ -37,6 +39,7 @@ export const NotificationToast: React.FC = () => {
           <X className="w-4 h-4" />
         </button>
       </div>
-    </div>
+      </div>
+    </ModalPortal>
   );
 };
