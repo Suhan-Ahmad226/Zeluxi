@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { CmsPageContent, getPublicCmsPage, pageMetadata } from '../_components/PublicCmsPage';
+import { CmsPageShell } from '../_components/CmsPageShell';
 
 const title = "Privacy Policy";
 const description = "Learn how Zeluxi collects, uses, and protects personal information.";
@@ -14,5 +15,9 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function PublicPage() {
   const page = await getPublicCmsPage(slugs);
-  return <CmsPageContent page={page} fallbackTitle={title} fallbackContent={page?.content || fallbackContent} />;
+  return (
+    <CmsPageShell>
+      <CmsPageContent page={page} fallbackTitle={title} fallbackContent={page?.content || fallbackContent} />
+    </CmsPageShell>
+  );
 }
