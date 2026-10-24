@@ -263,11 +263,14 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
       const id = Array.isArray(idValue) ? idValue[0] : idValue;
       if (!id || id.length > 100) return res.status(400).json({ error: 'A valid product id is required.' });
       // Archive rather than hard-delete: historical order items reference product IDs.
-      const { error } = await admin.from('store_products')
+      const { data: archivedRow, error } = await admin.from('store_products')
         .update({ published: false, archived: true, updated_at: new Date().toISOString() })
-        .eq('id', id);
-      if (error) return res.status(404).json({ error: 'Product could not be archived.' });
-      return res.status(200).json({ archived: true, id });
+        .eq('id', id)
+        .select('id')
+        .maybeSingle();
+      if (error) return res.status(503).json({ error: 'Product could not be archived.' });
+      if (!archivedRow) return res.status(404).json({ error: 'Product not found or already removed.' });
+      return res.status(200).json({ archived: true, id: archivedRow.id });
     }
 
     const parsed = productSchema.safeParse(req.body);
