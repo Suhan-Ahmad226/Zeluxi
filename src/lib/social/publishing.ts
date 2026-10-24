@@ -1,0 +1,104 @@
+import { decryptSocialToken } from './server';
+
+export async function publishPost(admin: any, postId: string) {
+  const { data: post, error: postError } = await admin.from('social_posts').select('*').eq('id', postId).maybeSingle();
+  if (postError || !post) throw new Error('Post was not found.');
+  if (!['SCHEDULED','AWAITING_APPROVAL','DRAFT','FAILED'].includes(post.status)) throw new Error(`Post cannot be published from status ${post.status}.`);
+  const failBeforePublish = async (message: string) => {
+    await admin.from('social_posts').update({ status: 'FAILED', last_error: message.slice(0,1000), updated_at: new Date().toISOString() })
+      .eq('id', post.id).in('status',['DRAFT','AWAITING_APPROVAL','SCHEDULED','FAILED']);
+    if (post.promotion_id) await admin.from('social_promotions').update({ status: 'PAUSED', next_run_at: null, updated_at: new Date().toISOString() }).eq('id',post.promotion_id);
+    throw new Error(message);
+  };
+  const { data: account, error: accountError } = await admin.from('social_accounts').select('*').eq('id', post.account_id).eq('status','CONNECTED').maybeSingle();
+  if (accountError || !account) await failBeforePublish('Facebook Page is disconnected or requires reconnection. Reconnect the Page before retrying.');
+  if (post.product_id) {
+    const { data: product, error: productError } = await admin.from('store_products')
+      .select('id,published,archived,stock,price').eq('id', post.product_id).maybeSingle();
+    if (productError || !product || !product.published || product.archived || Number(product.stock) <= 0) {
+      await failBeforePublish('The product is no longer available for promotion. The post was stopped.');
+    }
+    if (post.product_price_snapshot != null && Number(post.product_price_snapshot) !== Number(product.price)) {
+      await failBeforePublish('The product price changed after this draft was created. Refresh the AI caption, review the new price, and save a new draft before publishing.');
+    }
+  }
+  let token: string;
+  try {
+    token = decryptSocialToken(account.access_token_ciphertext);
+  } catch {
+    const message = 'The saved Facebook token cannot be decrypted. Reconnect the Page and verify SOCIAL_TOKEN_ENCRYPTION_KEY.';
+    await admin.from('social_accounts').update({ status: 'RECONNECT_REQUIRED', updated_at: new Date().toISOString() }).eq('id', account.id);
+    await admin.from('social_posts').update({ status: 'FAILED', last_error: message, updated_at: new Date().toISOString() }).eq('id', post.id);
+    if (post.promotion_id) await admin.from('social_promotions').update({ status: 'PAUSED', next_run_at: null, updated_at: new Date().toISOString() }).eq('id', post.promotion_id);
+    throw new Error(message);
+  }
+  const base = `https://graph.facebook.com/v26.0/${encodeURIComponent(account.provider_account_id)}`;
+  const mediaUrls = Array.isArray(post.media_urls) ? post.media_urls.filter((v: unknown): v is string => typeof v === 'string' && /^https:\/\//.test(v)).slice(0, 10) : [];
+  const caption = String(post.caption || '').trim();
+  if (!caption) throw new Error('Post caption is empty.');
+  // Atomically claim the post before calling Meta. A concurrent scheduler/manual click must not publish twice.
+  const { data: claimed, error: claimError } = await admin.from('social_posts')
+    .update({ status: 'PUBLISHING', last_error: null, updated_at: new Date().toISOString() })
+    .eq('id', post.id).in('status', ['SCHEDULED','AWAITING_APPROVAL','DRAFT','FAILED']).select('id');
+  if (claimError || !claimed?.length) throw new Error('This post is already being processed or its status changed. Refresh before retrying.');
+  const attemptNumberResult = await admin.from('social_publish_attempts').select('attempt_number').eq('post_id', post.id).order('attempt_number', { ascending: false }).limit(1);
+  const attemptNumber = (attemptNumberResult.data?.[0]?.attempt_number || 0) + 1;
+  const { data: attempt, error: attemptError } = await admin.from('social_publish_attempts').insert({ post_id: post.id, attempt_number: attemptNumber, status: 'STARTED' }).select('id').single();
+  if (attemptError || !attempt) {
+    await admin.from('social_posts').update({ status: post.status, updated_at: new Date().toISOString() }).eq('id', post.id).eq('status','PUBLISHING');
+    throw new Error('Publishing attempt could not be recorded.');
+  }
+
+  try {
+    const captionWithLink = caption.includes(post.product_url) ? caption : `${caption}\n\nShop now: ${post.product_url}`;
+    let endpoint = `${base}/feed`;
+    const body: Record<string, string> = { message: captionWithLink, access_token: token };
+    if (post.post_kind === 'VIDEO' && mediaUrls.length) {
+      endpoint = `${base}/videos`;
+      body.file_url = mediaUrls[0];
+      body.description = captionWithLink;
+      delete body.message;
+    } else if (mediaUrls.length) {
+      endpoint = `${base}/photos`;
+      body.url = mediaUrls[0];
+      body.caption = captionWithLink;
+      delete body.message;
+    }
+    const response = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(body), signal: AbortSignal.timeout(25000) });
+    const result = await response.json() as { id?: string; post_id?: string; error?: { message?: string; code?: number } };
+    if (!response.ok || !(result.id || result.post_id)) {
+      const message = result.error?.message || (response.ok ? 'Meta accepted the request but returned no post ID; the result is uncertain. Check the Facebook Page before retrying.' : `Meta publishing returned HTTP ${response.status}.`);
+      await admin.from('social_publish_attempts').update({ status: response.ok ? 'UNCERTAIN' : 'FAILED', error_code: String(result.error?.code || response.status), error_message: message.slice(0, 1000), finished_at: new Date().toISOString() }).eq('id', attempt.id);
+      await admin.from('social_posts').update({ status: 'FAILED', last_error: message.slice(0, 1000), updated_at: new Date().toISOString() }).eq('id', post.id);
+      if (Number(result.error?.code) === 190) {
+        await admin.from('social_accounts').update({ status: 'RECONNECT_REQUIRED', updated_at: new Date().toISOString() }).eq('id', account.id);
+      }
+      throw new Error(message);
+    }
+    const providerPostId = result.post_id || result.id!;
+    await admin.from('social_publish_attempts').update({ status: 'SUCCEEDED', provider_post_id: providerPostId, finished_at: new Date().toISOString() }).eq('id', attempt.id);
+    await admin.from('social_posts').update({ status: 'PUBLISHED', provider_post_id: providerPostId, published_at: new Date().toISOString(), last_error: null, updated_at: new Date().toISOString() }).eq('id', post.id);
+    if (post.promotion_id) {
+      const { data: promo } = await admin.from('social_promotions').select('posts_published,interval_days,max_posts').eq('id', post.promotion_id).maybeSingle();
+      if (promo) {
+        const count = Number(promo.posts_published || 0) + 1;
+        const { data: latestProduct } = post.product_id ? await admin.from('store_products').select('published,archived,stock').eq('id', post.product_id).maybeSingle() : { data: null };
+        const shouldContinue = (!promo.max_posts || count < promo.max_posts) && (!post.product_id || Boolean(latestProduct?.published && !latestProduct?.archived && latestProduct.stock > 0));
+        await admin.from('social_promotions').update({ posts_published: count, status: shouldContinue ? 'ACTIVE' : 'COMPLETED', next_run_at: shouldContinue ? new Date(Date.now() + Number(promo.interval_days || 3) * 86400000).toISOString() : null, updated_at: new Date().toISOString() }).eq('id', post.promotion_id);
+      }
+    }
+    await admin.from('social_audit_logs').insert({ actor_id: null, action: 'POST_PUBLISHED', entity_type: 'social_post', entity_id: post.id, details: { providerPostId } });
+    return { success: true, providerPostId };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Publishing failed.';
+    await admin.from('social_publish_attempts').update({
+      status: 'UNCERTAIN', error_message: message.slice(0, 1000), finished_at: new Date().toISOString(),
+    }).eq('id', attempt.id).eq('status','STARTED');
+    await admin.from('social_posts').update({ status: 'FAILED', last_error: message.slice(0, 1000), updated_at: new Date().toISOString() }).eq('id', post.id);
+    if (post.promotion_id) {
+      await admin.from('social_promotions').update({ status: 'PAUSED', next_run_at: null, updated_at: new Date().toISOString() }).eq('id', post.promotion_id);
+    }
+    throw error;
+  }
+}
+
