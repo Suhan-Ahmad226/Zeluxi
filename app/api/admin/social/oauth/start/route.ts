@@ -1,4 +1,4 @@
-import { randomBytes } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { requireSocialAdmin, socialError, noStoreHeaders } from '@/src/lib/social/server';
 
@@ -11,7 +11,19 @@ export async function POST(request: NextRequest) {
   const appId = process.env.SOCIAL_META_APP_ID;
   const redirectUri = process.env.SOCIAL_META_REDIRECT_URI;
   if (!appId || !redirectUri) return socialError('Meta OAuth is not configured. Add SOCIAL_META_APP_ID and SOCIAL_META_REDIRECT_URI.', 503);
+
   const state = randomBytes(24).toString('base64url');
+  const stateHash = createHash('sha256').update(state).digest('hex');
+  const { error: stateError } = await access.admin.from('social_oauth_states').insert({
+    state_hash: stateHash,
+    user_id: access.userId,
+    expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
+  });
+  if (stateError) {
+    console.error('[social-meta-oauth] state_creation_failed', { code: stateError.code ?? null });
+    return socialError('Could not start Facebook connection securely. Apply the latest database migration and try again.', 503);
+  }
+
   const response = NextResponse.json({
     url: `https://www.facebook.com/v26.0/dialog/oauth?${new URLSearchParams({
       client_id: appId,

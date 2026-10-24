@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { encryptSocialToken, noStoreHeaders } from '@/src/lib/social/server';
@@ -32,7 +33,21 @@ export async function GET(request: NextRequest) {
   const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
   const service = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!appId || !appSecret || !redirectUri || !url || !service) return finish(request, 'error', 'Meta OAuth or Supabase server configuration is incomplete.');
+
+  // Claim this OAuth state atomically before exchanging the one-time Meta code.
+  // Parallel/replayed callbacks with the same state must not reach Meta's token endpoint.
+  const admin = createClient(url, service, { auth: { persistSession: false, autoRefreshToken: false } });
   try {
+    const stateHash = createHash('sha256').update(state).digest('hex');
+    const { data: claimed, error: claimError } = await admin.rpc('claim_social_oauth_state', { p_state_hash: stateHash });
+    if (claimError) {
+      console.error('[social-meta-oauth] state_claim_failed', { code: claimError.code ?? null });
+      return finish(request, 'error', 'Facebook connection could not verify a one-time authorization state. Apply the latest database migration and try again.');
+    }
+    if (claimed !== true) {
+      return finish(request, 'error', 'This Facebook connection attempt was already processed or expired. Start a new connection from Social Studio.');
+    }
+
     const tokenUrl = new URL('https://graph.facebook.com/v26.0/oauth/access_token');
     tokenUrl.search = new URLSearchParams({ client_id: appId, client_secret: appSecret, redirect_uri: redirectUri, code }).toString();
     const tokenResponse = await fetch(tokenUrl, { signal: AbortSignal.timeout(15000) });
@@ -62,7 +77,6 @@ export async function GET(request: NextRequest) {
       console.error('[social-meta-oauth] page_listing_failed', { httpStatus: pagesResponse.status, message: pagesPayload.error?.message ?? null, type: pagesPayload.error?.type ?? null, code: pagesPayload.error?.code ?? null, subcode: pagesPayload.error?.error_subcode ?? null, fbtraceId: pagesPayload.error?.fbtrace_id ?? null });
       return finish(request, 'error', 'Facebook OAuth failed at Page listing. Check Vercel runtime logs for the Meta error details.');
     }
-    const admin = createClient(url, service, { auth: { persistSession: false, autoRefreshToken: false } });
     let saved = 0;
     for (const page of pagesPayload.data) {
       if (!page.id || !page.name || !page.access_token) continue;
