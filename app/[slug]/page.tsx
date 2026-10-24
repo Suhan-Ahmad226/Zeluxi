@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { CmsPageContent, getPublicCmsPages } from '../_components/PublicCmsPage';
+import { CmsPageShell } from '../_components/CmsPageShell';
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -31,5 +32,9 @@ export default async function CmsSlugPage({ params }: Props) {
   const { slug } = await params;
   const page = (await getPublicCmsPages()).find((item) => item.slug === slug);
   if (!page) notFound();
-  return <CmsPageContent page={page} fallbackTitle={page.title} fallbackContent={page.content} />;
+  return (
+    <CmsPageShell>
+      <CmsPageContent page={page} fallbackTitle={page.title} fallbackContent={page.content} />
+    </CmsPageShell>
+  );
 }
