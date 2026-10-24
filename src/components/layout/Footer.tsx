@@ -34,7 +34,7 @@ function phoneHref(value?: string): string | null {
 }
 
 export const Footer: React.FC = () => {
-  const { settings, pages, setActiveView, setActiveStaticPage } = useStore();
+  const { settings, pages, setActiveView } = useStore();
   const [showBackToTop, setShowBackToTop] = useState(false);
 
   useEffect(() => {
@@ -141,7 +141,7 @@ export const Footer: React.FC = () => {
                 <li><button type="button" onClick={() => setActiveView('shop')} className="text-left transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400">All products</button></li>
                 <li><button type="button" onClick={() => setActiveView('tracking')} className="text-left transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400">Track order</button></li>
                 <li><button type="button" onClick={() => setActiveView('account')} className="text-left transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400">My account</button></li>
-                <li><button type="button" onClick={() => setActiveStaticPage('about')} className="text-left transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400">About us</button></li>
+                <li><a href="/about" className="text-left transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400">About us</a></li>
               </ul>
             </nav>
           )}
@@ -150,24 +150,23 @@ export const Footer: React.FC = () => {
             <nav aria-label="Customer service">
               <h2 className="mb-4 text-xs font-bold uppercase tracking-[0.16em] text-white">Customer care</h2>
               <ul className="space-y-3 text-sm text-slate-400">
-                <li><button type="button" onClick={() => setActiveStaticPage('shipping')} className="text-left transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400">Shipping policy</button></li>
-                <li><button type="button" onClick={() => setActiveStaticPage('refund')} className="text-left transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400">Returns & refunds</button></li>
-                <li><button type="button" onClick={() => setActiveStaticPage('faq')} className="text-left transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400">Frequently asked questions</button></li>
-                <li><button type="button" onClick={() => setActiveStaticPage('support')} className="text-left transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400">Contact support</button></li>
-                <li><button type="button" onClick={() => setActiveStaticPage('privacy')} className="text-left transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400">Privacy policy</button></li>
-                <li><button type="button" onClick={() => setActiveStaticPage('terms')} className="text-left transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400">Terms of service</button></li>
+                <li><a href="/shipping" className="text-left transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400">Shipping policy</a></li>
+                <li><a href="/refund" className="text-left transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400">Returns & refunds</a></li>
+                <li><a href="/faq" className="text-left transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400">Frequently asked questions</a></li>
+                <li><a href="/support" className="text-left transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400">Contact support</a></li>
+                <li><a href="/privacy" className="text-left transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400">Privacy policy</a></li>
+                <li><a href="/terms" className="text-left transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400">Terms of service</a></li>
                 {pages
                   .filter((page) => page.isPublished && page.showInFooter === true && !['about', 'shipping', 'refund', 'support', 'faq', 'privacy', 'terms'].includes(page.slug))
                   .sort((a, b) => (a.navigationOrder ?? 100) - (b.navigationOrder ?? 100))
                   .map((page) => (
                     <li key={page.slug}>
-                      <button
-                        type="button"
-                        onClick={() => setActiveStaticPage(page.slug)}
+                      <a
+                        href={`/${encodeURIComponent(page.slug)}`}
                         className="text-left transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
                       >
                         {page.navigationLabel?.trim() || page.title}
-                      </button>
+                      </a>
                     </li>
                   ))}
               </ul>

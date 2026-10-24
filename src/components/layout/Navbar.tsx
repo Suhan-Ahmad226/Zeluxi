@@ -41,7 +41,6 @@ export const Navbar: React.FC = () => {
     searchQuery,
     setSearchQuery,
     setSelectedCategoryFilter,
-    setActiveStaticPage,
   } = useStore();
 
   const {
@@ -545,7 +544,7 @@ export const Navbar: React.FC = () => {
                 <button
                   key={page.slug}
                   type="button"
-                  onClick={() => setActiveStaticPage(page.slug)}
+                  onClick={() => router.push(`/${encodeURIComponent(page.slug)}`)}
                   className="max-w-36 truncate hover:text-indigo-600 transition-colors"
                   title={page.navigationLabel || page.title}
                 >

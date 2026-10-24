@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useStore } from '../../context/StoreContext';
 import { formatDateOnly } from '../../utils/formatters';
 import { StaticPageContent } from '../../types';
@@ -22,7 +23,8 @@ import {
 } from 'lucide-react';
 
 export const PagesCMSManager: React.FC = () => {
-  const { pages, addPage, updatePage, deletePage, showToast, setActiveStaticPage } = useStore();
+  const router = useRouter();
+  const { pages, addPage, updatePage, deletePage, showToast } = useStore();
 
   const [search, setSearch] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -237,9 +239,9 @@ export const PagesCMSManager: React.FC = () => {
                 <td className="p-3.5 font-mono text-slate-500 text-[11px]">{formatDateOnly(page.lastUpdated)}</td>
                 <td className="p-3.5 text-right space-x-1">
                   <button
-                    onClick={() => setActiveStaticPage(page.slug as any)}
+                    onClick={() => router.push(`/${encodeURIComponent(page.slug)}`)}
                     className="p-1.5 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-                    title="Preview Storefront Page"
+                    title="Open public page"
                   >
                     <Eye className="w-3.5 h-3.5" />
                   </button>

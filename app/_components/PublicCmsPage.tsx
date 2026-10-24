@@ -1,5 +1,4 @@
 import { headers } from 'next/headers';
-import { notFound } from 'next/navigation';
 import { sanitizeRichTextHtml } from '@/src/utils/richText';
 
 export type PublicCmsPage = {
@@ -15,7 +14,7 @@ export type PublicCmsPage = {
 
 const SITE_FALLBACK = 'https://zeluxi.vercel.app';
 
-export async function getPublicCmsPage(slugs: string[]): Promise<PublicCmsPage | null> {
+export async function getPublicCmsPages(): Promise<PublicCmsPage[]> {
   try {
     const requestHeaders = await headers();
     const rawHost = requestHeaders.get('x-forwarded-host') || requestHeaders.get('host') || '';
@@ -23,17 +22,25 @@ export async function getPublicCmsPage(slugs: string[]): Promise<PublicCmsPage |
     const protocol = requestHeaders.get('x-forwarded-proto')?.split(',')[0]?.trim() === 'http' ? 'http' : 'https';
     const origin = host ? `${protocol}://${host}` : (process.env.NEXT_PUBLIC_SITE_URL || SITE_FALLBACK);
     const response = await fetch(new URL('/api/content', origin), { cache: 'no-store' });
-    if (!response.ok) return null;
+    if (!response.ok) return [];
     const payload = await response.json();
     const pages = payload?.content?.pages;
-    if (!Array.isArray(pages)) return null;
-    return (pages as PublicCmsPage[]).find((page) =>
-      typeof page?.slug === 'string' && slugs.includes(page.slug.toLowerCase()) && page.isPublished === true &&
-      typeof page.title === 'string' && typeof page.content === 'string'
-    ) || null;
+    if (!Array.isArray(pages)) return [];
+    return (pages as PublicCmsPage[]).filter((page) =>
+      typeof page?.slug === 'string' &&
+      /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(page.slug) &&
+      page.isPublished !== false &&
+      typeof page.title === 'string' &&
+      typeof page.content === 'string'
+    );
   } catch {
-    return null;
+    return [];
   }
+}
+
+export async function getPublicCmsPage(slugs: string[]): Promise<PublicCmsPage | null> {
+  const pages = await getPublicCmsPages();
+  return pages.find((page) => slugs.includes(page.slug.toLowerCase())) || null;
 }
 
 export function CmsPageContent({ page, fallbackTitle, fallbackContent }: {
