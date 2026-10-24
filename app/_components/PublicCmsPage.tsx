@@ -57,11 +57,6 @@ export function CmsPageContent({ page, fallbackTitle, fallbackContent }: {
         <h1 className="mt-6 text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">{title}</h1>
         {page?.lastUpdated && <p className="mt-3 text-sm text-slate-500">Last updated: {page.lastUpdated}</p>}
         <div className="cms-rich-text mt-6 leading-7" dangerouslySetInnerHTML={{ __html: sanitizeRichTextHtml(content) }} />
-        <nav aria-label="Legal pages" className="mt-10 flex flex-wrap gap-4 border-t border-slate-200 pt-6 text-sm">
-          <a className="text-indigo-600 underline" href="/privacy">Privacy Policy</a>
-          <a className="text-indigo-600 underline" href="/terms">Terms of Service</a>
-          <a className="text-indigo-600 underline" href="/data-deletion">Data Deletion</a>
-        </nav>
       </article>
     </main>
   );
