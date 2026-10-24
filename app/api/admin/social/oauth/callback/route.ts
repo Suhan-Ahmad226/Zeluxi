@@ -37,7 +37,10 @@ export async function GET(request: NextRequest) {
     tokenUrl.search = new URLSearchParams({ client_id: appId, client_secret: appSecret, redirect_uri: redirectUri, code }).toString();
     const tokenResponse = await fetch(tokenUrl, { signal: AbortSignal.timeout(15000) });
     const tokenPayload = await tokenResponse.json() as { access_token?: string; error?: { message?: string } };
-    if (!tokenResponse.ok || !tokenPayload.access_token) return finish(request, 'error', 'Facebook could not issue an access token. Check Meta app settings.');
+    if (!tokenResponse.ok || !tokenPayload.access_token) {
+      console.error('[social-meta-oauth] authorization_code_exchange_failed', { httpStatus: tokenResponse.status, message: tokenPayload.error?.message ?? null, type: tokenPayload.error?.type ?? null, code: tokenPayload.error?.code ?? null, subcode: tokenPayload.error?.error_subcode ?? null, fbtraceId: tokenPayload.error?.fbtrace_id ?? null });
+      return finish(request, 'error', 'Facebook OAuth failed at authorization-code exchange. Check Vercel runtime logs for the Meta error details.');
+    }
     // Exchange the short-lived user token before requesting Page tokens.
     const exchangeUrl = new URL('https://graph.facebook.com/v26.0/oauth/access_token');
     exchangeUrl.search = new URLSearchParams({
@@ -46,13 +49,19 @@ export async function GET(request: NextRequest) {
     }).toString();
     const exchangeResponse = await fetch(exchangeUrl, { signal: AbortSignal.timeout(15000) });
     const exchangePayload = await exchangeResponse.json() as { access_token?: string; expires_in?: number };
-    if (!exchangeResponse.ok || !exchangePayload.access_token) return finish(request, 'error', 'Facebook could not exchange a long-lived user token. Check Meta app configuration and permissions.');
+    if (!exchangeResponse.ok || !exchangePayload.access_token) {
+      console.error('[social-meta-oauth] long_lived_token_exchange_failed', { httpStatus: exchangeResponse.status, message: (exchangePayload as { error?: { message?: string } }).error?.message ?? null, type: (exchangePayload as { error?: { type?: string } }).error?.type ?? null, code: (exchangePayload as { error?: { code?: number } }).error?.code ?? null, subcode: (exchangePayload as { error?: { error_subcode?: number } }).error?.error_subcode ?? null, fbtraceId: (exchangePayload as { error?: { fbtrace_id?: string } }).error?.fbtrace_id ?? null });
+      return finish(request, 'error', 'Facebook OAuth failed at long-lived-token exchange. Check Vercel runtime logs for the Meta error details.');
+    }
     const userAccessToken = exchangePayload.access_token;
     const pagesResponse = await fetch('https://graph.facebook.com/v26.0/me/accounts?fields=id,name,access_token,tasks&limit=100', {
       headers: { Authorization: `Bearer ${userAccessToken}` }, signal: AbortSignal.timeout(15000),
     });
     const pagesPayload = await pagesResponse.json() as { data?: Array<{ id: string; name: string; access_token: string; tasks?: string[] }>; error?: { message?: string } };
-    if (!pagesResponse.ok || !Array.isArray(pagesPayload.data)) return finish(request, 'error', 'No Pages were returned. Verify Page access and Meta permissions.');
+    if (!pagesResponse.ok || !Array.isArray(pagesPayload.data)) {
+      console.error('[social-meta-oauth] page_listing_failed', { httpStatus: pagesResponse.status, message: pagesPayload.error?.message ?? null, type: pagesPayload.error?.type ?? null, code: pagesPayload.error?.code ?? null, subcode: pagesPayload.error?.error_subcode ?? null, fbtraceId: pagesPayload.error?.fbtrace_id ?? null });
+      return finish(request, 'error', 'Facebook OAuth failed at Page listing. Check Vercel runtime logs for the Meta error details.');
+    }
     const admin = createClient(url, service, { auth: { persistSession: false, autoRefreshToken: false } });
     let saved = 0;
     for (const page of pagesPayload.data) {
