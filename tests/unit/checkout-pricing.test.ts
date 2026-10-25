@@ -10,15 +10,19 @@ const quoteService = read('src/lib/shipping/pathao-checkout.ts');
 const orderApi = read('src/server/orders-handler.ts');
 const migration = read('supabase/migrations/20261026100000_checkout_pricing_and_coupons.sql');
 
-test('checkout selects official Pathao city, zone and serviceable area IDs', () => {
-  assert.match(checkout, /Pathao city \*/);
-  assert.match(checkout, /Pathao zone \*/);
-  assert.match(checkout, /Pathao delivery area \*/);
-  assert.match(checkout, /cityId: Number\(pathaoCityId\)/);
-  assert.match(checkout, /zoneId: Number\(pathaoZoneId\)/);
-  assert.match(locationsApi, /getPathaoCities/);
-  assert.match(locationsApi, /getPathaoZones/);
-  assert.match(quoteApi, /cityId: z\.number\(\)\.int\(\)\.positive\(\)\.optional\(\)/);
+test('Pathao city, zone and area matching stays server-side with no courier controls in checkout', () => {
+  assert.doesNotMatch(checkout, /Pathao city \*/);
+  assert.doesNotMatch(checkout, /Pathao zone \*/);
+  assert.doesNotMatch(checkout, /Pathao delivery area \*/);
+  assert.doesNotMatch(checkout, /Save this address for next time/);
+  assert.doesNotMatch(checkout, /Saved addresses are not available/);
+  assert.doesNotMatch(checkout, /Pathao Express Logistics/);
+  assert.match(checkout, /addressDetails: addressDetails\.trim\(\)/);
+  assert.match(quoteApi, /addressDetails: z\.string\(\)\.trim\(\)/);
+  assert.match(quoteService, /const rankedAreas = areas\.map/);
+  assert.match(quoteService, /PATHAO_AREA_MAPPING_REQUIRED/);
+  assert.match(orderApi, /addressDetails: parsed\.data\.customer\.addressDetails/);
+  assert.match(orderApi, /pathaoAreaId: quote\.areaId/);
 });
 
 test('shipping quote is calculated from catalog prices and product weights, never browser totals', () => {

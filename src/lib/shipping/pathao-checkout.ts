@@ -121,7 +121,12 @@ export async function quotePathaoCheckout(
     const overlap = tokens.filter((token) => addressText.includes(token)).length;
     return { area, score: exact + overlap };
   }).sort((a, b) => b.score - a.score || String(a.area.area_name).localeCompare(String(b.area.area_name)));
-  const selectedArea = rankedAreas[0]?.area;
+  const bestArea = rankedAreas[0];
+  const hasUnambiguousMatch = rankedAreas.length === 1 || (bestArea && bestArea.score > 0 && (rankedAreas[1]?.score ?? -1) < bestArea.score);
+  const selectedArea = hasUnambiguousMatch ? bestArea?.area : undefined;
+  if (!selectedArea) {
+    throw new PathaoApiError('We could not confidently match this address to a Pathao delivery area. Please add a nearby landmark or contact the store.', 422, 'PATHAO_AREA_MAPPING_REQUIRED');
+  }
   if (areas.length === 0) {
     throw new PathaoApiError('Pathao reports no home-delivery areas for this zone.', 422, 'PATHAO_AREA_UNAVAILABLE');
   }

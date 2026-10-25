@@ -369,10 +369,8 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     const quote = await quotePathaoCheckout(admin, {
       district: parsed.data.customer.district,
       upazila: parsed.data.customer.upazila || parsed.data.customer.thanaCity || '',
-      cityId: parsed.data.customer.pathaoCityId,
-      zoneId: parsed.data.customer.pathaoZoneId,
-      areaId: parsed.data.customer.pathaoAreaId,
-      requireArea: true,
+      addressDetails: parsed.data.customer.addressDetails,
+      notes: parsed.data.customer.notes,
       items,
     });
     const { data: settingsRow, error: settingsError } = await admin.from('store_content')
