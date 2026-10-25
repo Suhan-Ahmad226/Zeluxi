@@ -780,7 +780,7 @@ export const CheckoutModal: React.FC = () => {
             <div className="flex justify-between text-sm font-bold text-slate-900 pt-2 border-t border-slate-200">
               <span>Total</span>
               <span className="text-lg font-extrabold text-slate-950 tabular-nums">
-                {formatPrice(grandTotal)}
+                {shippingQuote ? formatPrice(grandTotal) : 'Awaiting delivery quote'}
               </span>
             </div>
           </div>
@@ -886,7 +886,7 @@ Remove coupon
             >
               <ShieldCheck className="w-4 h-4 text-emerald-400" />
               <span>
-                {isProcessing ? 'Processing order...' : `Place order · ${formatPrice(grandTotal)}`}
+                {isProcessing ? 'Processing order...' : shippingQuote ? `Place order · ${formatPrice(grandTotal)}` : isQuoteLoading ? 'Calculating delivery...' : 'Select delivery area to continue'}
               </span>
             </button>
             <p className="text-[11px] text-center text-slate-400 mt-2">
