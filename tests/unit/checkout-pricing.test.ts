@@ -34,6 +34,7 @@ test('database applies coupon and COD math atomically with order and inventory c
   assert.match(migration, /add column if not exists cod_fee/i);
   assert.match(migration, /add column if not exists coupon_code/i);
   assert.match(migration, /add column if not exists pathao_delivery_fee/i);
+  assert.doesNotMatch(migration, /drop function if exists public\\.create_customer_order/i);
   assert.match(migration, /v_discount := round\(v_subtotal \* v_coupon_value \/ 100, 2\)/);
   assert.match(migration, /v_cod_fee := ceil\(greatest\(0, v_subtotal \+ v_shipping_fee - v_discount\)/);
   assert.match(migration, /update public\.store_content[\s\S]*usageCount/);
