@@ -1040,15 +1040,15 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
                         <section className="mt-5 space-y-4 rounded-xl border border-indigo-100 bg-indigo-50/40 p-4 sm:p-5">
                           <div>
                             <h3 className="font-bold text-slate-900">Product Description · Manual Entry</h3>
-                            <p className="mt-1 text-xs leading-5 text-slate-600">AI নেই। নিজের ভাষায় পণ্যের সংক্ষিপ্ত ও বিস্তারিত বিবরণ লিখুন। সংরক্ষণের সময় এই লেখাই ব্যবহার হবে।</p>
+                            <p className="mt-1 text-xs leading-5 text-slate-600">Write a short summary and the full product details.</p>
                           </div>
                           <div>
-                            <label className="font-semibold text-slate-700 block mb-1">Short Description / সংক্ষিপ্ত বিবরণ</label>
-                            <textarea rows={3} value={shortDesc} onChange={(event) => setShortDesc(event.target.value)} placeholder="১-২ বাক্যে পণ্যের প্রধান সুবিধা ও বৈশিষ্ট্য লিখুন..." className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 focus:border-indigo-600 focus:outline-none" />
+                            <label className="font-semibold text-slate-700 block mb-1">Short Description</label>
+                            <textarea rows={3} value={shortDesc} onChange={(event) => setShortDesc(event.target.value)} placeholder="Key benefits and features" className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 focus:border-indigo-600 focus:outline-none" />
                           </div>
                           <div>
-                            <label className="font-semibold text-slate-700 block mb-1">Full Product Description / বিস্তারিত বিবরণ</label>
-                            <textarea rows={8} value={description} onChange={(event) => setDescription(event.target.value)} placeholder="নিজে পণ্যের বিস্তারিত লিখুন: উপাদান, সাইজ, ব্যবহার, সুবিধা, যত্ন নেওয়ার নিয়ম এবং প্যাকেজে কী থাকবে। নিশ্চিত নন এমন তথ্য লিখবেন না..." className="w-full rounded-xl border border-slate-200 bg-white px-3 py-3 focus:border-indigo-600 focus:outline-none" />
+                            <label className="font-semibold text-slate-700 block mb-1">Full Description</label>
+                            <textarea rows={8} value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Materials, size, use, features, care, and package contents" className="w-full rounded-xl border border-slate-200 bg-white px-3 py-3 focus:border-indigo-600 focus:outline-none" />
                           </div>
                         </section>
                       </section>
@@ -1394,26 +1394,26 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
                   <section className="space-y-4 rounded-xl border border-indigo-100 bg-indigo-50/40 p-4 sm:p-5">
                     <div>
                       <h3 className="font-bold text-slate-900">Product Description · Manual Entry</h3>
-                      <p className="mt-1 text-xs leading-5 text-slate-600">AI ব্যবহার করতে হবে না। নিজের ভাষায় পণ্যের সংক্ষিপ্ত ও বিস্তারিত বিবরণ লিখুন। এই লেখাই পণ্যের তথ্য হিসেবে সংরক্ষিত হবে।</p>
+                      <p className="mt-1 text-xs leading-5 text-slate-600">Write the product summary and details manually.</p>
                     </div>
                     <div>
-                      <label className="font-semibold text-slate-700 block mb-1">Short Description / সংক্ষিপ্ত বিবরণ</label>
+                      <label className="font-semibold text-slate-700 block mb-1">Short Description</label>
                       <textarea
                         rows={3}
                         value={shortDesc}
                         onChange={(e) => setShortDesc(e.target.value)}
-                        placeholder="১-২ বাক্যে পণ্যের প্রধান সুবিধা ও বৈশিষ্ট্য লিখুন..."
+                        placeholder="Key benefits and features"
                         className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white focus:outline-none focus:border-indigo-600"
                       />
                     </div>
 
                     <div>
-                      <label className="font-semibold text-slate-700 block mb-1">Full Product Description / বিস্তারিত বিবরণ</label>
+                      <label className="font-semibold text-slate-700 block mb-1">Full Description</label>
                       <textarea
                         rows={8}
                         value={description}
                         onChange={(e) => setDescription(e.target.value)}
-                        placeholder="এখানে নিজে পণ্যের বিস্তারিত বিবরণ লিখুন। যেমন: উপাদান, সাইজ, ব্যবহার, সুবিধা, যত্ন নেওয়ার নিয়ম এবং প্যাকেজে কী কী থাকবে। নিশ্চিত নন এমন তথ্য লিখবেন না..."
+                        placeholder="Materials, size, use, features, care, and package contents"
                         className="w-full px-3 py-3 border border-slate-300 rounded-lg bg-white focus:outline-none focus:border-indigo-600"
                       />
                     </div>
@@ -1502,7 +1502,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
                             <Upload className="w-6 h-6" />
                           </div>
                           <p className="font-bold text-slate-900 text-sm">
-                            Click to choose photos from your computer or drag & drop here (লোকাল পিক আপলোড)
+                            Click to upload photos or drag and drop here
                           </p>
                           <p className="text-slate-500 text-[11px] mt-1">
                             Supports multi-file select: JPG, PNG, WEBP, AVIF. Automatically downsampled for lightning speed.
