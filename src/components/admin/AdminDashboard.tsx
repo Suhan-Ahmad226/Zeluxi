@@ -2442,6 +2442,103 @@ export const AdminDashboard: React.FC = () => {
         {/* TAB: INVENTORY CONTROL & ATOMIC ADJUSTMENTS */}
         {activeTab === 'inventory' && <InventoryManager />}
 
+        {/* TAB: DELIVERY & TRACKING — PATHAO */}
+        {activeTab === 'logistics' && <PathaoCourierManager />}
+
+        {/* TAB: PAYMENTS & FINANCE */}
+        {activeTab === 'payments' && (() => {
+          const paidOrders = orders.filter((order) => order.paymentStatus === 'PAID');
+          const pendingPayments = orders.filter((order) => order.paymentStatus !== 'PAID');
+          const refundedOrders = orders.filter((order) => order.paymentStatus === 'REFUNDED');
+          const paymentTotal = paidOrders.reduce((sum, order) => sum + order.grandTotal, 0);
+          const currency = (amount: number) => `৳${amount.toLocaleString('en-BD')}`;
+          return (
+            <div className="space-y-5">
+              <div>
+                <h2 className="text-xl font-bold text-slate-900">Payments & Finance</h2>
+                <p className="mt-1 text-sm text-slate-500">Payment status, order transactions, and refund actions.</p>
+              </div>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                <div className="rounded-xl border border-slate-200 bg-white p-4">
+                  <p className="text-xs font-medium text-slate-500">Paid Revenue</p>
+                  <p className="mt-2 text-2xl font-bold text-emerald-700">{currency(paymentTotal)}</p>
+                  <p className="mt-1 text-xs text-slate-500">{paidOrders.length} paid orders</p>
+                </div>
+                <div className="rounded-xl border border-slate-200 bg-white p-4">
+                  <p className="text-xs font-medium text-slate-500">Pending Payments</p>
+                  <p className="mt-2 text-2xl font-bold text-amber-700">{pendingPayments.length}</p>
+                  <p className="mt-1 text-xs text-slate-500">Orders not marked paid</p>
+                </div>
+                <div className="rounded-xl border border-slate-200 bg-white p-4">
+                  <p className="text-xs font-medium text-slate-500">Total Orders</p>
+                  <p className="mt-2 text-2xl font-bold text-slate-900">{orders.length}</p>
+                  <p className="mt-1 text-xs text-slate-500">All recorded orders</p>
+                </div>
+                <div className="rounded-xl border border-slate-200 bg-white p-4">
+                  <p className="text-xs font-medium text-slate-500">Refunded Orders</p>
+                  <p className="mt-2 text-2xl font-bold text-rose-700">{refundedOrders.length}</p>
+                  <p className="mt-1 text-xs text-slate-500">Marked as refunded</p>
+                </div>
+              </div>
+              <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 p-4">
+                  <div>
+                    <h3 className="font-bold text-slate-900">Payment Transactions</h3>
+                    <p className="mt-1 text-xs text-slate-500">Transaction status is based on the current order record.</p>
+                  </div>
+                  <button type="button" onClick={handleExportOrdersCSV} className="inline-flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">
+                    <Download className="h-4 w-4" /> Export CSV
+                  </button>
+                </div>
+                {orders.length === 0 ? (
+                  <div className="p-10 text-center">
+                    <CreditCard className="mx-auto h-8 w-8 text-slate-300" />
+                    <p className="mt-3 font-semibold text-slate-700">No payment transactions yet</p>
+                    <p className="mt-1 text-sm text-slate-500">Orders will appear here when customers place them.</p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full min-w-[760px] text-left text-sm">
+                      <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+                        <tr>
+                          <th className="px-4 py-3">Order</th>
+                          <th className="px-4 py-3">Customer</th>
+                          <th className="px-4 py-3">Method</th>
+                          <th className="px-4 py-3">Amount</th>
+                          <th className="px-4 py-3">Payment Status</th>
+                          <th className="px-4 py-3">Date</th>
+                          <th className="px-4 py-3">Action</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {[...orders].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).map((order) => (
+                          <tr key={order.id} className="hover:bg-slate-50/70">
+                            <td className="whitespace-nowrap px-4 py-3 font-semibold text-slate-800">#{order.orderNumber || order.id}</td>
+                            <td className="px-4 py-3 text-slate-700">{order.customer.fullName}</td>
+                            <td className="px-4 py-3 text-slate-600">{order.paymentMethod}</td>
+                            <td className="whitespace-nowrap px-4 py-3 font-semibold text-slate-800">{currency(order.grandTotal)}</td>
+                            <td className="px-4 py-3">
+                              <span className={`inline-flex rounded-full px-2 py-1 text-[10px] font-bold ${order.paymentStatus === 'PAID' ? 'bg-emerald-100 text-emerald-800' : order.paymentStatus === 'REFUNDED' ? 'bg-rose-100 text-rose-800' : 'bg-amber-100 text-amber-800'}`}>{order.paymentStatus}</span>
+                            </td>
+                            <td className="whitespace-nowrap px-4 py-3 text-xs text-slate-500">{formatDate(order.createdAt, language)}</td>
+                            <td className="px-4 py-3">
+                              <div className="flex items-center gap-2">
+                                <button type="button" onClick={() => setSelectedAdminOrder(order)} className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100">Details</button>
+                                {order.paymentStatus === 'PAID' && <button type="button" onClick={() => setRefundTargetOrder(order)} className="rounded-lg border border-rose-200 px-2.5 py-1.5 text-xs font-semibold text-rose-700 hover:bg-rose-50">Refund</button>}
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+              <p className="text-xs text-slate-500">Note: this screen summarizes saved order records. Gateway verification and settlement reconciliation must be configured separately; an order status alone does not confirm a bank or mobile-wallet settlement.</p>
+            </div>
+          );
+        })()}
+
         {/* TAB: APPEARANCE & STOREFRONT CMS */}
         {activeTab === 'appearance' && <StorefrontCMSManager />}
 
