@@ -687,9 +687,9 @@ export const CheckoutModal: React.FC = () => {
               <span className="font-semibold text-slate-900 tabular-nums">{formatPrice(pricingSubtotal)}</span>
             </div>
             <div className="flex justify-between">
-              <span>Shipping</span>
+              <span>Pathao shipping</span>
               <span className="font-semibold text-slate-900 tabular-nums">
-                {shippingInfo.isFree ? 'FREE' : `৳${shippingInfo.fee}`}
+                {isQuoteLoading ? 'Calculating…' : shippingQuote ? (shippingInfo.isFree ? 'FREE' : formatPrice(shippingInfo.fee)) : '—'}
               </span>
             </div>
             {discount > 0 && (
