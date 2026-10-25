@@ -21,6 +21,7 @@ export interface AIProductDraft {
   seoKeywords: string;
   specifications: Array<{ key: string; value: string }>;
   sources?: AIProductSource[];
+  researchMode?: 'web-grounded' | 'text-only-fallback';
 }
 
 interface ProductAIAssistantProps {
@@ -144,6 +145,11 @@ export const ProductAIAssistant: React.FC<ProductAIAssistantProps> = ({
               {draft.specifications.length > 0 && <ul className="mt-3 space-y-1.5">{draft.specifications.slice(0, 5).map((spec) => <li key={spec.key} className="flex gap-2 text-xs"><span className="w-24 shrink-0 text-slate-500">{spec.key}</span><span className="font-medium text-slate-800">{spec.value}</span></li>)}</ul>}
             </div>
           </div>
+          {draft.researchMode === 'text-only-fallback' && (
+            <div role="status" className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs leading-5 text-amber-900">
+              <strong>Free fallback mode:</strong> live Google Search was unavailable, so this draft was generated without web research. No sources were verified. Check product facts and specifications manually before saving or publishing.
+            </div>
+          )}
           {draft.sources && draft.sources.length > 0 && (
             <div>
               <p className="mb-2 text-xs font-semibold text-slate-700">Research sources</p>
@@ -152,7 +158,7 @@ export const ProductAIAssistant: React.FC<ProductAIAssistantProps> = ({
               </div>
             </div>
           )}
-          <div className="flex items-start gap-2 rounded-xl bg-emerald-50 px-3 py-2.5 text-xs leading-5 text-emerald-800"><Check className="mt-0.5 h-4 w-4 shrink-0" /><span>AI content has been added to the product form. Regenerate any time to replace the generated description, details and SEO. Review the sources before publishing.</span></div>
+          <div className={`flex items-start gap-2 rounded-xl px-3 py-2.5 text-xs leading-5 ${draft.researchMode === 'text-only-fallback' ? 'bg-amber-50 text-amber-900' : 'bg-emerald-50 text-emerald-800'}`}><Check className="mt-0.5 h-4 w-4 shrink-0" /><span>AI content has been added to the product form. Regenerate any time to replace the generated description, details and SEO. {draft.researchMode === 'text-only-fallback' ? 'Manually verify all factual claims because web sources were not available.' : 'Review the sources before publishing.'}</span></div>
           <p className="text-[11px] leading-5 text-slate-500">Price, discount, photos, videos and variants stay under your control. AI never saves or publishes the product.</p>
         </div>
       )}
