@@ -42,6 +42,7 @@ export const CheckoutModal: React.FC = () => {
   const [division, setDivision] = useState('Dhaka');
   const [district, setDistrict] = useState('');
   const [upazila, setUpazila] = useState('');
+  const [pathaoAreaId, setPathaoAreaId] = useState('');
   const [addressDetails, setAddressDetails] = useState('');
   const [notes, setNotes] = useState('');
 
@@ -73,6 +74,7 @@ export const CheckoutModal: React.FC = () => {
       if (userProfile.division) setDivision(userProfile.division);
       if (userProfile.district) setDistrict(userProfile.district);
       if (userProfile.upazila || (userProfile as any).thanaCity) setUpazila(userProfile.upazila || (userProfile as any).thanaCity || '');
+      if ((userProfile as any).pathaoAreaId) setPathaoAreaId(String((userProfile as any).pathaoAreaId));
       if (typeof userProfile.notes === 'string') setNotes(userProfile.notes);
     }
   }, [userProfile, isCheckoutOpen]);
@@ -98,6 +100,7 @@ export const CheckoutModal: React.FC = () => {
           body: JSON.stringify({
             district,
             upazila,
+            areaId: pathaoAreaId ? Number(pathaoAreaId) : undefined,
             items: cart.map((item) => ({ productId: item.productId, variantId: item.variantId, quantity: item.quantity })),
           }),
           cache: 'no-store',
@@ -118,7 +121,7 @@ export const CheckoutModal: React.FC = () => {
     };
     void requestQuote();
     return () => { active = false; };
-  }, [isCheckoutOpen, district, upazila, cart]);
+  }, [isCheckoutOpen, district, upazila, pathaoAreaId, cart]);
 
   if (!isCheckoutOpen) return null;
 
@@ -163,7 +166,7 @@ export const CheckoutModal: React.FC = () => {
       return;
     }
 
-    if (!shippingQuote || isQuoteLoading || shippingQuoteError) {
+    if (!shippingQuote || !shippingQuote.areaId || isQuoteLoading || shippingQuoteError) {
       setFormError(shippingQuoteError || 'Wait for a valid Pathao delivery quote before placing your order.');
       return;
     }
@@ -183,6 +186,8 @@ export const CheckoutModal: React.FC = () => {
       pathaoCityName: String(shippingQuote.cityName || ''),
       pathaoZoneId: Number(shippingQuote.zoneId),
       pathaoZoneName: String(shippingQuote.zoneName || ''),
+      pathaoAreaId: Number(shippingQuote.areaId),
+      pathaoAreaName: String(shippingQuote.areaName || ''),
     };
 
     const parseResult = shippingAddressSchema.safeParse(candidateAddress);
@@ -230,6 +235,8 @@ export const CheckoutModal: React.FC = () => {
       pathaoCityName: candidateAddress.pathaoCityName,
       pathaoZoneId: candidateAddress.pathaoZoneId,
       pathaoZoneName: candidateAddress.pathaoZoneName,
+      pathaoAreaId: candidateAddress.pathaoAreaId,
+      pathaoAreaName: candidateAddress.pathaoAreaName,
     };
 
     const courierPartner: CourierProvider = shippingInfo.provider;
@@ -352,7 +359,7 @@ export const CheckoutModal: React.FC = () => {
                 </label>
                 <select
                   value={division}
-                  onChange={(e) => { setDivision(e.target.value); setDistrict(''); setUpazila(''); }}
+                  onChange={(e) => { setDivision(e.target.value); setDistrict(''); setUpazila(''); setPathaoAreaId(''); setShippingQuote(null); }}
                   className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg bg-white focus:outline-none focus:border-indigo-600 cursor-pointer"
                 >
                   {BANGLADESH_DIVISIONS.map((d) => (
@@ -370,7 +377,7 @@ export const CheckoutModal: React.FC = () => {
                 <select
                   required
                   value={district}
-                  onChange={(e) => { setDistrict(e.target.value); setUpazila(''); }}
+                  onChange={(e) => { setDistrict(e.target.value); setUpazila(''); setPathaoAreaId(''); setShippingQuote(null); }}
                   disabled={!division}
                   className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg bg-white focus:outline-none focus:border-indigo-600 disabled:bg-slate-100"
                 >
@@ -388,7 +395,7 @@ export const CheckoutModal: React.FC = () => {
                 <select
                   required
                   value={upazila}
-                  onChange={(e) => setUpazila(e.target.value)}
+                  onChange={(e) => { setUpazila(e.target.value); setPathaoAreaId(''); setShippingQuote(null); }}
                   disabled={!district}
                   className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg bg-white focus:outline-none focus:border-indigo-600 disabled:bg-slate-100"
                 >
@@ -397,6 +404,25 @@ export const CheckoutModal: React.FC = () => {
                     <option key={option.kind + '-' + option.value} value={option.value}>{option.label}</option>
                   ))}
                 </select>
+              </div>
+
+              <div className="sm:col-span-2">
+                <label className="text-xs font-semibold text-slate-700 block mb-1">
+                  Pathao delivery area *
+                </label>
+                <select
+                  required
+                  value={pathaoAreaId}
+                  onChange={(e) => setPathaoAreaId(e.target.value)}
+                  disabled={!shippingQuote || !Array.isArray(shippingQuote.areas) || shippingQuote.areas.length === 0 || isQuoteLoading}
+                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg bg-white focus:outline-none focus:border-indigo-600 disabled:bg-slate-100"
+                >
+                  <option value="">{isQuoteLoading ? 'Loading Pathao areas…' : 'Select the nearest Pathao delivery area'}</option>
+                  {(shippingQuote?.areas || []).map((area: { areaId: number; areaName: string }) => (
+                    <option key={area.areaId} value={String(area.areaId)}>{area.areaName}</option>
+                  ))}
+                </select>
+                <p className="text-[10px] text-slate-500 mt-1">Used to validate courier serviceability and prevent incorrect delivery charges.</p>
               </div>
 
               <div className="sm:col-span-2">
@@ -806,7 +832,7 @@ Remove coupon
           <div className="pt-2">
             <button
               type="submit"
-              disabled={isProcessing || cart.length === 0 || !shippingQuote || isQuoteLoading}
+              disabled={isProcessing || cart.length === 0 || !shippingQuote || !shippingQuote.areaId || isQuoteLoading}
               className="w-full flex items-center justify-center gap-2 py-3.5 px-4 bg-slate-950 hover:bg-slate-800 text-white text-sm font-semibold rounded-xl shadow-sm transition-colors active:scale-98 disabled:opacity-50"
             >
               <ShieldCheck className="w-4 h-4 text-emerald-400" />
