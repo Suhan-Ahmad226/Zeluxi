@@ -21,7 +21,11 @@ export async function GET(request: NextRequest) {
   try {
     if (action === 'cities') return NextResponse.json({ data: await cachedLocation('cities', getPathaoCities) }, { headers: { 'Cache-Control': 'public, max-age=300, stale-while-revalidate=900' } });
     if (action === 'zones' && Number.isSafeInteger(id) && id > 0) return NextResponse.json({ data: await cachedLocation('zones:' + id, () => getPathaoZones(id)) }, { headers: { 'Cache-Control': 'public, max-age=300, stale-while-revalidate=900' } });
-    if (action === 'areas' && Number.isSafeInteger(id) && id > 0) return NextResponse.json({ data: await cachedLocation('areas:' + id, () => getPathaoAreas(id)) }, { headers: { 'Cache-Control': 'public, max-age=300, stale-while-revalidate=900' } });
+    if (action === 'areas' && Number.isSafeInteger(id) && id > 0) {
+      const areas = await cachedLocation('areas:' + id, () => getPathaoAreas(id));
+      const serviceable = areas.filter((area) => area.home_delivery_available === true || Number(area.home_delivery_available) === 1);
+      return NextResponse.json({ data: serviceable }, { headers: { 'Cache-Control': 'public, max-age=300, stale-while-revalidate=900' } });
+    }
     return NextResponse.json({ error: 'A valid Pathao location action and ID are required.' }, { status: 400 });
   } catch (error) {
     const message = error instanceof PathaoApiError ? error.message : 'Pathao locations are temporarily unavailable.';
