@@ -30,6 +30,9 @@ const addressSchema = z.object({
   message: 'Upazila / Thana is required',
   path: ['upazila'],
 }).superRefine((address, ctx) => {
+  if (address.pathaoAreaId && (!address.pathaoCityId || !address.pathaoZoneId)) {
+    ctx.addIssue({ code: 'custom', path: ['pathaoAreaId'], message: 'Select a Pathao city and zone before selecting the delivery area.' });
+  }
   // Validate new hierarchical addresses, while allowing legacy thanaCity records during rollout.
   if (address.upazila && !isValidAddressSelection(address.division, address.district, address.upazila)) {
     ctx.addIssue({ code: 'custom', path: ['upazila'], message: 'District and upazila / thana must match the selected division.' });
@@ -366,6 +369,8 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     const quote = await quotePathaoCheckout(admin, {
       district: parsed.data.customer.district,
       upazila: parsed.data.customer.upazila || parsed.data.customer.thanaCity || '',
+      cityId: parsed.data.customer.pathaoCityId,
+      zoneId: parsed.data.customer.pathaoZoneId,
       areaId: parsed.data.customer.pathaoAreaId,
       requireArea: true,
       items,
