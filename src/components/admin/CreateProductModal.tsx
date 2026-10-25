@@ -6,7 +6,6 @@ import { supabase } from '../../lib/supabase';
 import { getCloudinaryPublicId, persistProductImageUrls, removeProductImageUrls, uploadCloudinaryMedia } from '../../lib/productImageStorage';
 import { compressImageFile } from '../../utils/imageCompressor';
 import { StoreImage } from '../common/StoreImage';
-import { ProductAIAssistant, AIProductDraft } from './ProductAIAssistant';
 import {
   X,
   Upload,
@@ -101,7 +100,6 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
 
   // Active form tab
   const [activeTab, setActiveTab] = useState<'general' | 'media' | 'variants' | 'specs' | 'seo'>('general');
-  const [entryMode, setEntryMode] = useState<'manual' | 'ai'>('manual');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isProcessingImages, setIsProcessingImages] = useState(false);
   const [showLivePreview, setShowLivePreview] = useState(false);
@@ -275,24 +273,6 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
       setHasUnsavedChanges(true);
     }
   }, [name, sku, description, price, stock, images]);
-
-  const handleApplyAIDraft = (draft: AIProductDraft) => {
-    setName(draft.name);
-    if (draft.category && categories.some((item) => item.name === draft.category || item.id === draft.category)) setCategory(draft.category);
-    setBrand(draft.brand || '');
-    setShortDesc(draft.shortDescription);
-    setDescription(draft.description);
-    setTagsInput(draft.tags.join(', '));
-    setSeoTitle(draft.seoTitle);
-    setSeoDescription(draft.seoDescription);
-    setSeoKeywords(draft.seoKeywords);
-    if (draft.specifications.length > 0) {
-      setSpecList(draft.specifications.map((spec) => ({ key: spec.key, value: spec.value })));
-    }
-    setHasUnsavedChanges(true);
-    showToast('AI draft applied. Review the content before saving the product.', 'success');
-    setActiveTab('general');
-  };
 
   if (!isOpen) return null;
 
@@ -1022,38 +1002,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
 
         {/* Modal Scrollable Body */}
         <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 bg-slate-50">
-          {!productToEdit && (
-            <section className="mb-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-              <div className="mb-3">
-                <h3 className="text-sm font-bold text-slate-900">How would you like to add this product?</h3>
-                <p className="mt-1 text-xs leading-5 text-slate-500">Manual mode works without AI quota. You can switch modes anytime; all fields remain editable.</p>
-              </div>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <button type="button" onClick={() => setEntryMode('manual')} aria-pressed={entryMode === 'manual'} className={`flex items-start gap-3 rounded-xl border p-4 text-left transition-colors ${entryMode === 'manual' ? 'border-emerald-500 bg-emerald-50 ring-1 ring-emerald-500/20' : 'border-slate-200 bg-white hover:bg-slate-50'}`}>
-                  <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${entryMode === 'manual' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'}`}><FileText className="h-5 w-5" /></span>
-                  <span className="min-w-0"><span className="block text-sm font-bold text-slate-900">Manual Entry</span><span className="mt-1 block text-xs leading-5 text-slate-600">নিজে নাম, দাম, ছবি, বিবরণ ও SEO পূরণ করো। AI দরকার নেই।</span><span className="mt-2 block text-[11px] font-semibold text-emerald-700">Free · Always available</span></span>
-                </button>
-                <button type="button" onClick={() => setEntryMode('ai')} aria-pressed={entryMode === 'ai'} className={`flex items-start gap-3 rounded-xl border p-4 text-left transition-colors ${entryMode === 'ai' ? 'border-indigo-500 bg-indigo-50 ring-1 ring-indigo-500/20' : 'border-slate-200 bg-white hover:bg-slate-50'}`}>
-                  <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${entryMode === 'ai' ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-600'}`}><Sparkles className="h-5 w-5" /></span>
-                  <span className="min-w-0"><span className="block text-sm font-bold text-slate-900">AI Assistant</span><span className="mt-1 block text-xs leading-5 text-slate-600">পণ্যের নাম ও দাম থেকে বিবরণ, বৈশিষ্ট্য ও SEO draft তৈরি করো।</span><span className="mt-2 block text-[11px] font-semibold text-indigo-700">Uses available Gemini quota</span></span>
-                </button>
-              </div>
-            </section>
-          )}
-          {!productToEdit && entryMode === 'ai' && (
-            <div className="mb-6">
-              <ProductAIAssistant
-                productName={name}
-                selectedCategory={mainCategories.some((item) => item.name === category || item.id === category) ? category : mainCategories[0]?.name || ''}
-                price={price}
-                regularPrice={compareAtPrice}
-                variantDetails={enableVariants ? variants.map((variant) => ({ name: variant.name, attributes: variant.attributes, price: variant.price })) : []}
-                categories={[...new Set(categories.filter((item) => item.isActive !== false).map((item) => item.name))]}
-                onApply={handleApplyAIDraft}
-              />
-            </div>
-          )}
-          <div className={`grid grid-cols-1 ${showLivePreview ? 'lg:grid-cols-3' : ''} gap-6`}>
+                    <div className={`grid grid-cols-1 ${showLivePreview ? 'lg:grid-cols-3' : ''} gap-6`}>
             {/* Form Column */}
             <div className={showLivePreview ? 'lg:col-span-2 space-y-6' : 'space-y-6'}>
               {/* TAB 1: GENERAL & PRICING */}
@@ -1431,27 +1380,31 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
                     </label>
                   </div>
 
-                  {/* Descriptions */}
-                  <div className="space-y-4 pt-2">
+                  {/* Manual product descriptions */}
+                  <section className="space-y-4 rounded-xl border border-indigo-100 bg-indigo-50/40 p-4 sm:p-5">
                     <div>
-                      <label className="font-semibold text-slate-700 block mb-1">Short Excerpt</label>
+                      <h3 className="font-bold text-slate-900">Product Description · Manual Entry</h3>
+                      <p className="mt-1 text-xs leading-5 text-slate-600">AI ব্যবহার করতে হবে না। নিজের ভাষায় পণ্যের সংক্ষিপ্ত ও বিস্তারিত বিবরণ লিখুন। এই লেখাই পণ্যের তথ্য হিসেবে সংরক্ষিত হবে।</p>
+                    </div>
+                    <div>
+                      <label className="font-semibold text-slate-700 block mb-1">Short Description / সংক্ষিপ্ত বিবরণ</label>
                       <textarea
-                        rows={2}
+                        rows={3}
                         value={shortDesc}
                         onChange={(e) => setShortDesc(e.target.value)}
-                        placeholder="Brief 1-2 sentence description for quick views and search..."
-                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-indigo-600"
+                        placeholder="১-২ বাক্যে পণ্যের প্রধান সুবিধা ও বৈশিষ্ট্য লিখুন..."
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white focus:outline-none focus:border-indigo-600"
                       />
                     </div>
 
                     <div>
-                      <label className="font-semibold text-slate-700 block mb-1">Full Description</label>
+                      <label className="font-semibold text-slate-700 block mb-1">Full Product Description / বিস্তারিত বিবরণ</label>
                       <textarea
-                        rows={5}
+                        rows={8}
                         value={description}
                         onChange={(e) => setDescription(e.target.value)}
-                        placeholder="Comprehensive details on craftsmanship, materials, durability, and usage..."
-                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-indigo-600"
+                        placeholder="এখানে নিজে পণ্যের বিস্তারিত বিবরণ লিখুন। যেমন: উপাদান, সাইজ, ব্যবহার, সুবিধা, যত্ন নেওয়ার নিয়ম এবং প্যাকেজে কী কী থাকবে। নিশ্চিত নন এমন তথ্য লিখবেন না..."
+                        className="w-full px-3 py-3 border border-slate-300 rounded-lg bg-white focus:outline-none focus:border-indigo-600"
                       />
                     </div>
 
