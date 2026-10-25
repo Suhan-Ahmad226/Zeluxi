@@ -28,7 +28,6 @@ export const CheckoutModal: React.FC = () => {
   const {
     isCheckoutOpen,
     setIsCheckoutOpen,
-    setIsCartOpen,
     cart,
     appliedCoupon,
     applyCoupon,
@@ -296,8 +295,7 @@ export const CheckoutModal: React.FC = () => {
     }
   };
 
-  const handleApplyCoupon = (event: React.FormEvent) => {
-    event.preventDefault();
+  const handleApplyCoupon = () => {
     const code = couponCodeInput.trim().toUpperCase();
     if (!code) return;
     const result = applyCoupon(code, phone.trim() || activeUserEmail || undefined);
@@ -340,7 +338,7 @@ export const CheckoutModal: React.FC = () => {
                 <h3 className="text-sm font-bold text-slate-900">Your items</h3>
                 <p className="mt-1 text-xs text-slate-500">{cart.reduce((count, item) => count + item.quantity, 0)} items · Review options and quantities before ordering</p>
               </div>
-              <button type="button" onClick={() => { setIsCheckoutOpen(false); setIsCartOpen(true); }} className="text-xs font-semibold text-slate-600 underline underline-offset-4 hover:text-slate-950">Back to shopping bag</button>
+              <button type="button" onClick={() => { setIsCheckoutOpen(false); setActiveView('store'); }} className="text-xs font-semibold text-slate-600 underline underline-offset-4 hover:text-slate-950">Continue shopping</button>
             </div>
             {cart.length === 0 ? (
               <div className="rounded-xl bg-slate-50 p-6 text-center text-sm text-slate-500">Your cart is empty. Add a product before checkout.</div>
@@ -818,7 +816,7 @@ export const CheckoutModal: React.FC = () => {
               <div className="flex gap-2">
                 <label className="sr-only" htmlFor="checkout-coupon-code">Coupon code</label>
                 <input id="checkout-coupon-code" value={couponCodeInput} onChange={(event) => setCouponCodeInput(event.target.value.toUpperCase())} maxLength={40} autoComplete="off" placeholder="Enter coupon code" className="min-h-11 min-w-0 flex-1 rounded-xl border border-slate-300 bg-white px-3 text-sm uppercase outline-none transition focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100" />
-                <button type="button" onClick={handleApplyCoupon as unknown as () => void} disabled={!couponCodeInput.trim()} className="min-h-11 rounded-xl bg-slate-900 px-4 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-40">Apply</button>
+                <button type="button" onClick={handleApplyCoupon} disabled={!couponCodeInput.trim()} className="min-h-11 rounded-xl bg-slate-900 px-4 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-40">Apply</button>
               </div>
             )}
             <div className="rounded-xl border border-slate-200 bg-white p-4 space-y-2 text-xs text-slate-600">
