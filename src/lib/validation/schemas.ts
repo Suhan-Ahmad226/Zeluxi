@@ -30,9 +30,11 @@ export const shippingAddressSchema = z.object({
   pathaoCityName: z.string().trim().max(100).optional(),
   pathaoZoneId: z.number().int().positive().optional(),
   pathaoZoneName: z.string().trim().max(100).optional(),
+  pathaoAreaId: z.number().int().positive().optional(),
+  pathaoAreaName: z.string().trim().max(100).optional(),
   notes: z.string().max(300, 'Notes cannot exceed 300 characters').optional(),
 }).superRefine((address, ctx) => {
-  if ((address.pathaoCityId && !address.pathaoZoneId) || (!address.pathaoCityId && address.pathaoZoneId)) {
+  if ((address.pathaoCityId && !address.pathaoZoneId) || (!address.pathaoCityId && address.pathaoZoneId) || (address.pathaoZoneId && !address.pathaoAreaId)) {
     ctx.addIssue({ code: 'custom', path: ['upazila'], message: 'A valid Pathao city and zone quote is required.' });
   }
   if (!isValidAddressSelection(address.division, address.district, address.upazila)) {
