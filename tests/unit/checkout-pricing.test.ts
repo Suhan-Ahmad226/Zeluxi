@@ -25,6 +25,9 @@ test('shipping quote is calculated from catalog prices and product weights, neve
   assert.match(quoteService, /select\('id,name,price,stock,published,archived,product_data'\)/);
   assert.match(quoteService, /calculatePathaoPrice/);
   assert.match(quoteService, /PATHAO_COD_UNAVAILABLE/);
+  assert.match(quoteService, /PRODUCT_WEIGHT_REQUIRED/);
+  assert.doesNotMatch(quoteService, /PATHAO_DEFAULT_ITEM_WEIGHT_KG \\|\\| 0\\.5/);
+  assert.match(read('src/lib/shipping/pathao-booking.ts'), /PRODUCT_WEIGHT_REQUIRED/);
   assert.match(quoteService, /home_delivery_available/);
   assert.match(orderApi, /quotePathaoCheckout\(admin/);
   assert.match(orderApi, /p_expected_subtotal:\s*quote\.subtotal/);
