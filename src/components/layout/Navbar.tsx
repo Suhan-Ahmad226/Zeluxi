@@ -37,7 +37,7 @@ export const Navbar: React.FC = () => {
     setActiveView,
     activeFilterTab,
     setActiveFilterTab,
-    setIsCartOpen,
+    setIsCheckoutOpen,
     searchQuery,
     setSearchQuery,
     setSelectedCategoryFilter,
@@ -393,7 +393,7 @@ export const Navbar: React.FC = () => {
 
           {/* Shopping Cart Bag Button */}
           <button
-            onClick={() => setIsCartOpen(true)}
+            onClick={() => setIsCheckoutOpen(true)}
             className="flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors whitespace-nowrap shadow-sm active:scale-95"
             aria-label="Shopping Bag"
           >
@@ -628,7 +628,7 @@ export const Navbar: React.FC = () => {
           <button
             type="button"
             onClick={() => {
-              setIsCartOpen(true);
+              setIsCheckoutOpen(true);
               setIsMobileNavVisible(true);
             }}
             aria-label={"Cart, " + cartItemCount + " items"}
