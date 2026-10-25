@@ -547,18 +547,21 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
   };
 
   // Validate form
-  const validateForm = (): boolean => {
+  const validateForm = (saveStatus: 'active' | 'draft'): boolean => {
     const errors: Record<string, string> = {};
 
-    if (!name.trim()) errors.name = 'Product Title is required.';
+    // Drafts are a safe place to start and finish later. Publishing remains strict.
+    if (!name.trim()) errors.name = 'Add a product name before saving.';
     if (!sku.trim()) errors.sku = 'SKU Code is required.';
-    if (!price || price <= 0) errors.price = 'Price must be greater than 0 BDT.';
-    if (images.length === 0) errors.images = 'At least 1 product image is required.';
-    if (!category.trim()) errors.category = 'Category must be selected.';
+    if (saveStatus === 'active') {
+      if (!price || price <= 0) errors.price = 'Selling price must be greater than 0 BDT before publishing.';
+      if (images.length === 0) errors.images = 'Add at least one product image before publishing.';
+      if (!category.trim()) errors.category = 'Choose a category before publishing.';
+    }
 
     setFormErrors(errors);
     if (Object.keys(errors).length > 0) {
-      showToast('Please complete the highlighted required fields', 'error');
+      showToast(saveStatus === 'active' ? 'Complete the highlighted fields to publish, or save as a draft.' : 'Add a product name to save this draft.', 'error');
       if (errors.name || errors.sku || errors.price || errors.category) {
         setActiveTab('general');
       } else if (errors.images) {
@@ -571,7 +574,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
 
   // Save Product Handler
   const handleSaveProduct = async (saveStatus: 'active' | 'draft', addAnother: boolean = false) => {
-    if (!validateForm()) return;
+    if (!validateForm(saveStatus)) return;
 
     setIsSubmitting(true);
 
@@ -2297,7 +2300,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
               type="button"
               disabled={isSubmitting}
               onClick={() => handleSaveProduct('active', true)}
-              className="hidden sm:inline-flex sm:flex-none px-4 py-2.5 bg-slate-900 text-white rounded-xl text-sm font-semibold hover:bg-slate-800 transition-colors disabled:opacity-50"
+              className="flex-1 sm:flex-none px-4 py-2.5 bg-slate-900 text-white rounded-xl text-sm font-semibold hover:bg-slate-800 transition-colors disabled:opacity-50"
             >
               Save & Add Another
             </button>
