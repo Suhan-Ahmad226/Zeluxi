@@ -43,5 +43,6 @@ test('database applies coupon and COD math atomically with order and inventory c
   assert.match(migration, /update public\.store_content[\s\S]*usageCount/);
   assert.match(migration, /p_expected_subtotal is null or abs\(v_subtotal - p_expected_subtotal\) > 0\.01/i);
   assert.match(migration, /grant execute on function public\.create_customer_order\([\s\S]*?to service_role/i);
+  assert.match(migration, /jsonb_typeof\(v_coupon->'usedBy'\) = 'array'/);
   assert.match(migration, /v_coupon_user_usage >= greatest\(1, coalesce\(nullif\(v_coupon->>'perUserLimit'/);
 });
