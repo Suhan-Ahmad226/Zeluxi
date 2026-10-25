@@ -311,10 +311,10 @@ begin
     'grandTotal', v_order.grand_total, 'subtotal', v_order.subtotal,
     'shippingFee', v_order.shipping_fee, 'codFee', v_order.cod_fee,
     'discount', v_order.discount, 'couponCode', v_order.coupon_code,
-    'grandTotal', v_order.grand_total, 'replayed', false
+    'pathaoDeliveryFee', v_order.pathao_delivery_fee, 'grandTotal', v_order.grand_total, 'replayed', false
   );
 end;
 $$;
 
 revoke all on function public.create_customer_order(uuid, text, jsonb, jsonb, numeric, numeric, numeric, numeric, numeric, numeric, numeric, numeric, text) from public, anon, authenticated;
-grant execute on function public.create_customer_order(uuid, text, jsonb, jsonb, numeric, numeric, numeric, numeric, numeric, numeric, text) to service_role;
+grant execute on function public.create_customer_order(uuid, text, jsonb, jsonb, numeric, numeric, numeric, numeric, numeric, numeric, numeric, numeric, text) to service_role;
