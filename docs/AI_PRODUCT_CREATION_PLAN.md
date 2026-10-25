@@ -28,3 +28,12 @@
 - Check Add Product on phone and desktop, including AI generation/regeneration, source links, image/video upload, optional variants, save/publish, and edit-product regression.
 - Verify missing Gemini key, expired session, non-admin profile, provider quota/error, and malformed AI output.
 - Confirm the Vercel preview has GEMINI_API_KEY configured before end-to-end AI testing.
+
+
+## Zero-budget quota fallback
+- Keep the Google Search-grounded Gemini model as the primary route when its free-tier quota is available.
+- If the primary request returns HTTP 429 or a transient 5xx, retry once with `GEMINI_FALLBACK_MODEL` (default `gemini-3.5-flash-lite`) without Search grounding. This does not add a paid provider or require a second API key.
+- A fallback draft returns `researchMode: text-only-fallback`, no research sources, and an explicit admin warning. Do not present fallback output as web-verified.
+- The fallback uses the same Gemini API project, so it cannot bypass an exhausted project-wide quota. If both model quotas are exhausted, wait for reset; do not silently switch to a paid API.
+- Admin must review all generated claims and specifications before saving or publishing. AI generation never saves/publishes automatically.
+- Keep provider attempts bounded to one primary call and at most one fallback call per user action.
