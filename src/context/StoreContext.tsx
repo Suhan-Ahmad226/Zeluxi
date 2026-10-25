@@ -111,7 +111,8 @@ interface StoreContextType {
     customer: ShippingAddress,
     paymentMethod: PaymentMethod,
     courierChoice: CourierProvider,
-    transactionId?: string
+    transactionId?: string,
+    couponCode?: string
   ) => Promise<Order>;
   requestOrderCancellation: (orderId: string, reason: string) => Promise<void>;
   requestOrderReturn: (orderId: string, reason: string) => Promise<void>;
@@ -758,7 +759,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
     customer: ShippingAddress,
     paymentMethod: PaymentMethod,
     _courierChoice: CourierProvider,
-    _transactionId?: string
+    _transactionId?: string,
+    couponCode?: string
   ): Promise<Order> => {
     // Only COD is supported by the server-side order service. Never accept client totals as authoritative.
     if (paymentMethod !== 'COD') {
@@ -794,6 +796,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
         customer,
         paymentMethod: 'COD',
         items: cart.map((item) => ({ productId: item.productId, variantId: item.variantId, quantity: item.quantity })),
+        couponCode: couponCode || undefined,
       }),
       cache: 'no-store',
     });
@@ -824,6 +827,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
       subtotal: Number(payload.order.subtotal),
       shippingFee: Number(payload.order.shippingFee),
       discount: Number(payload.order.discount || 0),
+      codFee: Number(payload.order.codFee || 0),
+      couponCode: typeof payload.order.couponCode === 'string' ? payload.order.couponCode : undefined,
+      pathaoDeliveryFee: Number.isFinite(Number(payload.order.pathaoDeliveryFee)) ? Number(payload.order.pathaoDeliveryFee) : undefined,
       grandTotal: Number(payload.order.grandTotal),
       status: 'PENDING',
       paymentMethod: 'COD',

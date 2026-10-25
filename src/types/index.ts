@@ -152,6 +152,13 @@ export interface ShippingAddress {
   thanaCity?: string;
   addressDetails: string;
   postalCode?: string;
+  /** Pathao IDs resolved server-side from the selected district and upazila. */
+  pathaoCityId?: number;
+  pathaoCityName?: string;
+  pathaoZoneId?: number;
+  pathaoZoneName?: string;
+  pathaoAreaId?: number;
+  pathaoAreaName?: string;
   notes?: string;
 }
 
@@ -203,6 +210,10 @@ export interface Order {
   subtotal: number;
   shippingFee: number;
   discount: number;
+  /** COD fee charged to the customer, when applicable. */
+  codFee?: number;
+  /** Actual Pathao rate before any store-funded free-shipping promotion. */
+  pathaoDeliveryFee?: number;
   grandTotal: number;
   couponCode?: string;
   status: OrderStatus;

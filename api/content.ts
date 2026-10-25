@@ -13,6 +13,34 @@ type ApiResponse = {
 
 const PUBLIC_KEYS = new Set(['storefront_cms', 'categories', 'pages', 'settings']);
 
+function sanitizePublicCoupons(value: unknown): unknown[] {
+  if (!Array.isArray(value)) return [];
+  const today = new Date().toISOString().slice(0, 10);
+  return value.filter((raw) => {
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return false;
+    const coupon = raw as Record<string, unknown>;
+    return coupon.active === true &&
+      typeof coupon.code === 'string' &&
+      ['PERCENTAGE', 'FIXED'].includes(String(coupon.type)) &&
+      Number.isFinite(Number(coupon.value)) &&
+      Number(coupon.value) > 0 &&
+      (!coupon.expiresAt || String(coupon.expiresAt).slice(0, 10) >= today);
+  }).map((raw) => {
+    const coupon = raw as Record<string, unknown>;
+    // Only promo rules are public. Never expose redemption history or customer identifiers.
+    return {
+      code: String(coupon.code).trim().toUpperCase(),
+      type: coupon.type,
+      value: Number(coupon.value),
+      minSpend: Math.max(0, Number(coupon.minSpend) || 0),
+      description: typeof coupon.description === 'string' ? coupon.description.slice(0, 300) : '',
+      expiresAt: typeof coupon.expiresAt === 'string' ? coupon.expiresAt : '',
+      active: true,
+      perUserLimit: Math.max(1, Number(coupon.perUserLimit) || 1),
+    };
+  });
+}
+
 function isSafeLink(value: unknown): boolean {
   if (value === undefined || value === null || value === '') return true;
   if (typeof value !== 'string') return false;
@@ -202,7 +230,11 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
       }
       const content: Record<string, unknown> = {};
       for (const row of data || []) {
-        if (isAdmin || PUBLIC_KEYS.has(row.content_key)) content[row.content_key] = row.content_value;
+        if (row.content_key === 'coupons' && !isAdmin) {
+          content.coupons = sanitizePublicCoupons(row.content_value);
+        } else if (isAdmin || PUBLIC_KEYS.has(row.content_key)) {
+          content[row.content_key] = row.content_value;
+        }
       }
       return res.status(200).json({ content });
     }

@@ -54,13 +54,17 @@ export async function bookPathaoOrderFromDatabase(
   if (!quantity || itemRows.some((item) => !Number.isSafeInteger(Number(item.quantity)) || Number(item.quantity) < 1)) {
     throw new PathaoBookingError('Order has no valid line items.', 422, 'ORDER_ITEMS_INVALID');
   }
-  const configuredFallbackWeight = Number(process.env.PATHAO_DEFAULT_ITEM_WEIGHT_KG || 0.5);
-  if (!Number.isFinite(configuredFallbackWeight) || configuredFallbackWeight <= 0 || configuredFallbackWeight > 10) {
+  const fallbackWeightRaw = process.env.PATHAO_DEFAULT_ITEM_WEIGHT_KG;
+  const configuredFallbackWeight = fallbackWeightRaw ? Number(fallbackWeightRaw) : null;
+  if (fallbackWeightRaw && (!Number.isFinite(Number(configuredFallbackWeight)) || Number(configuredFallbackWeight) <= 0 || Number(configuredFallbackWeight) > 10)) {
     throw new PathaoBookingError('PATHAO_DEFAULT_ITEM_WEIGHT_KG must be greater than 0 and at most 10 kg.', 503, 'CONFIG_INVALID');
   }
   const calculatedWeight = itemRows.reduce((sum, item) => {
     const storedWeight = Number(item.store_products?.product_data?.weightKg || 0);
     const itemWeight = Number.isFinite(storedWeight) && storedWeight > 0 ? storedWeight : configuredFallbackWeight;
+    if (itemWeight === null || !Number.isFinite(itemWeight) || itemWeight <= 0 || itemWeight > 10) {
+      throw new PathaoBookingError('Set accurate product weights or configure PATHAO_DEFAULT_ITEM_WEIGHT_KG before booking this parcel.', 422, 'PRODUCT_WEIGHT_REQUIRED');
+    }
     return sum + itemWeight * Number(item.quantity);
   }, 0);
   const weightKg = options.weightKg ?? Math.max(0.5, Math.round(calculatedWeight * 100) / 100);
@@ -94,9 +98,9 @@ export async function bookPathaoOrderFromDatabase(
       recipientName: String(customer.fullName || ''),
       recipientPhone: String(customer.phone || ''),
       recipientAddress: address,
-      recipientCity: options.recipientCity,
-      recipientZone: options.recipientZone,
-      recipientArea: options.recipientArea,
+      recipientCity: options.recipientCity ?? (Number(customer.pathaoCityId) > 0 ? Number(customer.pathaoCityId) : undefined),
+      recipientZone: options.recipientZone ?? (Number(customer.pathaoZoneId) > 0 ? Number(customer.pathaoZoneId) : undefined),
+      recipientArea: options.recipientArea ?? (Number(customer.pathaoAreaId) > 0 ? Number(customer.pathaoAreaId) : undefined),
       deliveryType,
       itemType: 2,
       specialInstruction: typeof customer.notes === 'string' ? customer.notes : undefined,

@@ -8,10 +8,17 @@ Configure these in local .env.local and Vercel server-side environment variables
 - PATHAO_BASE_URL must be https://courier-api-sandbox.pathao.com for sandbox or https://api-hermes.pathao.com for production. The app rejects mismatched hosts.
 - PATHAO_CLIENT_ID, PATHAO_CLIENT_SECRET, PATHAO_USERNAME, PATHAO_PASSWORD are credentials for the selected environment.
 - PATHAO_STORE_ID must be an approved active merchant store ID.
-- PATHAO_DEFAULT_ITEM_WEIGHT_KG is the per-item fallback weight (default 0.5 kg) used only when a product has no positive `weightKg` in its saved product metadata. Automatic booking sums each order line's product weight times quantity and rejects parcels over Pathao's 10 kg limit; maintain accurate product weights in the catalog.
+- PATHAO_DEFAULT_ITEM_WEIGHT_KG is an optional per-item fallback used only when a product has no positive `weightKg` in saved product metadata. If it is blank and a product has no valid weight, checkout and booking fail closed instead of assuming 0.5 kg. Automatic booking sums each order line's product weight times quantity and rejects parcels over Pathao's 10 kg limit; maintain accurate product weights in the catalog.
 - PATHAO_TOKEN_ENCRYPTION_KEY is a random 32-byte key encoded as base64 or 64 hex characters. Generate with: node -e "console.log(require('node:crypto').randomBytes(32).toString('base64'))"
 
 OAuth access and refresh tokens are encrypted with AES-256-GCM in courier_tokens. Do not reuse the API client secret as the encryption key.
+
+## Checkout pricing
+
+- Checkout keeps the customer's Division → District → Thana/Upazila address and separately collects Pathao City → Zone → Area IDs so the courier destination is never guessed from similar names.
+- The server re-quotes the merchant price plan from current catalog prices, variants and product weights. Coupon redemption, usage limits, discount, COD fee and order total are committed in the database transaction.
+- `FREE_SHIPPING_THRESHOLD` is a legacy environment fallback; saved Admin store settings take precedence. `COD_FEE` is used only if the Pathao price plan does not return a COD percentage.
+- Apply `supabase/migrations/20261026100000_checkout_pricing_and_coupons.sql` before deploying the checkout code. The previous RPC signature remains during rollout so a migration does not interrupt older deployed code.
 
 ## Database
 
