@@ -2158,7 +2158,6 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
                   </div>
                 </div>
               )}
-            </div>
 
               {!productToEdit && (
                 <ProductAIAssistant
@@ -2171,6 +2170,8 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
                   onApply={handleApplyAIDraft}
                 />
               )}
+
+            </div>
 
             {/* Live Storefront Card Preview Column */}
             {showLivePreview && (
