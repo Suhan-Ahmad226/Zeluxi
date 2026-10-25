@@ -435,7 +435,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
       p_shipping_fee: shippingFee,
       p_pathao_fee: quote.pathaoFee,
       p_cod_fee: configuredCodFee,
-      p_cod_percentage: quote.codPercentage,
+      p_cod_percentage: 1,
       p_coupon_code: parsed.data.couponCode || null,
     });
     if (error) {
