@@ -684,7 +684,7 @@ export const CheckoutModal: React.FC = () => {
           <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-2 text-xs text-slate-600">
             <div className="flex justify-between">
               <span>Subtotal</span>
-              <span className="font-semibold text-slate-900 tabular-nums">{formatPrice(subtotal)}</span>
+              <span className="font-semibold text-slate-900 tabular-nums">{formatPrice(pricingSubtotal)}</span>
             </div>
             <div className="flex justify-between">
               <span>Shipping</span>
