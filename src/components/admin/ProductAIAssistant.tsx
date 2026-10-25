@@ -52,6 +52,10 @@ export const ProductAIAssistant: React.FC<ProductAIAssistantProps> = ({
       setError('আগে পণ্যের নাম লিখুন।');
       return;
     }
+    if (!Number.isFinite(price) || price <= 0) {
+      setError('AI content তৈরি করার আগে সঠিক selling price দিন।');
+      return;
+    }
     setBusy(true);
     setError('');
     try {
@@ -87,10 +91,10 @@ export const ProductAIAssistant: React.FC<ProductAIAssistantProps> = ({
   };
 
   return (
-    <section className="overflow-hidden rounded-2xl border border-indigo-200/80 bg-white shadow-sm">
-      <div className="flex flex-col gap-4 bg-gradient-to-br from-indigo-50 via-white to-violet-50 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
+    <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div className="flex flex-col gap-4 bg-white p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
         <div className="flex min-w-0 items-center gap-3">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-indigo-600 text-white shadow-sm shadow-indigo-600/20">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
             <Sparkles className="h-5 w-5" />
           </div>
           <div className="min-w-0">
@@ -98,7 +102,7 @@ export const ProductAIAssistant: React.FC<ProductAIAssistantProps> = ({
             <p className="mt-1 text-xs leading-5 text-slate-600">Google Search দিয়ে product details, description ও SEO তৈরি করবে।</p>
           </div>
         </div>
-        <button type="button" onClick={generate} disabled={busy || productName.trim().length < 2} className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 disabled:cursor-not-allowed disabled:opacity-60">
+        <button type="button" onClick={generate} disabled={busy || productName.trim().length < 2 || price <= 0} className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 disabled:cursor-not-allowed disabled:opacity-60">
           {busy ? <LoaderCircle className="h-4 w-4 animate-spin" /> : draft ? <RefreshCw className="h-4 w-4" /> : <WandSparkles className="h-4 w-4" />}
           {busy ? 'Researching product…' : draft ? 'Regenerate with AI' : 'Generate with AI'}
         </button>
