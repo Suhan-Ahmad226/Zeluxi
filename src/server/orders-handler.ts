@@ -23,6 +23,8 @@ const addressSchema = z.object({
   pathaoCityName: z.string().trim().max(100).optional(),
   pathaoZoneId: z.number().int().positive().optional(),
   pathaoZoneName: z.string().trim().max(100).optional(),
+  pathaoAreaId: z.number().int().positive().optional(),
+  pathaoAreaName: z.string().trim().max(100).optional(),
   notes: z.string().trim().max(300).optional(),
 }).refine((address) => Boolean(address.upazila || address.thanaCity), {
   message: 'Upazila / Thana is required',
@@ -364,6 +366,8 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     const quote = await quotePathaoCheckout(admin, {
       district: parsed.data.customer.district,
       upazila: parsed.data.customer.upazila || parsed.data.customer.thanaCity || '',
+      areaId: parsed.data.customer.pathaoAreaId,
+      requireArea: true,
       items,
     });
     const { data: settingsRow, error: settingsError } = await admin.from('store_content')
@@ -384,6 +388,8 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
       pathaoCityName: quote.cityName,
       pathaoZoneId: quote.zoneId,
       pathaoZoneName: quote.zoneName,
+      pathaoAreaId: quote.areaId,
+      pathaoAreaName: quote.areaName,
     };
 
     // Fail closed before creating an order if the public order-number migration is pending.
