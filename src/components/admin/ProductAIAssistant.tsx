@@ -73,7 +73,9 @@ export const ProductAIAssistant: React.FC<ProductAIAssistantProps> = ({
       });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(typeof payload.error === 'string' ? payload.error : 'AI draft তৈরি করা যায়নি। আবার চেষ্টা করুন।');
-      setDraft(payload.draft as AIProductDraft);
+      const generatedDraft = payload.draft as AIProductDraft;
+      setDraft(generatedDraft);
+      onApply(generatedDraft);
       setGenerationCount((count) => count + 1);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'AI draft তৈরি করা যায়নি। আবার চেষ্টা করুন।');
@@ -91,12 +93,12 @@ export const ProductAIAssistant: React.FC<ProductAIAssistantProps> = ({
           </div>
           <div className="min-w-0">
             <h3 className="text-base font-bold tracking-tight text-slate-900">Zeluxi AI Product Agent</h3>
-            <p className="mt-1 text-xs leading-5 text-slate-600">Google Search দিয়ে তথ্য যাচাই করে description, details ও SEO তৈরি করবে।</p>
+            <p className="mt-1 text-xs leading-5 text-slate-600">Google Search দিয়ে product details, description ও SEO তৈরি করবে।</p>
           </div>
         </div>
         <button type="button" onClick={generate} disabled={busy || productName.trim().length < 2} className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 disabled:cursor-not-allowed disabled:opacity-60">
           {busy ? <LoaderCircle className="h-4 w-4 animate-spin" /> : draft ? <RefreshCw className="h-4 w-4" /> : <WandSparkles className="h-4 w-4" />}
-          {busy ? 'তথ্য খোঁজা ও লেখা হচ্ছে…' : draft ? 'Regenerate with AI' : 'Generate with AI'}
+          {busy ? 'Researching product…' : draft ? 'Regenerate with AI' : 'Generate with AI'}
         </button>
       </div>
 
@@ -143,14 +145,12 @@ export const ProductAIAssistant: React.FC<ProductAIAssistantProps> = ({
               </div>
             </div>
           )}
-          <button type="button" onClick={() => onApply(draft)} className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 sm:w-auto">
-            <Check className="h-4 w-4" /> Apply all AI details
-          </button>
-          <p className="text-[11px] leading-5 text-slate-500">Price, discount, photos, videos and variants remain under your control. AI does not save or publish automatically. Check source facts before publishing.</p>
+          <div className="flex items-start gap-2 rounded-xl bg-emerald-50 px-3 py-2.5 text-xs leading-5 text-emerald-800"><Check className="mt-0.5 h-4 w-4 shrink-0" /><span>AI content has been added to the product form. Regenerate any time to replace the generated description, details and SEO. Review the sources before publishing.</span></div>
+          <p className="text-[11px] leading-5 text-slate-500">Price, discount, photos, videos and variants stay under your control. AI never saves or publishes the product.</p>
         </div>
       )}
 
-      {!draft && !busy && <p className="border-t border-slate-100 px-4 py-3 text-xs text-slate-500 sm:px-5">একবার Generate করুন। ফল পছন্দ না হলে Regenerate চাপুন। AI তৈরি করা সব লেখা Apply করার পরই ফর্মে বসবে।</p>}
+      {!draft && !busy && <p className="border-t border-slate-100 px-4 py-3 text-xs text-slate-500 sm:px-5">নাম ও মূল্য দেওয়ার পর Generate করুন। AI লেখা তৈরি করে সরাসরি ফর্মে বসাবে। ফল পছন্দ না হলে Regenerate চাপুন।</p>}
     </section>
   );
 };
