@@ -157,6 +157,8 @@ export interface ShippingAddress {
   pathaoCityName?: string;
   pathaoZoneId?: number;
   pathaoZoneName?: string;
+  pathaoAreaId?: number;
+  pathaoAreaName?: string;
   notes?: string;
 }
 
