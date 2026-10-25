@@ -42,7 +42,8 @@ export async function POST(request: NextRequest) {
   if (!apiKey) return errorResponse('AI product assistant is not configured. Add GEMINI_API_KEY to the server environment.', 503);
   if (!supabaseUrl || !anonKey) return errorResponse('Authentication is not configured.', 503);
 
-  const token = request.headers.get('authorization')?.replace(/^Bearer\\s+/i, '');
+  const authorization = request.headers.get('authorization') || '';
+  const token = authorization.toLowerCase().startsWith('bearer ') ? authorization.slice(7).trim() : '';
   if (!token) return errorResponse('Administrator authentication is required.', 401);
 
   const auth = createClient(supabaseUrl, anonKey, { auth: { persistSession: false, autoRefreshToken: false } });
@@ -76,7 +77,7 @@ export async function POST(request: NextRequest) {
     'Selected category: ' + (input.category || 'not selected'),
     'Product name: ' + input.name,
     'Product facts supplied by the store owner: ' + input.facts,
-  ].join('\\n');
+  ].join(String.fromCharCode(10));
 
   try {
     const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent', {
