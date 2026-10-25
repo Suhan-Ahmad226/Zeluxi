@@ -19,7 +19,7 @@ const normalizeLocation = (value: string) =>
 
 export async function quotePathaoCheckout(
   db: SupabaseClient,
-  input: { district: string; upazila: string; items: CheckoutLine[] },
+  input: { district: string; upazila: string; areaId?: number; requireArea?: boolean; items: CheckoutLine[] },
 ) {
   const storeId = Number(process.env.PATHAO_STORE_ID || 0);
   if (!Number.isSafeInteger(storeId) || storeId <= 0) {
