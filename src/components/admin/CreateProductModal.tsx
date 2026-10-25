@@ -127,13 +127,6 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
     };
   }, [video?.url]);
 
-  useEffect(() => {
-    if (productToEdit || categories.length === 0) return;
-    const activeMainCategory = categories.find((item) => !item.parentId && item.isActive !== false);
-    const categoryExists = categories.some((item) => item.name === category || item.id === category);
-    if (activeMainCategory && !categoryExists) setCategory(activeMainCategory.name);
-  }, [categories, category, productToEdit]);
-
   // 2. Essential Product Information
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
@@ -181,6 +174,13 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
   const [seoTitle, setSeoTitle] = useState('');
   const [seoDescription, setSeoDescription] = useState('');
   const [seoKeywords, setSeoKeywords] = useState('');
+
+  useEffect(() => {
+    if (productToEdit || categories.length === 0) return;
+    const activeMainCategory = categories.find((item) => !item.parentId && item.isActive !== false);
+    const categoryExists = categories.some((item) => item.name === category || item.id === category);
+    if (activeMainCategory && !categoryExists) setCategory(activeMainCategory.name);
+  }, [categories, category, productToEdit]);
 
   // Pre-populate fields when productToEdit is provided
   useEffect(() => {
