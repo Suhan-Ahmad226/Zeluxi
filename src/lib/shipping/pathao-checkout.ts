@@ -39,9 +39,10 @@ export async function quotePathaoCheckout(
   let subtotal = 0;
   let weightKg = 0;
   let totalQuantity = 0;
-  const fallbackWeight = Number(process.env.PATHAO_DEFAULT_ITEM_WEIGHT_KG || 0.5);
-  if (!Number.isFinite(fallbackWeight) || fallbackWeight <= 0 || fallbackWeight > 10) {
-    throw new PathaoApiError('Pathao fallback item weight is not configured correctly.', 503, 'PATHAO_WEIGHT_CONFIG_INVALID');
+  const fallbackWeightRaw = process.env.PATHAO_DEFAULT_ITEM_WEIGHT_KG;
+  const fallbackWeight = fallbackWeightRaw ? Number(fallbackWeightRaw) : null;
+  if (fallbackWeightRaw && (!Number.isFinite(fallbackWeight) || Number(fallbackWeight) <= 0 || Number(fallbackWeight) > 10)) {
+    throw new PathaoApiError('PATHAO_DEFAULT_ITEM_WEIGHT_KG must be greater than 0 and at most 10 kg.', 503, 'PATHAO_WEIGHT_CONFIG_INVALID');
   }
 
   for (const item of input.items) {
@@ -69,9 +70,10 @@ export async function quotePathaoCheckout(
       }
     }
     if (!Number.isFinite(price) || price < 0) throw new PathaoApiError('A cart item has an invalid price.', 409, 'PRODUCT_PRICE_INVALID');
-    const itemWeight = Number(productData.weightKg || fallbackWeight);
-    if (!Number.isFinite(itemWeight) || itemWeight <= 0 || itemWeight > 10) {
-      throw new PathaoApiError('Product weight is invalid for Pathao shipping.', 422, 'PRODUCT_WEIGHT_INVALID');
+    const configuredProductWeight = Number(productData.weightKg || 0);
+    const itemWeight = Number.isFinite(configuredProductWeight) && configuredProductWeight > 0 ? configuredProductWeight : fallbackWeight;
+    if (itemWeight === null || !Number.isFinite(itemWeight) || itemWeight <= 0 || itemWeight > 10) {
+      throw new PathaoApiError('Set an accurate weightKg for this product or configure PATHAO_DEFAULT_ITEM_WEIGHT_KG before checkout.', 422, 'PRODUCT_WEIGHT_REQUIRED');
     }
     subtotal += price * item.quantity;
     weightKg += itemWeight * item.quantity;
