@@ -29,7 +29,8 @@ const productSchema = z.object({
   name: z.string().trim().min(1).max(200),
   slug: z.string().trim().min(1).max(220).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
   sku: z.string().trim().min(1).max(100),
-  category: z.string().trim().min(1).max(100),
+  // Drafts may be saved before category selection; publishing is checked below.
+  category: z.string().trim().max(100),
   subcategory: z.string().max(100).optional(),
   description: z.string().max(20000),
   shortDescription: z.string().max(500).optional(),
@@ -72,7 +73,22 @@ const productSchema = z.object({
   minOrderQuantity: z.number().int().positive().optional(),
   maxOrderQuantity: z.number().int().positive().optional(),
   taxRate: z.number().finite().min(0).max(100).optional(),
-}).strict();
+}).strict().superRefine((product, ctx) => {
+  if (!product.name.trim()) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['name'], message: 'Product name is required.' });
+  }
+  if (product.published) {
+    if (!product.category.trim()) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['category'], message: 'Choose a category before publishing.' });
+    }
+    if (product.price <= 0) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['price'], message: 'Selling price must be greater than zero before publishing.' });
+    }
+    if (product.images.length === 0) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['images'], message: 'Add at least one product image before publishing.' });
+    }
+  }
+});
 
 function getHeader(req: ApiRequest, name: string): string {
   const value = req.headers[name] ?? req.headers[name.toLowerCase()];
