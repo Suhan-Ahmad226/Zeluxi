@@ -1,5 +1,4 @@
--- Server-authoritative checkout pricing with Pathao shipping quote and coupon snapshot.
--- Additive overload: existing orders and legacy RPC remain untouched.
+-- Server-authoritative checkout pricing with coupon snapshot.
 alter table public.store_orders add column if not exists coupon_code text;
 
 -- Variant-aware order snapshots and invoice line items.
@@ -26,8 +25,12 @@ create or replace function public.create_customer_order(
   p_customer jsonb,
   p_items jsonb,
   p_shipping_fee numeric,
-  p_coupon_discount numeric,
-  p_coupon_code text
+  p_coupon_code text,
+  p_coupon_type text,
+  p_coupon_value numeric,
+  p_coupon_min_spend numeric,
+  p_coupon_max_usage integer,
+  p_coupon_per_user_limit integer
 ) returns jsonb
 language plpgsql
 security definer
@@ -49,6 +52,9 @@ declare
   v_unit_price numeric(12,2);
   v_available_stock integer;
   v_shipping_fee numeric(12,2) := 0;
+  v_discount numeric(12,2) := 0;
+  v_coupon_uses integer := 0;
+  v_user_coupon_uses integer := 0;
 begin
   if p_user_id is null or length(trim(p_idempotency_key)) < 16 or length(p_idempotency_key) > 128 then
     raise exception 'Invalid order identity or idempotency key' using errcode = '22023';
@@ -70,8 +76,8 @@ begin
   end if;
 
   if p_shipping_fee is null or p_shipping_fee < 0 or p_shipping_fee > 5000
-     or p_coupon_discount is null or p_coupon_discount < 0 or p_coupon_discount > 1000000
-     or (p_coupon_code is not null and length(trim(p_coupon_code)) > 40) then
+     or coalesce(p_coupon_value, 0) < 0 or coalesce(p_coupon_min_spend, 0) < 0
+     or coalesce(p_coupon_per_user_limit, 1) < 1 then
     raise exception 'Invalid checkout pricing' using errcode = '22023';
   end if;
   if coalesce(p_customer->>'division', '') not in ('Dhaka','Chattogram','Rajshahi','Sylhet','Khulna','Barishal','Rangpur','Mymensingh') then
@@ -127,13 +133,32 @@ begin
     v_subtotal := v_subtotal + v_unit_price * v_qty;
   end loop;
 
-  if p_coupon_discount > v_subtotal then
-    raise exception 'Coupon discount exceeds eligible subtotal' using errcode = '22023';
-  end if;
   v_shipping_fee := p_shipping_fee;
+  if nullif(trim(coalesce(p_coupon_code, '')), '') is not null then
+    if p_coupon_type not in ('PERCENTAGE', 'FIXED') or p_coupon_value <= 0 or v_subtotal < coalesce(p_coupon_min_spend, 0) then
+      raise exception 'Coupon is invalid or minimum spend was not met' using errcode = '22023';
+    end if;
+    select count(*) into v_coupon_uses
+      from public.store_orders
+      where upper(coupon_code) = upper(trim(p_coupon_code));
+    select count(*) into v_user_coupon_uses
+      from public.store_orders
+      where user_id = p_user_id and upper(coupon_code) = upper(trim(p_coupon_code));
+    if p_coupon_max_usage is not null and v_coupon_uses >= p_coupon_max_usage then
+      raise exception 'Coupon usage limit has been reached' using errcode = '22023';
+    end if;
+    if v_user_coupon_uses >= p_coupon_per_user_limit then
+      raise exception 'Coupon has already been used the maximum number of times for this account' using errcode = '22023';
+    end if;
+    v_discount := case
+      when p_coupon_type = 'PERCENTAGE' then round(v_subtotal * p_coupon_value / 100, 2)
+      else least(v_subtotal, p_coupon_value)
+    end;
+    v_discount := least(v_subtotal, greatest(0, v_discount));
+  end if;
 
   insert into public.store_orders(user_id, idempotency_key, payment_method, payment_status, customer, subtotal, shipping_fee, discount, coupon_code, grand_total)
-  values (p_user_id, p_idempotency_key, 'COD', 'UNPAID', p_customer, v_subtotal, v_shipping_fee, p_coupon_discount, nullif(upper(trim(coalesce(p_coupon_code, ''))), ''), greatest(0, v_subtotal + v_shipping_fee - p_coupon_discount))
+  values (p_user_id, p_idempotency_key, 'COD', 'UNPAID', p_customer, v_subtotal, v_shipping_fee, v_discount, nullif(upper(trim(coalesce(p_coupon_code, ''))), ''), greatest(0, v_subtotal + v_shipping_fee - v_discount))
   returning * into v_order;
 
   for v_item in
@@ -222,5 +247,5 @@ begin
 end;
 $$;
 
-revoke all on function public.create_customer_order(uuid, text, jsonb, jsonb, numeric, numeric, text) from public, anon, authenticated;
-grant execute on function public.create_customer_order(uuid, text, jsonb, jsonb, numeric, numeric, text) to service_role;
+revoke all on function public.create_customer_order(uuid, text, jsonb, jsonb, numeric, text, text, numeric, numeric, integer, integer) from public, anon, authenticated;
+grant execute on function public.create_customer_order(uuid, text, jsonb, jsonb, numeric, text, text, numeric, numeric, integer, integer) to service_role;
