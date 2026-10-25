@@ -7,8 +7,6 @@ alter table public.store_orders
 create index if not exists store_orders_coupon_code_idx
   on public.store_orders (coupon_code) where coupon_code is not null;
 
-drop function if exists public.create_customer_order(uuid, text, jsonb, jsonb, numeric, numeric, numeric);
-
 create or replace function public.create_customer_order(
   p_user_id uuid,
   p_idempotency_key text,
