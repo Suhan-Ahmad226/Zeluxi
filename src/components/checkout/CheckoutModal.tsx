@@ -23,14 +23,18 @@ import { PaymentMethod, CourierProvider, ShippingAddress } from '../../types';
 import { shippingAddressSchema } from '../../lib/validation/schemas';
 import { BANGLADESH_DIVISIONS, getDistrictsByDivision, getUpazilasByDistrict } from '../../lib/address/bangladesh-locations';
 
-import { ModalPortal } from '../common/ModalPortal';
+import { StoreImage } from '../common/StoreImage';
 export const CheckoutModal: React.FC = () => {
   const {
     isCheckoutOpen,
     setIsCheckoutOpen,
+    setIsCartOpen,
     cart,
     appliedCoupon,
+    applyCoupon,
     removeCoupon,
+    removeFromCart,
+    updateCartQuantity,
     settings,
     createOrder,
     setActiveView,
@@ -55,6 +59,7 @@ export const CheckoutModal: React.FC = () => {
   const [bkashTrxId, setBkashTrxId] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [couponCodeInput, setCouponCodeInput] = useState('');
   const [shippingQuote, setShippingQuote] = useState<any>(null);
   const [shippingQuoteError, setShippingQuoteError] = useState<string | null>(null);
   const [isQuoteLoading, setIsQuoteLoading] = useState(false);
@@ -187,9 +192,8 @@ export const CheckoutModal: React.FC = () => {
     }
   }
   discount = Math.min(pricingSubtotal, Math.max(0, discount));
-  const codFee = Number(shippingQuote?.codPercentage) > 0
-    ? Math.ceil(Math.max(0, pricingSubtotal + shippingInfo.fee - discount) * Number(shippingQuote.codPercentage) / 100)
-    : Number(shippingQuote?.codFee || 0);
+  // COD fee is a fixed 1% of the discounted order value including delivery, rounded up to the next BDT.
+  const codFee = shippingQuote ? Math.ceil(Math.max(0, pricingSubtotal + shippingInfo.fee - discount) * 0.01) : 0;
   const grandTotal = Math.max(0, pricingSubtotal + shippingInfo.fee + codFee - discount);
   const handleSubmitOrder = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -292,10 +296,18 @@ export const CheckoutModal: React.FC = () => {
     }
   };
 
+  const handleApplyCoupon = (event: React.FormEvent) => {
+    event.preventDefault();
+    const code = couponCodeInput.trim().toUpperCase();
+    if (!code) return;
+    const result = applyCoupon(code, phone.trim() || activeUserEmail || undefined);
+    setFormError(result.success ? null : result.message);
+    if (result.success) setCouponCodeInput('');
+  };
+
   return (
-    <ModalPortal>
-      <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 animate-in fade-in duration-200">
-      <div className="relative w-full max-w-3xl bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden max-h-[94vh] flex flex-col">
+      <div className="fixed inset-0 z-[60] overflow-y-auto bg-slate-50 animate-in fade-in duration-150">
+      <div className="mx-auto min-h-full w-full max-w-6xl bg-white shadow-xl sm:border-x sm:border-slate-200">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/70">
           <div className="flex items-center gap-2">
@@ -313,13 +325,49 @@ export const CheckoutModal: React.FC = () => {
         </div>
 
         {/* Checkout Form */}
-        <form onSubmit={handleSubmitOrder} className="overflow-y-auto p-6 space-y-5">
+        <form onSubmit={handleSubmitOrder} className="grid grid-cols-1 gap-5 p-4 sm:p-6 lg:grid-cols-[minmax(0,1fr)_minmax(320px,0.78fr)] lg:gap-8 lg:p-8">
           {formError && (
             <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 flex items-center gap-2">
               <AlertCircle className="w-4 h-4 shrink-0 text-red-600" />
               <span>{formError}</span>
             </div>
           )}
+
+          {/* Cart and checkout are one continuous page. */}
+          <section className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 lg:col-span-2">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <h3 className="text-sm font-bold text-slate-900">Your items</h3>
+                <p className="mt-1 text-xs text-slate-500">{cart.reduce((count, item) => count + item.quantity, 0)} items · Review options and quantities before ordering</p>
+              </div>
+              <button type="button" onClick={() => { setIsCheckoutOpen(false); setIsCartOpen(true); }} className="text-xs font-semibold text-slate-600 underline underline-offset-4 hover:text-slate-950">Back to shopping bag</button>
+            </div>
+            {cart.length === 0 ? (
+              <div className="rounded-xl bg-slate-50 p-6 text-center text-sm text-slate-500">Your cart is empty. Add a product before checkout.</div>
+            ) : (
+              <div className="divide-y divide-slate-100">
+                {cart.map((item) => (
+                  <div key={item.productId + ':' + (item.variantId || 'default')} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
+                    <StoreImage src={item.image} alt={item.name} className="h-16 w-16 shrink-0 rounded-xl border border-slate-100 bg-slate-50 object-contain sm:h-20 sm:w-20" loading="lazy" decoding="async" />
+                    <div className="min-w-0 flex-1">
+                      <p className="line-clamp-2 text-sm font-semibold text-slate-900">{item.name}</p>
+                      {item.variantLabel && <p className="mt-1 text-xs text-slate-500">{item.variantLabel}</p>}
+                      <p className="mt-1 text-sm font-bold tabular-nums text-slate-900">{formatPrice(item.price)}</p>
+                      <div className="mt-2 inline-flex items-center rounded-lg border border-slate-200 bg-white">
+                        <button type="button" aria-label={'Decrease quantity of ' + item.name} onClick={() => updateCartQuantity(item.productId, item.quantity - 1, item.variantId)} className="min-h-9 min-w-9 rounded-l-lg text-base hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-600">−</button>
+                        <span className="min-w-8 text-center text-xs font-semibold tabular-nums">{item.quantity}</span>
+                        <button type="button" aria-label={'Increase quantity of ' + item.name} disabled={item.quantity >= item.stock} onClick={() => updateCartQuantity(item.productId, item.quantity + 1, item.variantId)} className="min-h-9 min-w-9 rounded-r-lg text-base hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-600">+</button>
+                      </div>
+                    </div>
+                    <div className="flex shrink-0 flex-col items-end gap-3">
+                      <p className="text-sm font-bold tabular-nums text-slate-900">{formatPrice(item.price * item.quantity)}</p>
+                      <button type="button" onClick={() => removeFromCart(item.productId, item.variantId)} className="rounded-lg px-2 py-1 text-xs font-medium text-rose-600 hover:bg-rose-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-rose-500">Remove</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
 
           {/* Section 1: Contact Information */}
           <div className="space-y-3">
@@ -755,8 +803,22 @@ export const CheckoutModal: React.FC = () => {
             )}
           </div>
 
-          {/* Section 4: Order Financial Summary */}
-          <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-2 text-xs text-slate-600">
+          {/* Order Summary and coupon controls */}
+          <section className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:p-5 lg:sticky lg:top-5 lg:self-start">
+            <h3 className="text-sm font-bold text-slate-900">Order summary</h3>
+            {appliedCoupon ? (
+              <div className="flex items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs">
+                <div className="min-w-0"><p className="font-bold text-emerald-800">{appliedCoupon.code} applied</p><p className="mt-0.5 text-emerald-700">Discount will be revalidated when the order is saved.</p></div>
+                <button type="button" onClick={() => { removeCoupon(); setFormError(null); }} className="shrink-0 rounded-lg px-2 py-1.5 font-semibold text-emerald-800 underline underline-offset-2 hover:bg-emerald-100">Remove</button>
+              </div>
+            ) : (
+              <form onSubmit={handleApplyCoupon} className="flex gap-2">
+                <label className="sr-only" htmlFor="checkout-coupon-code">Coupon code</label>
+                <input id="checkout-coupon-code" value={couponCodeInput} onChange={(event) => setCouponCodeInput(event.target.value.toUpperCase())} maxLength={40} autoComplete="off" placeholder="Enter coupon code" className="min-h-11 min-w-0 flex-1 rounded-xl border border-slate-300 bg-white px-3 text-sm uppercase outline-none transition focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100" />
+                <button type="submit" disabled={!couponCodeInput.trim()} className="min-h-11 rounded-xl bg-slate-900 px-4 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-40">Apply</button>
+              </form>
+            )}
+            <div className="rounded-xl border border-slate-200 bg-white p-4 space-y-2 text-xs text-slate-600">
             <div className="flex justify-between">
               <span>Subtotal</span>
               <span className="font-semibold text-slate-900 tabular-nums">{formatPrice(pricingSubtotal)}</span>
@@ -783,27 +845,8 @@ export const CheckoutModal: React.FC = () => {
                 {shippingQuote ? formatPrice(grandTotal) : 'Awaiting delivery quote'}
               </span>
             </div>
-          </div>
-
-          {/* Coupon Checkout Resolution Notice */}
-          {appliedCoupon && (
-            <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-amber-900">
-              <div className="space-y-0.5">
-                <p className="font-semibold">Coupon Applied: {appliedCoupon.code}</p>
-                <p className="text-[11px] text-amber-700">The server revalidates this coupon, usage limit and final discount when the order is saved.</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  removeCoupon();
-                  setFormError(null);
-                }}
-                className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-semibold shrink-0 transition-colors self-start sm:self-auto"
-              >
-Remove coupon
-              </button>
             </div>
-          )}
+          </section>
 
           {/* Customer Verification Status Banner */}
           {isAuthenticated && isEmailConfirmed ? (
@@ -896,6 +939,5 @@ Remove coupon
         </form>
       </div>
       </div>
-    </ModalPortal>
   );
 };
