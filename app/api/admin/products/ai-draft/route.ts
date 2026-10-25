@@ -44,9 +44,10 @@ export async function POST(request: NextRequest) {
   const apiKey = process.env.GEMINI_API_KEY;
   const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!apiKey) return errorResponse('AI product agent is not configured. Add GEMINI_API_KEY to the server environment.', 503);
-  if (!supabaseUrl || !anonKey) return errorResponse('Authentication is not configured.', 503);
+  if (!supabaseUrl || !anonKey || !serviceRoleKey) return errorResponse('Authentication is not configured.', 503);
 
   const authorization = request.headers.get('authorization') || '';
   const token = authorization.toLowerCase().startsWith('bearer ') ? authorization.slice(7).trim() : '';
@@ -55,9 +56,16 @@ export async function POST(request: NextRequest) {
   const auth = createClient(supabaseUrl, anonKey, { auth: { persistSession: false, autoRefreshToken: false } });
   const { data, error } = await auth.auth.getUser(token);
   if (error || !data.user) return errorResponse('Your session is invalid or expired.', 401);
-  if (String(data.user.app_metadata?.role || '').toUpperCase() !== 'ADMIN') {
-    return errorResponse('Administrator access is required.', 403);
-  }
+
+  // Zeluxi's authoritative role is stored in profiles.role, not necessarily JWT app_metadata.
+  const admin = createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false, autoRefreshToken: false } });
+  const { data: profile, error: profileError } = await admin
+    .from('profiles')
+    .select('role')
+    .eq('id', data.user.id)
+    .maybeSingle();
+  if (profileError) return errorResponse('Administrator role could not be verified.', 503);
+  if (profile?.role !== 'ADMIN') return errorResponse('Administrator access is required.', 403);
 
   let rawBody: unknown;
   try {
