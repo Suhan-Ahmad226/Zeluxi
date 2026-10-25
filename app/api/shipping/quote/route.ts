@@ -52,12 +52,17 @@ export async function POST(request: NextRequest) {
     if (!Number.isFinite(configuredCodFee) || configuredCodFee < 0 || configuredCodFee > 2000) {
       return NextResponse.json({ error: 'COD fee configuration is invalid.' }, { status: 503 });
     }
+    const shippingFee = freeShipping ? 0 : quote.pathaoFee;
+    const codFee = quote.codPercentage > 0
+      ? Math.ceil(Math.max(0, quote.subtotal + shippingFee) * quote.codPercentage / 100)
+      : configuredCodFee;
     return NextResponse.json({
       quote: {
         ...quote,
-        shippingFee: freeShipping ? 0 : quote.pathaoFee,
+        shippingFee,
         freeShipping,
-        codFee: configuredCodFee,
+        codFee,
+        configuredCodFee,
         currency: 'BDT',
         expiresInSeconds: 60,
       },
