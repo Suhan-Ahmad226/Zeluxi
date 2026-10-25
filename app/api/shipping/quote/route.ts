@@ -56,12 +56,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'COD fee configuration is invalid.' }, { status: 503 });
     }
     const shippingFee = freeShipping ? 0 : quote.pathaoFee;
-    const codFee = quote.codPercentage > 0
-      ? Math.ceil(Math.max(0, quote.subtotal + shippingFee) * quote.codPercentage / 100)
-      : configuredCodFee;
+    // Zeluxi policy: charge exactly 1% of the discounted payable amount, including delivery.
+    // The final amount is recomputed in the database transaction after coupon validation.
+    const codFee = Math.ceil(Math.max(0, quote.subtotal + shippingFee) * 0.01);
     return NextResponse.json({
       quote: {
         ...quote,
+        codPercentage: 1,
         shippingFee,
         freeShipping,
         codFee,
