@@ -485,7 +485,6 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
         sku: `${sku || 'ZLX'}-V0${nextNum}`,
         price: price || 3450,
         stock: 10,
-        barcode: `890123456789${nextNum}`,
         imageUrl: images[0]?.url || '',
         attributes: { Option: `Variant ${nextNum}` },
       },
@@ -523,7 +522,6 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
       sku: `${sku || 'ZLX'}-${s.charAt(0)}`,
       price: price || 3450,
       stock: 10,
-      barcode: `89012345600${idx + 1}`,
       imageUrl: images[0]?.url || '',
       attributes: { Size: s },
     }));
@@ -1438,18 +1436,6 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
                 </div>
               )}
 
-              {!productToEdit && (
-                <ProductAIAssistant
-                  productName={name}
-                  selectedCategory={mainCategories.some((item) => item.name === category || item.id === category) ? category : mainCategories[0]?.name || ''}
-                  price={price}
-                  regularPrice={compareAtPrice}
-                  variantDetails={enableVariants ? variants.map((variant) => ({ name: variant.name, attributes: variant.attributes, price: variant.price })) : []}
-                  categories={[...new Set(categories.filter((item) => item.isActive !== false).map((item) => item.name))]}
-                  onApply={handleApplyAIDraft}
-                />
-              )}
-
               {/* TAB 2: MEDIA UPLOADS */}
               {(activeTab === 'media' || !productToEdit) && (
                 <div className="space-y-6 text-xs">
@@ -1824,7 +1810,6 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
                               <th className="p-2.5">SKU Code</th>
                               <th className="p-2.5">Price (৳)</th>
                               <th className="p-2.5">Stock</th>
-                              <th className="p-2.5">Barcode</th>
                               <th className="p-2.5">Gallery Image</th>
                               <th className="p-2.5 text-center">Action</th>
                             </tr>
@@ -1862,15 +1847,6 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
                                     value={v.stock}
                                     onChange={(e) => handleUpdateVariant(v.id, { stock: Number(e.target.value) })}
                                     className="w-16 px-2 py-1 border border-slate-300 rounded"
-                                  />
-                                </td>
-                                <td className="p-2 font-mono">
-                                  <input
-                                    type="text"
-                                    value={v.barcode || ''}
-                                    onChange={(e) => handleUpdateVariant(v.id, { barcode: e.target.value })}
-                                    placeholder="Barcode"
-                                    className="w-28 px-2 py-1 border border-slate-300 rounded font-mono"
                                   />
                                 </td>
                                 <td className="p-2">
@@ -2183,6 +2159,18 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
                 </div>
               )}
             </div>
+
+              {!productToEdit && (
+                <ProductAIAssistant
+                  productName={name}
+                  selectedCategory={mainCategories.some((item) => item.name === category || item.id === category) ? category : mainCategories[0]?.name || ''}
+                  price={price}
+                  regularPrice={compareAtPrice}
+                  variantDetails={enableVariants ? variants.map((variant) => ({ name: variant.name, attributes: variant.attributes, price: variant.price })) : []}
+                  categories={[...new Set(categories.filter((item) => item.isActive !== false).map((item) => item.name))]}
+                  onApply={handleApplyAIDraft}
+                />
+              )}
 
             {/* Live Storefront Card Preview Column */}
             {showLivePreview && (
