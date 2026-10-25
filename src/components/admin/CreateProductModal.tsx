@@ -132,9 +132,9 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
   const [isSlugManuallyEdited, setIsSlugManuallyEdited] = useState(false);
   const [sku, setSku] = useState('');
   const [barcode, setBarcode] = useState('');
-  const [category, setCategory] = useState('Full-Grain Leather');
-  const [subcategory, setSubcategory] = useState('Weekender & Travel Bags');
-  const [brand, setBrand] = useState('Zelux Atelier');
+  const [category, setCategory] = useState('');
+  const [subcategory, setSubcategory] = useState('');
+  const [brand, setBrand] = useState('');
   const [productType, setProductType] = useState<'physical' | 'digital' | 'service'>('physical');
   const [condition, setCondition] = useState<'new' | 'refurbished'>('new');
   const [shortDesc, setShortDesc] = useState('');
@@ -143,30 +143,25 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
   const [isFeatured, setIsFeatured] = useState(false);
   const [isNewArrival, setIsNewArrival] = useState(true);
   const [isBestSeller, setIsBestSeller] = useState(false);
-  const [tagsInput, setTagsInput] = useState('handcrafted, leather, luxury, atelier');
+  const [tagsInput, setTagsInput] = useState('');
 
   // 3. Pricing, Inventory & Tax
-  const [price, setPrice] = useState<number>(3450);
-  const [compareAtPrice, setCompareAtPrice] = useState<number>(4200);
-  const [costPrice, setCostPrice] = useState<number>(1800);
-  const [stock, setStock] = useState<number>(25);
+  const [price, setPrice] = useState<number>(0);
+  const [compareAtPrice, setCompareAtPrice] = useState<number>(0);
+  const [costPrice, setCostPrice] = useState<number>(0);
+  const [stock, setStock] = useState<number>(0);
   const [lowStockThreshold, setLowStockThreshold] = useState<number>(5);
   const [taxClass, setTaxClass] = useState<'standard' | 'exempt' | 'luxury'>('standard');
   const [taxRate, setTaxRate] = useState<number>(5); // 5% default standard VAT
 
   // 4. Shipping & Specs
-  const [weightKg, setWeightKg] = useState<number>(0.85);
-  const [dimensions, setDimensions] = useState('32 x 22 x 14 cm');
+  const [weightKg, setWeightKg] = useState<number>(0);
+  const [dimensions, setDimensions] = useState('');
   const [shippingClass, setShippingClass] = useState<'standard' | 'fragile_express' | 'heavy'>('standard');
-  const [countryOfOrigin, setCountryOfOrigin] = useState('Bangladesh');
-  const [warrantyPolicy, setWarrantyPolicy] = useState('1-Year Atelier Craftsmanship Warranty');
-  const [returnPolicy, setReturnPolicy] = useState('7-Day Hassle-Free Return & Exchange Policy');
-  const [specList, setSpecList] = useState<Array<{ key: string; value: string }>>([
-    { key: 'Material', value: '1.4mm Full-Grain Pull-Up Cowhide' },
-    { key: 'Hardware', value: 'Antiqued Solid Brass Buckles' },
-    { key: 'Lining', value: 'Raw Cotton Canvas' },
-    { key: 'Craftsmanship', value: 'Hand-stitched in Savar Atelier' },
-  ]);
+  const [countryOfOrigin, setCountryOfOrigin] = useState('');
+  const [warrantyPolicy, setWarrantyPolicy] = useState('');
+  const [returnPolicy, setReturnPolicy] = useState('');
+  const [specList, setSpecList] = useState<Array<{ key: string; value: string }>>([]);
 
   // 5. Variants
   const [enableVariants, setEnableVariants] = useState(false);
@@ -178,6 +173,13 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
   const [seoTitle, setSeoTitle] = useState('');
   const [seoDescription, setSeoDescription] = useState('');
   const [seoKeywords, setSeoKeywords] = useState('');
+
+  useEffect(() => {
+    if (productToEdit || categories.length === 0) return;
+    const activeMainCategory = categories.find((item) => !item.parentId && item.isActive !== false);
+    const categoryExists = categories.some((item) => item.name === category || item.id === category);
+    if (activeMainCategory && !categoryExists) setCategory(activeMainCategory.name);
+  }, [categories, category, productToEdit]);
 
   // Pre-populate fields when productToEdit is provided
   useEffect(() => {
@@ -464,7 +466,6 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
         sku: `${sku || 'ZLX'}-V0${nextNum}`,
         price: price || 3450,
         stock: 10,
-        barcode: `890123456789${nextNum}`,
         imageUrl: images[0]?.url || '',
         attributes: { Option: `Variant ${nextNum}` },
       },
@@ -502,7 +503,6 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
       sku: `${sku || 'ZLX'}-${s.charAt(0)}`,
       price: price || 3450,
       stock: 10,
-      barcode: `89012345600${idx + 1}`,
       imageUrl: images[0]?.url || '',
       attributes: { Size: s },
     }));
@@ -527,18 +527,21 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
   };
 
   // Validate form
-  const validateForm = (): boolean => {
+  const validateForm = (saveStatus: 'active' | 'draft'): boolean => {
     const errors: Record<string, string> = {};
 
-    if (!name.trim()) errors.name = 'Product Title is required.';
+    // Drafts are a safe place to start and finish later. Publishing remains strict.
+    if (!name.trim()) errors.name = 'Add a product name before saving.';
     if (!sku.trim()) errors.sku = 'SKU Code is required.';
-    if (!price || price <= 0) errors.price = 'Price must be greater than 0 BDT.';
-    if (images.length === 0) errors.images = 'At least 1 product image is required.';
-    if (!category.trim()) errors.category = 'Category must be selected.';
+    if (saveStatus === 'active') {
+      if (!price || price <= 0) errors.price = 'Selling price must be greater than 0 BDT before publishing.';
+      if (images.length === 0) errors.images = 'Add at least one product image before publishing.';
+      if (!category.trim()) errors.category = 'Choose a category before publishing.';
+    }
 
     setFormErrors(errors);
     if (Object.keys(errors).length > 0) {
-      showToast('Please complete the highlighted required fields', 'error');
+      showToast(saveStatus === 'active' ? 'Complete the highlighted fields to publish, or save as a draft.' : 'Add a product name to save this draft.', 'error');
       if (errors.name || errors.sku || errors.price || errors.category) {
         setActiveTab('general');
       } else if (errors.images) {
@@ -551,7 +554,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
 
   // Save Product Handler
   const handleSaveProduct = async (saveStatus: 'active' | 'draft', addAnother: boolean = false) => {
-    if (!validateForm()) return;
+    if (!validateForm(saveStatus)) return;
 
     setIsSubmitting(true);
 
@@ -863,7 +866,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
                   {productToEdit ? `Edit Product: ${productToEdit.name}` : 'Create product'}
                 </h2>
                 <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-slate-100 text-slate-600">
-                  Zelux Studio Admin
+                  Zeluxi Product Studio
                 </span>
                 {hasUnsavedChanges && (
                   <span className="text-[10px] font-medium text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200 flex items-center gap-1.5">
@@ -873,7 +876,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
                 )}
               </div>
               <p className="text-xs text-slate-500 truncate mt-0.5 hidden sm:block hidden sm:block">
-                Bilingual descriptions, local photo compression, category taxonomy, profit margin architecture, and live storefront view.
+                Choose manual entry or let AI prepare a draft you can review and edit.
               </p>
             </div>
           </div>
@@ -903,8 +906,8 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
           </div>
         </div>
 
-        {/* Form Completion Progress Bar */}
-        <div className="w-full bg-white border-b border-slate-200 px-4 sm:px-6 py-2 flex items-center justify-between text-xs text-slate-500">
+        {/* Keep the create flow focused; detailed readiness remains available when editing. */}
+        {productToEdit && <div className="w-full bg-white border-b border-slate-200 px-4 sm:px-6 py-2 flex items-center justify-between text-xs text-slate-500">
           <div className="flex items-center gap-2">
             <span className="font-semibold text-slate-700">Form Readiness:</span>
             <span className={`font-mono font-bold ${completedChecks === formChecks.length ? 'text-emerald-600' : 'text-indigo-600'}`}>
@@ -924,10 +927,10 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
               style={{ width: `${completionPercentage}%` }}
             />
           </div>
-        </div>
+        </div>}
 
         {/* Tab Navigation & Step Indicators */}
-        <div className="px-2 sm:px-4 border-b border-slate-200 bg-white flex items-center gap-1 overflow-x-auto text-sm font-medium scrollbar-none">
+        {productToEdit && <div className="px-2 sm:px-4 border-b border-slate-200 bg-white flex items-center gap-1 overflow-x-auto text-sm font-medium scrollbar-none">
           <button
             onClick={() => setActiveTab('general')}
             className={`py-3 px-3 sm:px-4 border-b-2 flex items-center gap-2 transition-colors whitespace-nowrap ${
@@ -937,7 +940,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
             }`}
           >
             <FileText className="w-4 h-4" />
-            <span>Details & pricing</span>
+            <span>{productToEdit ? "Details & pricing" : "Basics"}</span>
             {(formErrors.name || formErrors.sku || formErrors.price) && (
               <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
             )}
@@ -972,7 +975,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
             <span>Variants</span>
           </button>
 
-          <button
+          {productToEdit && <button
             onClick={() => setActiveTab('specs')}
             className={`py-3 px-3.5 border-b-2 flex items-center gap-2 transition-colors whitespace-nowrap ${
               activeTab === 'specs'
@@ -982,9 +985,9 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
           >
             <Truck className="w-4 h-4" />
             <span>Shipping & specs</span>
-          </button>
+          </button>}
 
-          <button
+          {productToEdit && <button
             onClick={() => setActiveTab('seo')}
             className={`py-3 px-3.5 border-b-2 flex items-center gap-2 transition-colors whitespace-nowrap ${
               activeTab === 'seo'
@@ -994,17 +997,66 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
           >
             <Globe className="w-4 h-4" />
             <span>SEO</span>
-          </button>
-        </div>
+          </button>}
+        </div>}
 
         {/* Modal Scrollable Body */}
         <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 bg-slate-50">
-          <div className={`grid grid-cols-1 ${showLivePreview ? 'lg:grid-cols-3' : ''} gap-6`}>
+                    <div className={`grid grid-cols-1 ${showLivePreview ? 'lg:grid-cols-3' : ''} gap-6`}>
             {/* Form Column */}
             <div className={showLivePreview ? 'lg:col-span-2 space-y-6' : 'space-y-6'}>
               {/* TAB 1: GENERAL & PRICING */}
               {activeTab === 'general' && (
-                <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-6 shadow-sm space-y-5 text-sm">
+                <div className="space-y-5 text-sm">
+                  {!productToEdit && (
+                    <>
+                      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+                        <div className="mb-5 flex items-start gap-3">
+                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600"><Boxes className="h-5 w-5" /></div>
+                          <div>
+                            <h3 className="text-base font-bold text-slate-900">Add a product</h3>
+                            <p className="mt-1 text-sm text-slate-500">Enter the product basics, then write the description yourself in the manual fields below.</p>
+                          </div>
+                        </div>
+                        <div className="space-y-4">
+                          <label className="block text-sm font-semibold text-slate-700">
+                            Product name <span className="text-rose-500">*</span>
+                            <input type="text" value={name} onChange={(event) => setName(event.target.value)} maxLength={200} placeholder="e.g. Samsung Galaxy A56 5G" className={`mt-1.5 w-full rounded-xl border px-3.5 py-3 text-base font-medium outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 ${formErrors.name ? 'border-rose-400' : 'border-slate-200'}`} />
+                            {formErrors.name && <span className="mt-1 block text-xs text-rose-600">{formErrors.name}</span>}
+                          </label>
+                          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                            <label className="block text-sm font-semibold text-slate-700">
+                              Selling price (৳) <span className="text-rose-500">*</span>
+                              <input type="number" min="1" value={price || ''} onChange={(event) => setPrice(Number(event.target.value))} placeholder="0.00" className={`mt-1.5 w-full rounded-xl border px-3.5 py-3 text-base font-bold outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 ${formErrors.price ? 'border-rose-400' : 'border-slate-200'}`} />
+                              {formErrors.price && <span className="mt-1 block text-xs text-rose-600">{formErrors.price}</span>}
+                            </label>
+                            <label className="block text-sm font-semibold text-slate-700">
+                              Regular price (৳)
+                              <input type="number" min="0" value={compareAtPrice || ''} onChange={(event) => setCompareAtPrice(Number(event.target.value))} placeholder="Optional" className="mt-1.5 w-full rounded-xl border border-slate-200 px-3.5 py-3 text-base outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10" />
+                              <span className="mt-1 block text-xs font-normal text-slate-500">{compareAtPrice > price ? `Save ৳${(compareAtPrice - price).toLocaleString()} · ${Math.round(((compareAtPrice - price) / compareAtPrice) * 100)}% off` : 'Leave blank if no discount'}</span>
+                            </label>
+                          </div>
+                        </div>
+                        <section className="mt-5 space-y-4 rounded-xl border border-indigo-100 bg-indigo-50/40 p-4 sm:p-5">
+                          <div>
+                            <h3 className="font-bold text-slate-900">Product Description · Manual Entry</h3>
+                            <p className="mt-1 text-xs leading-5 text-slate-600">Write a short summary and the full product details.</p>
+                          </div>
+                          <div>
+                            <label className="font-semibold text-slate-700 block mb-1">Short Description</label>
+                            <textarea rows={3} value={shortDesc} onChange={(event) => setShortDesc(event.target.value)} placeholder="Key benefits and features" className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 focus:border-indigo-600 focus:outline-none" />
+                          </div>
+                          <div>
+                            <label className="font-semibold text-slate-700 block mb-1">Full Description</label>
+                            <textarea rows={8} value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Materials, size, use, features, care, and package contents" className="w-full rounded-xl border border-slate-200 bg-white px-3 py-3 focus:border-indigo-600 focus:outline-none" />
+                          </div>
+                        </section>
+                      </section>
+
+                    </>
+                  )}
+                  {productToEdit && (
+                  <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-6 shadow-sm space-y-5 text-sm">
                   <div>
                     <h3 className="text-sm font-bold text-slate-900">Essential Product Information</h3>
                     <p className="text-slate-500 text-[11px]">Core product identification, category mapping, and pricing architecture</p>
@@ -1338,27 +1390,31 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
                     </label>
                   </div>
 
-                  {/* Descriptions */}
-                  <div className="space-y-4 pt-2">
+                  {/* Manual product descriptions */}
+                  <section className="space-y-4 rounded-xl border border-indigo-100 bg-indigo-50/40 p-4 sm:p-5">
                     <div>
-                      <label className="font-semibold text-slate-700 block mb-1">Short Excerpt</label>
+                      <h3 className="font-bold text-slate-900">Product Description · Manual Entry</h3>
+                      <p className="mt-1 text-xs leading-5 text-slate-600">Write the product summary and details manually.</p>
+                    </div>
+                    <div>
+                      <label className="font-semibold text-slate-700 block mb-1">Short Description</label>
                       <textarea
-                        rows={2}
+                        rows={3}
                         value={shortDesc}
                         onChange={(e) => setShortDesc(e.target.value)}
-                        placeholder="Brief 1-2 sentence description for quick views and search..."
-                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-indigo-600"
+                        placeholder="Key benefits and features"
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white focus:outline-none focus:border-indigo-600"
                       />
                     </div>
 
                     <div>
                       <label className="font-semibold text-slate-700 block mb-1">Full Description</label>
                       <textarea
-                        rows={5}
+                        rows={8}
                         value={description}
                         onChange={(e) => setDescription(e.target.value)}
-                        placeholder="Comprehensive details on craftsmanship, materials, durability, and usage..."
-                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-indigo-600"
+                        placeholder="Materials, size, use, features, care, and package contents"
+                        className="w-full px-3 py-3 border border-slate-300 rounded-lg bg-white focus:outline-none focus:border-indigo-600"
                       />
                     </div>
 
@@ -1372,12 +1428,14 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
                         className="w-full px-3 py-2 border border-slate-300 rounded-lg"
                       />
                     </div>
+                  </section>
                   </div>
+                  )}
                 </div>
               )}
 
               {/* TAB 2: MEDIA UPLOADS */}
-              {activeTab === 'media' && (
+              {(activeTab === 'media' || !productToEdit) && (
                 <div className="space-y-6 text-xs">
                   {/* Image Upload Zone */}
                   <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-xs space-y-4">
@@ -1385,10 +1443,10 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
                       <div>
                         <h3 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
                           <ImageIcon className="w-4 h-4 text-indigo-600" />
-                          <span>Local Device Product Photography Gallery</span>
+                          <span>Product photos</span>
                         </h3>
                         <p className="text-slate-500 text-[11px]">
-                          Select or drag-and-drop JPG, PNG, WEBP, or AVIF files directly from your computer or phone
+                          Add clear product photos. Images are optimized automatically.
                         </p>
                       </div>
                       <span className="text-[11px] font-mono text-indigo-600 font-semibold bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-100">
@@ -1444,7 +1502,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
                             <Upload className="w-6 h-6" />
                           </div>
                           <p className="font-bold text-slate-900 text-sm">
-                            Click to choose photos from your computer or drag & drop here (লোকাল পিক আপলোড)
+                            Click to upload photos or drag and drop here
                           </p>
                           <p className="text-slate-500 text-[11px] mt-1">
                             Supports multi-file select: JPG, PNG, WEBP, AVIF. Automatically downsampled for lightning speed.
@@ -1668,16 +1726,16 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
               )}
 
               {/* TAB 3: VARIANTS & INVENTORY */}
-              {activeTab === 'variants' && (
+              {(activeTab === 'variants' || !productToEdit) && (
                 <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-6 shadow-sm space-y-5 text-xs">
                   <div className="flex items-center justify-between flex-wrap gap-2">
                     <div>
                       <h3 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
                         <Layers className="w-4 h-4 text-indigo-600" />
-                        <span>Product Variants & SKU Matrix</span>
+                        <span>Variants (optional)</span>
                       </h3>
                       <p className="text-slate-500 text-[11px]">
-                        Configure options such as Size, Color, or Finish with specific prices, inventory, barcodes, and image assignments
+                        Add options such as Size or Color only when the product needs them.
                       </p>
                     </div>
 
@@ -1750,7 +1808,6 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
                               <th className="p-2.5">SKU Code</th>
                               <th className="p-2.5">Price (৳)</th>
                               <th className="p-2.5">Stock</th>
-                              <th className="p-2.5">Barcode</th>
                               <th className="p-2.5">Gallery Image</th>
                               <th className="p-2.5 text-center">Action</th>
                             </tr>
@@ -1788,15 +1845,6 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
                                     value={v.stock}
                                     onChange={(e) => handleUpdateVariant(v.id, { stock: Number(e.target.value) })}
                                     className="w-16 px-2 py-1 border border-slate-300 rounded"
-                                  />
-                                </td>
-                                <td className="p-2 font-mono">
-                                  <input
-                                    type="text"
-                                    value={v.barcode || ''}
-                                    onChange={(e) => handleUpdateVariant(v.id, { barcode: e.target.value })}
-                                    placeholder="Barcode"
-                                    className="w-28 px-2 py-1 border border-slate-300 rounded font-mono"
                                   />
                                 </td>
                                 <td className="p-2">
@@ -2108,6 +2156,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
                   </div>
                 </div>
               )}
+
             </div>
 
             {/* Live Storefront Card Preview Column */}
@@ -2214,7 +2263,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
               type="button"
               disabled={isSubmitting}
               onClick={() => handleSaveProduct('active', true)}
-              className="hidden sm:inline-flex sm:flex-none px-4 py-2.5 bg-slate-900 text-white rounded-xl text-sm font-semibold hover:bg-slate-800 transition-colors disabled:opacity-50"
+              className="flex-1 sm:flex-none px-4 py-2.5 bg-slate-900 text-white rounded-xl text-sm font-semibold hover:bg-slate-800 transition-colors disabled:opacity-50"
             >
               Save & Add Another
             </button>
