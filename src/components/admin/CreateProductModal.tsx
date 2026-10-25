@@ -270,6 +270,8 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
 
   const handleApplyAIDraft = (draft: AIProductDraft) => {
     setName(draft.name);
+    if (draft.category && categories.some((item) => item.name === draft.category || item.id === draft.category)) setCategory(draft.category);
+    setBrand(draft.brand || '');
     setShortDesc(draft.shortDescription);
     setDescription(draft.description);
     setTagsInput(draft.tags.join(', '));
