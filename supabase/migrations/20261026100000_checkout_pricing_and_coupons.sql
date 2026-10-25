@@ -55,6 +55,7 @@ declare
   v_coupon_min_spend numeric(12,2);
   v_coupon_user_key text;
   v_coupon_used_by jsonb;
+  v_coupon_user_usage integer := 0;
 begin
   if p_user_id is null or length(trim(p_idempotency_key)) < 16 or length(p_idempotency_key) > 128 then
     raise exception 'Invalid order identity or idempotency key' using errcode = '22023';
@@ -173,14 +174,15 @@ begin
     end if;
     v_coupon_user_key := lower(trim(coalesce(nullif(p_customer->>'email',''), nullif(p_customer->>'phone',''), p_user_id::text)));
     v_coupon_used_by := coalesce(v_coupon->'usedBy', '[]'::jsonb);
-    if coalesce(nullif(v_coupon->>'perUserLimit','')::integer, 1) <= 1 and exists (
-      select 1 from jsonb_array_elements_text(v_coupon_used_by) as used(value)
+    select count(*) into v_coupon_user_usage
+      from jsonb_array_elements_text(v_coupon_used_by) as used(value)
       where lower(trim(used.value)) in (
         lower(trim(coalesce(p_customer->>'email',''))),
-        lower(trim(coalesce(p_customer->>'phone','')))
-      )
-    ) then
-      raise exception 'This coupon has already been used by this customer.' using errcode = '22023';
+        lower(trim(coalesce(p_customer->>'phone',''))),
+        lower(trim(p_user_id::text))
+      );
+    if v_coupon_user_usage >= greatest(1, coalesce(nullif(v_coupon->>'perUserLimit','')::integer, 1)) then
+      raise exception 'This coupon has already been used the maximum number of times for this customer.' using errcode = '22023';
     end if;
     v_coupon_value := coalesce(nullif(v_coupon->>'value','')::numeric, 0);
     if v_coupon_value <= 0 then
