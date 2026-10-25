@@ -46,3 +46,12 @@
 - Keep the quick path focused on product name, selling price, category, primary image, stock, and short/long description. Make regular price, brand, tags, specifications, variants, shipping details, warranty/return policy, and SEO available in the existing sections.
 - Generate slug and SKU automatically but allow editing. Never invent a cost price, barcode, warranty, origin, specs, or shipping claims; keep optional fields optional.
 - Validate only truly required values before save, show errors beside the relevant field, and keep Draft / Publish actions explicit.
+
+
+## Draft-first workflow improvements
+
+- Saving a draft requires a product name; the admin can finish price, category, and images later.
+- Publishing remains strict: a valid selling price, category, and at least one product image are required.
+- The API enforces publish requirements server-side, so bypassing the UI cannot publish an incomplete listing.
+- The "Save & Add Another" action is available on mobile as well as desktop.
+- Drafts are not visible in the public catalog because the persisted `published` flag remains false.
