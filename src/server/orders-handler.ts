@@ -335,12 +335,10 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     }
 
     if (!user.email_confirmed_at) return res.status(401).json({ error: 'A verified account is required.' });
-    const dhakaFee = readNonNegativeEnv('SHIPPING_DHAKA_FEE');
-    const outsideDhakaFee = readNonNegativeEnv('SHIPPING_OUTSIDE_DHAKA_FEE');
-    const freeShippingThreshold = readNonNegativeEnv('FREE_SHIPPING_THRESHOLD');
-    if (dhakaFee === null || outsideDhakaFee === null || freeShippingThreshold === null || freeShippingThreshold <= 0) {
-      return res.status(503).json({ error: 'Shipping configuration is incomplete. No order was created.' });
-    }
+    // Legacy zone rates are retained only for RPC compatibility; customer charges use the live Pathao quote below.
+    const dhakaFee = readNonNegativeEnv('SHIPPING_DHAKA_FEE') ?? 0;
+    const outsideDhakaFee = readNonNegativeEnv('SHIPPING_OUTSIDE_DHAKA_FEE') ?? 0;
+    const freeShippingThreshold = readNonNegativeEnv('FREE_SHIPPING_THRESHOLD') ?? 1;
     const idempotencyKey = getHeader(req, 'idempotency-key');
     if (idempotencyKey.length < 16 || idempotencyKey.length > 128) {
       return res.status(400).json({ error: 'A valid Idempotency-Key header is required.' });
