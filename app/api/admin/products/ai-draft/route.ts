@@ -8,18 +8,24 @@ export const dynamic = 'force-dynamic';
 const requestSchema = z.object({
   name: z.string().trim().min(2).max(200),
   category: z.string().trim().max(100).default(''),
-  facts: z.string().trim().min(5).max(5000),
-  language: z.enum(['English', 'Bangla', 'Bangla + English']).default('English'),
+  price: z.number().finite().positive().max(100000000),
+  regularPrice: z.number().finite().positive().max(100000000).optional(),
+  variants: z.array(z.object({
+    name: z.string().trim().max(120),
+    attributes: z.record(z.string(), z.string().max(120)).optional(),
+    price: z.number().finite().nonnegative().optional(),
+  }).strict()).max(100).default([]),
+  language: z.enum(['English', 'Bangla', 'Bangla + English']).default('Bangla + English'),
   categories: z.array(z.string().trim().min(1).max(100)).max(100).default([]),
 }).strict();
 
 const draftSchema = z.object({
   name: z.string().trim().min(2).max(200),
-  shortDescription: z.string().trim().max(500),
-  description: z.string().trim().max(5000),
+  shortDescription: z.string().trim().min(1).max(500),
+  description: z.string().trim().min(1).max(5000),
   tags: z.array(z.string().trim().min(1).max(80)).max(15),
-  seoTitle: z.string().trim().max(200),
-  seoDescription: z.string().trim().max(500),
+  seoTitle: z.string().trim().min(1).max(200),
+  seoDescription: z.string().trim().min(1).max(500),
   seoKeywords: z.string().trim().max(500),
   specifications: z.array(z.object({
     key: z.string().trim().min(1).max(80),
@@ -39,7 +45,7 @@ export async function POST(request: NextRequest) {
   const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-  if (!apiKey) return errorResponse('AI product assistant is not configured. Add GEMINI_API_KEY to the server environment.', 503);
+  if (!apiKey) return errorResponse('AI product agent is not configured. Add GEMINI_API_KEY to the server environment.', 503);
   if (!supabaseUrl || !anonKey) return errorResponse('Authentication is not configured.', 503);
 
   const authorization = request.headers.get('authorization') || '';
@@ -61,22 +67,33 @@ export async function POST(request: NextRequest) {
   }
 
   const parsedRequest = requestSchema.safeParse(rawBody);
-  if (!parsedRequest.success) return errorResponse('Enter a product name and a few accurate product details first.', 400);
+  if (!parsedRequest.success) return errorResponse('Enter a product name and valid price first.', 400);
   const input = parsedRequest.data;
 
+  const variantSummary = input.variants.length
+    ? input.variants.map((variant) => {
+        const attrs = variant.attributes ? Object.entries(variant.attributes).map(([key, value]) => key + ': ' + value).join(', ') : '';
+        return variant.name + (attrs ? ' (' + attrs + ')' : '');
+      }).join('; ')
+    : 'No variants supplied';
+
   const prompt = [
-    'You are Zeluxi single-store ecommerce product copy assistant.',
-    'Return only a JSON object matching these keys: name, shortDescription, description, tags, seoTitle, seoDescription, seoKeywords, specifications.',
-    'Write polished, specific, easy-to-scan ecommerce copy. Use the requested language: ' + input.language + '.',
-    'Use only the facts supplied by the user. Never invent materials, certifications, country of origin, warranty, dimensions, compatibility, health benefits, stock, price, discounts, or performance claims.',
-    'If a specification is not explicitly supported by the supplied facts, omit it. Do not invent pricing or inventory.',
-    'The shortDescription must be a concise product-card summary. The description should use clear paragraphs and practical benefits without unsupported claims.',
-    'SEO fields should be natural, non-spammy, and relevant. Tags should be short search terms.',
-    'Keep the product name close to the user-provided name; improve grammar only when useful.',
-    'Available store categories: ' + (input.categories.length ? input.categories.join(', ') : 'not supplied'),
-    'Selected category: ' + (input.category || 'not selected'),
-    'Product name: ' + input.name,
-    'Product facts supplied by the store owner: ' + input.facts,
+    'You are the product research and ecommerce copy agent for Zeluxi, a Bangladesh single-store ecommerce website.',
+    'First use Google Search to research the exact product name and model. Prefer the manufacturer brand website and trustworthy retailers or technical publications. Search in English and Bangla when useful.',
+    'Return only a JSON object matching exactly these keys: name, shortDescription, description, tags, seoTitle, seoDescription, seoKeywords, specifications.',
+    'Write polished, specific ecommerce content in ' + input.language + '. Keep the user-provided product name intact unless a clear spelling correction is needed.',
+    'Use current web search results for factual product details. Do not copy source wording. Summarize in original wording.',
+    'Never guess a model-specific feature, material, dimensions, battery, compatibility, warranty, certification, country of origin, included accessory, or performance claim. Only include facts supported by reliable search results. If the exact product/model cannot be verified, write a cautious generic description based on the name and return no unsupported specifications.',
+    'Do not invent reviews, ratings, availability, shipping promises, warranty, stock, price, discount, or claims of official authenticity.',
+    'The description should be easy to scan, with short paragraphs and bullet-like lines if appropriate. Keep claims grounded and avoid keyword stuffing.',
+    'SEO title should be concise, SEO description natural and useful, tags 5-12 short relevant terms, specifications should contain only verified factual attributes.',
+    'The store price and discount are provided only as context. Do not include price/discount in the generated description or SEO because the store controls those fields.',
+    'Store categories: ' + (input.categories.length ? input.categories.join(', ') : 'not supplied'),
+    'Selected store category: ' + (input.category || 'not selected'),
+    'Product name/model to research: ' + input.name,
+    'Store selling price in BDT (do not repeat in copy): ' + input.price,
+    'Store regular price in BDT (do not repeat in copy): ' + (input.regularPrice ?? 'not set'),
+    'Variants provided by the store owner: ' + variantSummary,
   ].join(String.fromCharCode(10));
 
   try {
@@ -88,20 +105,22 @@ export async function POST(request: NextRequest) {
       },
       body: JSON.stringify({
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        generationConfig: { responseMimeType: 'application/json', temperature: 0.4, maxOutputTokens: 1800 },
+        tools: [{ google_search: {} }],
+        generationConfig: { responseMimeType: 'application/json', temperature: 0.7, maxOutputTokens: 2600 },
       }),
       cache: 'no-store',
-      signal: AbortSignal.timeout(25000),
+      signal: AbortSignal.timeout(45000),
     });
 
     const payload = await response.json().catch(() => null);
     if (!response.ok) {
       const providerMessage = typeof payload?.error?.message === 'string' ? payload.error.message : '';
-      console.error('AI product draft provider error:', response.status, providerMessage.slice(0, 300));
-      return errorResponse('AI could not generate product copy right now. Check the Gemini API key and quota, then retry.', 502);
+      console.error('AI product research provider error:', response.status, providerMessage.slice(0, 300));
+      return errorResponse('AI product research failed. Check the Gemini API key, search grounding access and quota, then retry.', 502);
     }
 
-    const text = payload?.candidates?.[0]?.content?.parts?.map((part: { text?: string }) => part.text || '').join('');
+    const candidate = payload?.candidates?.[0];
+    const text = candidate?.content?.parts?.map((part: { text?: string }) => part.text || '').join('');
     if (typeof text !== 'string' || !text.trim()) return errorResponse('AI returned an empty product draft. Please try again.', 502);
 
     let json: unknown;
@@ -114,14 +133,30 @@ export async function POST(request: NextRequest) {
     const parsedDraft = draftSchema.safeParse(json);
     if (!parsedDraft.success) {
       console.error('AI product draft failed schema validation:', parsedDraft.error.issues.map((issue) => issue.path.join('.')).join(', '));
-      return errorResponse('AI returned incomplete product copy. Please try again.', 502);
+      return errorResponse('AI returned incomplete product copy. Please regenerate.', 502);
     }
 
-    return NextResponse.json({ draft: parsedDraft.data }, {
+    const chunks = Array.isArray(candidate?.groundingMetadata?.groundingChunks)
+      ? candidate.groundingMetadata.groundingChunks
+      : [];
+    const seen = new Set<string>();
+    const sources = chunks.flatMap((chunk: { web?: { uri?: string; title?: string } }) => {
+      const url = typeof chunk.web?.uri === 'string' ? chunk.web.uri : '';
+      if (!/^https?:\/\//i.test(url) || seen.has(url)) return [];
+      seen.add(url);
+      return [{
+        url,
+        title: (typeof chunk.web?.title === 'string' && chunk.web.title.trim())
+          ? chunk.web.title.trim().slice(0, 160)
+          : new URL(url).hostname,
+      }];
+    }).slice(0, 8);
+
+    return NextResponse.json({ draft: { ...parsedDraft.data, sources } }, {
       headers: { 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' },
     });
   } catch (error) {
-    console.error('AI product draft request failed:', error instanceof Error ? error.message : 'Unknown error');
-    return errorResponse('AI request timed out or could not connect. Please retry.', 502);
+    console.error('AI product research request failed:', error instanceof Error ? error.message : 'Unknown error');
+    return errorResponse('AI research timed out or could not connect. Please retry.', 502);
   }
 }
