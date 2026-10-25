@@ -34,7 +34,6 @@ export const CheckoutModal: React.FC = () => {
     removeCoupon,
     removeFromCart,
     updateCartQuantity,
-    settings,
     createOrder,
     setActiveView,
   } = useStore();
@@ -610,6 +609,8 @@ export const CheckoutModal: React.FC = () => {
               {/* bKash */}
               <button
                 type="button"
+                disabled
+                title="Coming soon. Cash on Delivery is currently available."
                 onClick={() => setPaymentMethod('BKASH')}
                 className={`p-2.5 rounded-xl border text-left flex flex-col justify-between transition-all ${
                   paymentMethod === 'BKASH'
@@ -634,6 +635,8 @@ export const CheckoutModal: React.FC = () => {
               {/* Nagad */}
               <button
                 type="button"
+                disabled
+                title="Coming soon. Cash on Delivery is currently available."
                 onClick={() => setPaymentMethod('NAGAD')}
                 className={`p-2.5 rounded-xl border text-left flex flex-col justify-between transition-all ${
                   paymentMethod === 'NAGAD'
@@ -658,6 +661,8 @@ export const CheckoutModal: React.FC = () => {
               {/* Rocket */}
               <button
                 type="button"
+                disabled
+                title="Coming soon. Cash on Delivery is currently available."
                 onClick={() => setPaymentMethod('ROCKET')}
                 className={`p-2.5 rounded-xl border text-left flex flex-col justify-between transition-all ${
                   paymentMethod === 'ROCKET'
@@ -682,6 +687,8 @@ export const CheckoutModal: React.FC = () => {
               {/* SSLCommerz */}
               <button
                 type="button"
+                disabled
+                title="Coming soon. Cash on Delivery is currently available."
                 onClick={() => setPaymentMethod('SSLCOMMERZ')}
                 className={`p-2.5 rounded-xl border text-left flex flex-col justify-between transition-all ${
                   paymentMethod === 'SSLCOMMERZ'
