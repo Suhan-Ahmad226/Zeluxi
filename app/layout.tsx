@@ -69,6 +69,7 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
   return (
     <html lang="en">
       <head>
+        <meta name="facebook-domain-verification" content="376456e4razte9wx5ydsxzav67sp6q" />
       </head>
       <body className="bg-[#FAFAFA] text-[#0F172A] antialiased selection:bg-indigo-500 selection:text-white">
         {children}
