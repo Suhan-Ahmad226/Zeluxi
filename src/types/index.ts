@@ -152,6 +152,11 @@ export interface ShippingAddress {
   thanaCity?: string;
   addressDetails: string;
   postalCode?: string;
+  /** Pathao IDs resolved server-side from the selected district and upazila. */
+  pathaoCityId?: number;
+  pathaoCityName?: string;
+  pathaoZoneId?: number;
+  pathaoZoneName?: string;
   notes?: string;
 }
 
