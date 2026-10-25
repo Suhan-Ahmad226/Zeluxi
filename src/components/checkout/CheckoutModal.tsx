@@ -42,6 +42,10 @@ export const CheckoutModal: React.FC = () => {
   const [division, setDivision] = useState('Dhaka');
   const [district, setDistrict] = useState('');
   const [upazila, setUpazila] = useState('');
+  const [pathaoCityId, setPathaoCityId] = useState('');
+  const [pathaoZoneId, setPathaoZoneId] = useState('');
+  const [pathaoCities, setPathaoCities] = useState<Array<{ city_id: number; city_name: string }>>([]);
+  const [pathaoZones, setPathaoZones] = useState<Array<{ zone_id: number; zone_name: string }>>([]);
   const [pathaoAreaId, setPathaoAreaId] = useState('');
   const [addressDetails, setAddressDetails] = useState('');
   const [notes, setNotes] = useState('');
@@ -74,15 +78,43 @@ export const CheckoutModal: React.FC = () => {
       if (userProfile.division) setDivision(userProfile.division);
       if (userProfile.district) setDistrict(userProfile.district);
       if (userProfile.upazila || (userProfile as any).thanaCity) setUpazila(userProfile.upazila || (userProfile as any).thanaCity || '');
+      if ((userProfile as any).pathaoCityId) setPathaoCityId(String((userProfile as any).pathaoCityId));
+      if ((userProfile as any).pathaoZoneId) setPathaoZoneId(String((userProfile as any).pathaoZoneId));
       if ((userProfile as any).pathaoAreaId) setPathaoAreaId(String((userProfile as any).pathaoAreaId));
       if (typeof userProfile.notes === 'string') setNotes(userProfile.notes);
     }
   }, [userProfile, isCheckoutOpen]);
 
   useEffect(() => {
+    if (!isCheckoutOpen || pathaoCities.length) return;
+    let active = true;
+    fetch('/api/shipping/locations?action=cities', { cache: 'no-store' })
+      .then(async (response) => {
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(payload.error || 'Pathao cities are unavailable.');
+        if (active) setPathaoCities(Array.isArray(payload.data) ? payload.data : []);
+      })
+      .catch((error) => { if (active) setShippingQuoteError(error instanceof Error ? error.message : 'Pathao cities are unavailable.'); });
+    return () => { active = false; };
+  }, [isCheckoutOpen, pathaoCities.length]);
+
+  useEffect(() => {
+    if (!pathaoCityId) { setPathaoZones([]); return; }
+    let active = true;
+    fetch('/api/shipping/locations?action=zones&id=' + encodeURIComponent(pathaoCityId), { cache: 'no-store' })
+      .then(async (response) => {
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(payload.error || 'Pathao zones are unavailable.');
+        if (active) setPathaoZones(Array.isArray(payload.data) ? payload.data : []);
+      })
+      .catch((error) => { if (active) setShippingQuoteError(error instanceof Error ? error.message : 'Pathao zones are unavailable.'); });
+    return () => { active = false; };
+  }, [pathaoCityId]);
+
+  useEffect(() => {
     let active = true;
     const requestQuote = async () => {
-      if (!isCheckoutOpen || !district || !upazila || cart.length === 0) {
+      if (!isCheckoutOpen || !district || !upazila || !pathaoCityId || !pathaoZoneId || cart.length === 0) {
         setShippingQuote(null);
         setShippingQuoteError(null);
         setIsQuoteLoading(false);
@@ -100,6 +132,8 @@ export const CheckoutModal: React.FC = () => {
           body: JSON.stringify({
             district,
             upazila,
+            cityId: Number(pathaoCityId),
+            zoneId: Number(pathaoZoneId),
             areaId: pathaoAreaId ? Number(pathaoAreaId) : undefined,
             items: cart.map((item) => ({ productId: item.productId, variantId: item.variantId, quantity: item.quantity })),
           }),
@@ -121,7 +155,7 @@ export const CheckoutModal: React.FC = () => {
     };
     void requestQuote();
     return () => { active = false; };
-  }, [isCheckoutOpen, district, upazila, pathaoAreaId, cart]);
+  }, [isCheckoutOpen, district, upazila, pathaoCityId, pathaoZoneId, pathaoAreaId, cart]);
 
   if (!isCheckoutOpen) return null;
 
@@ -403,6 +437,21 @@ export const CheckoutModal: React.FC = () => {
                   {getUpazilasByDistrict(district).map((option) => (
                     <option key={option.kind + '-' + option.value} value={option.value}>{option.label}</option>
                   ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-slate-700 block mb-1">Pathao city *</label>
+                <select required value={pathaoCityId} onChange={(e) => { setPathaoCityId(e.target.value); setPathaoZoneId(''); setPathaoAreaId(''); setShippingQuote(null); }} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg bg-white focus:outline-none focus:border-indigo-600">
+                  <option value="">Select Pathao city</option>
+                  {pathaoCities.map((city) => <option key={city.city_id} value={String(city.city_id)}>{city.city_name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-slate-700 block mb-1">Pathao zone *</label>
+                <select required value={pathaoZoneId} onChange={(e) => { setPathaoZoneId(e.target.value); setPathaoAreaId(''); setShippingQuote(null); }} disabled={!pathaoCityId || pathaoZones.length === 0} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg bg-white focus:outline-none focus:border-indigo-600 disabled:bg-slate-100">
+                  <option value="">Select Pathao zone</option>
+                  {pathaoZones.map((zone) => <option key={zone.zone_id} value={String(zone.zone_id)}>{zone.zone_name}</option>)}
                 </select>
               </div>
 
