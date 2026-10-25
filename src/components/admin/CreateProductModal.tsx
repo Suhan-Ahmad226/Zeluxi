@@ -920,8 +920,8 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
           </div>
         </div>
 
-        {/* Form Completion Progress Bar */}
-        <div className="w-full bg-white border-b border-slate-200 px-4 sm:px-6 py-2 flex items-center justify-between text-xs text-slate-500">
+        {/* Keep the create flow focused; detailed readiness remains available when editing. */}
+        {productToEdit && <div className="w-full bg-white border-b border-slate-200 px-4 sm:px-6 py-2 flex items-center justify-between text-xs text-slate-500">
           <div className="flex items-center gap-2">
             <span className="font-semibold text-slate-700">Form Readiness:</span>
             <span className={`font-mono font-bold ${completedChecks === formChecks.length ? 'text-emerald-600' : 'text-indigo-600'}`}>
@@ -941,7 +941,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
               style={{ width: `${completionPercentage}%` }}
             />
           </div>
-        </div>
+        </div>}
 
         {/* Tab Navigation & Step Indicators */}
         <div className="px-2 sm:px-4 border-b border-slate-200 bg-white flex items-center gap-1 overflow-x-auto text-sm font-medium scrollbar-none">
@@ -954,7 +954,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
             }`}
           >
             <FileText className="w-4 h-4" />
-            <span>Details & pricing</span>
+            <span>{productToEdit ? "Details & pricing" : "Basics"}</span>
             {(formErrors.name || formErrors.sku || formErrors.price) && (
               <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
             )}
@@ -989,7 +989,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
             <span>Variants</span>
           </button>
 
-          <button
+          {productToEdit && <button
             onClick={() => setActiveTab('specs')}
             className={`py-3 px-3.5 border-b-2 flex items-center gap-2 transition-colors whitespace-nowrap ${
               activeTab === 'specs'
@@ -999,9 +999,9 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
           >
             <Truck className="w-4 h-4" />
             <span>Shipping & specs</span>
-          </button>
+          </button>}
 
-          <button
+          {productToEdit && <button
             onClick={() => setActiveTab('seo')}
             className={`py-3 px-3.5 border-b-2 flex items-center gap-2 transition-colors whitespace-nowrap ${
               activeTab === 'seo'
@@ -1011,7 +1011,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
           >
             <Globe className="w-4 h-4" />
             <span>SEO</span>
-          </button>
+          </button>}
         </div>
 
         {/* Modal Scrollable Body */}
@@ -1023,13 +1023,57 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
               {activeTab === 'general' && (
                 <div className="space-y-5 text-sm">
                   {!productToEdit && (
-                    <ProductAIAssistant
-                      categories={[...new Set(categories.filter((item) => item.isActive !== false).map((item) => item.name))]}
-                      selectedCategory={category}
-                      initialName={name}
-                      onApply={handleApplyAIDraft}
-                    />
+                    <>
+                      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+                        <div className="mb-5 flex items-start gap-3">
+                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600"><Boxes className="h-5 w-5" /></div>
+                          <div>
+                            <h3 className="text-base font-bold text-slate-900">Add a product</h3>
+                            <p className="mt-1 text-sm text-slate-500">Enter the essentials. Zeluxi AI researches the product and prepares the rest.</p>
+                          </div>
+                        </div>
+                        <div className="space-y-4">
+                          <label className="block text-sm font-semibold text-slate-700">
+                            Product name <span className="text-rose-500">*</span>
+                            <input type="text" value={name} onChange={(event) => setName(event.target.value)} maxLength={200} placeholder="e.g. Samsung Galaxy A56 5G" className={`mt-1.5 w-full rounded-xl border px-3.5 py-3 text-base font-medium outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 ${formErrors.name ? 'border-rose-400' : 'border-slate-200'}`} />
+                            {formErrors.name && <span className="mt-1 block text-xs text-rose-600">{formErrors.name}</span>}
+                          </label>
+                          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                            <label className="block text-sm font-semibold text-slate-700">
+                              Selling price (৳) <span className="text-rose-500">*</span>
+                              <input type="number" min="1" value={price} onChange={(event) => setPrice(Number(event.target.value))} className={`mt-1.5 w-full rounded-xl border px-3.5 py-3 text-base font-bold outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 ${formErrors.price ? 'border-rose-400' : 'border-slate-200'}`} />
+                              {formErrors.price && <span className="mt-1 block text-xs text-rose-600">{formErrors.price}</span>}
+                            </label>
+                            <label className="block text-sm font-semibold text-slate-700">
+                              Regular price (৳)
+                              <input type="number" min="0" value={compareAtPrice} onChange={(event) => setCompareAtPrice(Number(event.target.value))} placeholder="Optional" className="mt-1.5 w-full rounded-xl border border-slate-200 px-3.5 py-3 text-base outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10" />
+                              <span className="mt-1 block text-xs font-normal text-slate-500">{compareAtPrice > price ? `Save ৳${(compareAtPrice - price).toLocaleString()} · ${Math.round(((compareAtPrice - price) / compareAtPrice) * 100)}% off` : 'Leave blank if no discount'}</span>
+                            </label>
+                            <label className="block text-sm font-semibold text-slate-700">
+                              Category
+                              <select value={category} onChange={(event) => setCategory(event.target.value)} className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-sm outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10">
+                                {mainCategories.map((item) => <option key={item.id} value={item.name}>{item.name}</option>)}
+                              </select>
+                            </label>
+                          </div>
+                        </div>
+                        <div className="mt-4 flex items-center gap-2 rounded-xl bg-indigo-50/70 px-3.5 py-3 text-xs leading-5 text-indigo-800">
+                          <Sparkles className="h-4 w-4 shrink-0" />
+                          <span>Upload product photos/videos and set variants in the tabs above. AI will generate the description, specifications, tags, SEO and product details. You can regenerate before saving.</span>
+                        </div>
+                      </section>
+                      <ProductAIAssistant
+                        productName={name}
+                        selectedCategory={category}
+                        price={price}
+                        regularPrice={compareAtPrice}
+                        variantDetails={enableVariants ? variants.map((variant) => ({ name: variant.name, attributes: variant.attributes, price: variant.price })) : []}
+                        categories={[...new Set(categories.filter((item) => item.isActive !== false).map((item) => item.name))]}
+                        onApply={handleApplyAIDraft}
+                      />
+                    </>
                   )}
+                  {productToEdit && (
                   <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-6 shadow-sm space-y-5 text-sm">
                   <div>
                     <h3 className="text-sm font-bold text-slate-900">Essential Product Information</h3>
@@ -1400,6 +1444,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
                     </div>
                   </div>
                   </div>
+                  )}
                 </div>
               )}
 
