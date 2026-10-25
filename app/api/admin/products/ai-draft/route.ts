@@ -21,6 +21,8 @@ const requestSchema = z.object({
 
 const draftSchema = z.object({
   name: z.string().trim().min(2).max(200),
+  category: z.string().trim().max(100),
+  brand: z.string().trim().max(120),
   shortDescription: z.string().trim().min(1).max(500),
   description: z.string().trim().min(1).max(5000),
   tags: z.array(z.string().trim().min(1).max(80)).max(15),
@@ -88,13 +90,13 @@ export async function POST(request: NextRequest) {
   const prompt = [
     'You are the product research and ecommerce copy agent for Zeluxi, a Bangladesh single-store ecommerce website.',
     'First use Google Search to research the exact product name and model. Prefer the manufacturer brand website and trustworthy retailers or technical publications. Search in English and Bangla when useful.',
-    'Return only a JSON object matching exactly these keys: name, shortDescription, description, tags, seoTitle, seoDescription, seoKeywords, specifications.',
+    'Return only a JSON object matching exactly these keys: name, category, brand, shortDescription, description, tags, seoTitle, seoDescription, seoKeywords, specifications.',
     'Write polished, specific ecommerce content in ' + input.language + '. Keep the user-provided product name intact unless a clear spelling correction is needed.',
     'Use current web search results for factual product details. Do not copy source wording. Summarize in original wording.',
     'Never guess a model-specific feature, material, dimensions, battery, compatibility, warranty, certification, country of origin, included accessory, or performance claim. Only include facts supported by reliable search results. If the exact product/model cannot be verified, write a cautious generic description based on the name and return no unsupported specifications.',
     'Do not invent reviews, ratings, availability, shipping promises, warranty, stock, price, discount, or claims of official authenticity.',
     'The description should be easy to scan, with short paragraphs and bullet-like lines if appropriate. Keep claims grounded and avoid keyword stuffing.',
-    'SEO title should be concise, SEO description natural and useful, tags 5-12 short relevant terms, specifications should contain only verified factual attributes.',
+    'Choose category only from the supplied store categories; if none fits, use the selected store category. Return brand only when the exact brand is supported by search results, otherwise an empty string. SEO title should be concise, SEO description natural and useful, tags 5-12 short relevant terms, specifications should contain only verified factual attributes.',
     'The store price and discount are provided only as context. Do not include price/discount in the generated description or SEO because the store controls those fields.',
     'Store categories: ' + (input.categories.length ? input.categories.join(', ') : 'not supplied'),
     'Selected store category: ' + (input.category || 'not selected'),
@@ -160,7 +162,12 @@ export async function POST(request: NextRequest) {
       }];
     }).slice(0, 8);
 
-    return NextResponse.json({ draft: { ...parsedDraft.data, sources } }, {
+    const safeDraft = {
+      ...parsedDraft.data,
+      category: input.categories.includes(parsedDraft.data.category) ? parsedDraft.data.category : input.category,
+      sources,
+    };
+    return NextResponse.json({ draft: safeDraft }, {
       headers: { 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' },
     });
   } catch (error) {
