@@ -46,10 +46,6 @@ export const CheckoutModal: React.FC = () => {
   const [pathaoZoneId, setPathaoZoneId] = useState('');
   const [pathaoCities, setPathaoCities] = useState<Array<{ city_id: number; city_name: string }>>([]);
   const [pathaoZones, setPathaoZones] = useState<Array<{ zone_id: number; zone_name: string }>>([]);
-  const [pathaoCityId, setPathaoCityId] = useState('');
-  const [pathaoZoneId, setPathaoZoneId] = useState('');
-  const [pathaoCities, setPathaoCities] = useState<Array<{ city_id: number; city_name: string }>>([]);
-  const [pathaoZones, setPathaoZones] = useState<Array<{ zone_id: number; zone_name: string }>>([]);
   const [pathaoAreaId, setPathaoAreaId] = useState('');
   const [addressDetails, setAddressDetails] = useState('');
   const [notes, setNotes] = useState('');
@@ -82,8 +78,6 @@ export const CheckoutModal: React.FC = () => {
       if (userProfile.division) setDivision(userProfile.division);
       if (userProfile.district) setDistrict(userProfile.district);
       if (userProfile.upazila || (userProfile as any).thanaCity) setUpazila(userProfile.upazila || (userProfile as any).thanaCity || '');
-      if ((userProfile as any).pathaoCityId) setPathaoCityId(String((userProfile as any).pathaoCityId));
-      if ((userProfile as any).pathaoZoneId) setPathaoZoneId(String((userProfile as any).pathaoZoneId));
       if ((userProfile as any).pathaoCityId) setPathaoCityId(String((userProfile as any).pathaoCityId));
       if ((userProfile as any).pathaoZoneId) setPathaoZoneId(String((userProfile as any).pathaoZoneId));
       if ((userProfile as any).pathaoAreaId) setPathaoAreaId(String((userProfile as any).pathaoAreaId));
