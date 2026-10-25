@@ -90,7 +90,9 @@ export async function quotePathaoCheckout(
     cityCache = { expiresAt: now + LOCATION_CACHE_TTL_MS, value: await getPathaoCities() };
   }
   const cities = cityCache.value;
-  const city = input.cityId ? cities.find((entry) => Number(entry.city_id) === input.cityId) : cities.find((entry) => normalizeLocation(entry.city_name) === normalizeLocation(input.district));
+  const city = input.cityId
+    ? cities.find((entry) => Number(entry.city_id) === input.cityId && normalizeLocation(entry.city_name) === normalizeLocation(input.district))
+    : cities.find((entry) => normalizeLocation(entry.city_name) === normalizeLocation(input.district));
   if (!city) {
     throw new PathaoApiError('Pathao does not have an exact city match for this district. Contact support to map this delivery area; no estimated rate was invented.', 422, 'PATHAO_CITY_MAPPING_REQUIRED');
   }
