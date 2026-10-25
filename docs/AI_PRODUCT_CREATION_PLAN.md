@@ -1,28 +1,30 @@
-# AI-assisted Add Product: implementation plan
+# Zeluxi AI-first product creation
 
-## Existing flow reviewed
-- The admin product form lives in `src/components/admin/CreateProductModal.tsx` and supports both modal and full-page presentation.
-- The form is already divided into Details & pricing, Media, Variants, Specs, and SEO sections; it includes live preview, completion progress, draft/publish actions, SKU/slug helpers, category creation, image compression, Cloudinary-backed media persistence, and variant handling.
-- Product persistence continues through the existing `syncProduct` / product API flow. This feature should not bypass that flow or change the product schema.
-- `app/api/products/route.ts` delegates to the existing validated `api/products.ts` handler. AI output must only prefill editable form fields and must never write a product directly.
-- Admin API patterns use a Supabase access token and verify `app_metadata.role === 'ADMIN'`. Cloudinary uploads already use a server-signed flow and should remain unchanged.
+## Product entry experience
+- Use the existing Add Product page and the same admin layout, typography, spacing, colors, and responsive behavior as the rest of Zeluxi Admin.
+- Keep the first pass intentionally small: product name, selling price, regular/discount price, category, photos/video, and optional variants.
+- Show one primary AI action after the essentials. Avoid asking the admin to manually fill long descriptions, product specifications, tags, or SEO fields.
+- Render the existing image/video upload and variant controls in the same creation workspace; keep variant setup optional.
+- On AI generation, apply generated product copy directly to the form and show a preview plus the sources used. Regenerate replaces the generated copy and metadata without saving or publishing the product.
+- Keep final save/publish as an explicit admin action. Never fabricate price, discount, stock, warranty, origin, compatibility, materials, measurements, reviews, or delivery promises.
 
-## UX plan
-1. Keep the existing product fields and save behavior intact.
-2. Add a collapsible AI Product Assistant near the top of the Details & pricing tab.
-3. Ask for a product name, existing category, verified product facts, and output language.
-4. Generate a structured draft for title, short/long description, tags, SEO metadata, and only explicitly supported specifications.
-5. Show a review preview, then let the admin apply it to the form. Never auto-publish and never invent price, stock, warranty, materials, dimensions, or product claims.
-6. Keep image/video upload, Cloudinary persistence, variants, pricing, tax, shipping, SKU, and final save actions on the existing path.
-7. Make the panel responsive, keyboard-friendly, and explicit about AI review.
+## AI research and content
+- Research the exact name/model using Google Search grounding. Prefer manufacturer documentation and reliable retailers or technical publications; use English and Bangla search context when useful.
+- Generate short and long descriptions, only evidence-supported specifications, product tags, SEO title, SEO description, and SEO keywords in Bangla + English.
+- Display available source titles and URLs so the admin can check the claims before publishing.
+- If the exact model cannot be verified, use cautious generic copy and omit unsupported specifications. Do not copy source text verbatim or keyword-stuff.
+- AI is allowed to replace generated text and metadata on regeneration; it does not overwrite price, discount, photos, video, variants, stock, or save state in the database.
 
-## API and security plan
-- Add `POST /api/admin/products/ai-draft`, protected by a valid Supabase session and trusted admin app metadata.
-- Keep `GEMINI_API_KEY` server-only. Validate and bound request/response data with Zod, use structured JSON mode, avoid logging prompts or secrets, set no-store headers, and fail clearly when configuration/quota is missing.
-- AI output is untrusted text and is validated before it reaches the UI. The existing product API remains responsible for final product validation and persistence.
+## Existing integration and data safety
+- Preserve the existing syncProduct / product API save flow, Cloudinary upload and replacement logic, category mapping, SKU/slug generation, variant handling, and edit-product workflow.
+- AI only pre-fills editable state. It does not write directly to Supabase and does not auto-publish.
+- Do not seed new products with fake example specifications, warranty, origin, brand, or marketing tags.
+- Keep GEMINI_API_KEY server-only and validate requests/responses with Zod.
+- Verify the signed-in user via Supabase Auth, then check the authoritative profiles.role === ADMIN using the server-only service role key.
+- Set no-store headers, bound input/output sizes, handle provider failures clearly, and do not log secrets or complete user prompts.
 
-## Validation plan
-- Run TypeScript typecheck, unit tests, and production build in GitHub Actions.
-- Review the preview for mobile/desktop layout and verify apply-to-form behavior.
-- Test missing API key, non-admin/expired sessions, provider errors, and generated output validation.
-- Confirm product save/edit, image upload/replacement, variants, draft/publish, and storefront rendering remain unchanged.
+## Release checks
+- GitHub Actions lint/typecheck, unit tests, and production build must pass.
+- Check Add Product on phone and desktop, including AI generation/regeneration, source links, image/video upload, optional variants, save/publish, and edit-product regression.
+- Verify missing Gemini key, expired session, non-admin profile, provider quota/error, and malformed AI output.
+- Confirm the Vercel preview has GEMINI_API_KEY configured before end-to-end AI testing.
