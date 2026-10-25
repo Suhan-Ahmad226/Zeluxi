@@ -11,6 +11,8 @@ export interface AIProductSource {
 
 export interface AIProductDraft {
   name: string;
+  category: string;
+  brand: string;
   shortDescription: string;
   description: string;
   tags: string[];
@@ -119,6 +121,7 @@ export const ProductAIAssistant: React.FC<ProductAIAssistantProps> = ({
           </div>
           <div className="space-y-2">
             <h4 className="text-sm font-bold text-slate-900">{draft.name}</h4>
+            <div className="flex flex-wrap gap-1.5"><span className="rounded-full bg-indigo-50 px-2 py-1 text-[11px] font-medium text-indigo-700">{draft.category || 'Category not verified'}</span>{draft.brand && <span className="rounded-full bg-slate-100 px-2 py-1 text-[11px] font-medium text-slate-600">{draft.brand}</span>}</div>
             <p className="text-sm leading-6 text-slate-600">{draft.shortDescription}</p>
             <p className="whitespace-pre-line text-sm leading-6 text-slate-700">{draft.description}</p>
           </div>
