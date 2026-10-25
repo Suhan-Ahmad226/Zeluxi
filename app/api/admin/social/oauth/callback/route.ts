@@ -77,21 +77,73 @@ export async function GET(request: NextRequest) {
       console.error('[social-meta-oauth] page_listing_failed', { httpStatus: pagesResponse.status, message: pagesPayload.error?.message ?? null, type: pagesPayload.error?.type ?? null, code: pagesPayload.error?.code ?? null, subcode: pagesPayload.error?.error_subcode ?? null, fbtraceId: pagesPayload.error?.fbtrace_id ?? null });
       return finish(request, 'error', 'Facebook OAuth failed at Page listing. Check Vercel runtime logs for the Meta error details.');
     }
+    const pages = pagesPayload.data;
+    if (pages.length === 0) {
+      console.warn('[social-meta-oauth] no_pages_returned', {
+        httpStatus: pagesResponse.status,
+        hint: 'Meta returned an empty data array; verify the authorizing Facebook user has Page access and the requested permissions are granted.',
+      });
+      return finish(request, 'error', 'Facebook returned no Pages for this account. Make sure you have Facebook Page access, grant pages_show_list and pages_manage_posts permissions, then reconnect.');
+    }
+
+    // Fail fast with a specific server-side diagnostic if encryption is misconfigured.
+    // Do not log key material, access tokens, or Page credentials.
+    try {
+      encryptSocialToken('encryption-key-health-check');
+    } catch (encryptionError) {
+      console.error('[social-meta-oauth] token_encryption_configuration_failed', {
+        message: encryptionError instanceof Error ? encryptionError.message : 'Unknown encryption configuration error',
+      });
+      return finish(request, 'error', 'Facebook Pages were found, but secure token encryption is not configured correctly. Set SOCIAL_TOKEN_ENCRYPTION_KEY in Vercel Production and redeploy.');
+    }
+
     let saved = 0;
-    for (const page of pagesPayload.data) {
+    let eligible = 0;
+    let failed = 0;
+    for (const page of pages) {
       if (!page.id || !page.name || !page.access_token) continue;
       // Only persist Pages for which the authorizing user can create content.
       if (Array.isArray(page.tasks) && page.tasks.length > 0 && !page.tasks.some((task) => ['CREATE_CONTENT', 'MANAGE'].includes(task))) continue;
+      eligible++;
       const { error } = await admin.from('social_accounts').upsert({
         provider: 'FACEBOOK_PAGE', provider_account_id: page.id, account_name: page.name,
         access_token_ciphertext: encryptSocialToken(page.access_token), token_expires_at: null,
         status: 'CONNECTED', metadata: { tasks: page.tasks || [] }, updated_at: new Date().toISOString(),
       }, { onConflict: 'provider,provider_account_id' });
-      if (!error) saved++;
+      if (error) {
+        failed++;
+        console.error('[social-meta-oauth] page_save_failed', {
+          databaseCode: error.code ?? null,
+          databaseMessage: error.message ?? null,
+          databaseDetails: error.details ?? null,
+          databaseHint: error.hint ?? null,
+        });
+      } else {
+        saved++;
+      }
     }
-    if (!saved) return finish(request, 'error', 'No Facebook Pages could be saved. Apply the social migration and check server encryption settings.');
+
+    if (!saved && eligible === 0) {
+      console.warn('[social-meta-oauth] no_publishable_pages', {
+        pagesReturned: pages.length,
+        pagesSkipped: pages.length,
+        reason: 'No returned Page had a usable token and/or CREATE_CONTENT or MANAGE task.',
+      });
+      return finish(request, 'error', 'Facebook returned Pages, but none has the required publishing access. Give your Facebook account Page task access to create content or manage the Page, then reconnect.');
+    }
+    if (!saved) {
+      console.error('[social-meta-oauth] all_page_saves_failed', { pagesReturned: pages.length, eligiblePages: eligible, failedSaves: failed });
+      return finish(request, 'error', 'Facebook Pages were found, but the database could not save them. Check the Vercel log event social-meta-oauth page_save_failed and confirm the latest social database migration is applied.');
+    }
+    if (failed > 0) {
+      console.warn('[social-meta-oauth] partial_page_save', { pagesReturned: pages.length, savedPages: saved, failedSaves: failed });
+    }
     return finish(request, 'success', `${saved} Facebook Page(s) connected. Return to Social Studio to choose a Page.`);
-  } catch {
-    return finish(request, 'error', 'Facebook connection failed due to a server or network error.');
+  } catch (error) {
+    console.error('[social-meta-oauth] callback_unhandled_error', {
+      name: error instanceof Error ? error.name : 'UnknownError',
+      message: error instanceof Error ? error.message : 'Unknown server or network error',
+    });
+    return finish(request, 'error', 'Facebook connection failed due to a server error. Check Vercel logs for social-meta-oauth callback_unhandled_error.');
   }
 }
