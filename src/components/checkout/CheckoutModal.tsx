@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useStore } from '../../context/StoreContext';
 import { useAuth } from '../../context/AuthContext';
+import { supabase } from '../../lib/supabase';
 import { verifyCustomerOrderEligibility } from '../../lib/auth/verifyCustomer';
 import { formatPrice } from '../../utils/formatters';
 import {
@@ -88,7 +89,7 @@ export const CheckoutModal: React.FC = () => {
       setIsQuoteLoading(true);
       setShippingQuoteError(null);
       try {
-        const { data: sessionData, error: sessionError } = await (await import('../../lib/supabase')).supabase.auth.getSession();
+        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
         const token = sessionData.session?.access_token;
         if (sessionError || !token) throw new Error('Sign in again to calculate Pathao delivery.');
         const response = await fetch('/api/shipping/quote', {
