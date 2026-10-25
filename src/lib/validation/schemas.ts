@@ -26,8 +26,15 @@ export const shippingAddressSchema = z.object({
   upazila: z.string().trim().min(1, 'Upazila / Thana is required').max(100),
   addressDetails: z.string().min(5, 'Detailed delivery address is required'),
   postalCode: z.string().optional(),
+  pathaoCityId: z.number().int().positive().optional(),
+  pathaoCityName: z.string().trim().max(100).optional(),
+  pathaoZoneId: z.number().int().positive().optional(),
+  pathaoZoneName: z.string().trim().max(100).optional(),
   notes: z.string().max(300, 'Notes cannot exceed 300 characters').optional(),
 }).superRefine((address, ctx) => {
+  if ((address.pathaoCityId && !address.pathaoZoneId) || (!address.pathaoCityId && address.pathaoZoneId)) {
+    ctx.addIssue({ code: 'custom', path: ['upazila'], message: 'A valid Pathao city and zone quote is required.' });
+  }
   if (!isValidAddressSelection(address.division, address.district, address.upazila)) {
     ctx.addIssue({ code: 'custom', path: ['upazila'], message: 'Select a district and upazila / thana that belong to the selected division.' });
   }
