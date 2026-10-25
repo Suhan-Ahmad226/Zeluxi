@@ -147,10 +147,10 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
   const [tagsInput, setTagsInput] = useState('handcrafted, leather, luxury, atelier');
 
   // 3. Pricing, Inventory & Tax
-  const [price, setPrice] = useState<number>(3450);
-  const [compareAtPrice, setCompareAtPrice] = useState<number>(4200);
+  const [price, setPrice] = useState<number>(0);
+  const [compareAtPrice, setCompareAtPrice] = useState<number>(0);
   const [costPrice, setCostPrice] = useState<number>(1800);
-  const [stock, setStock] = useState<number>(25);
+  const [stock, setStock] = useState<number>(0);
   const [lowStockThreshold, setLowStockThreshold] = useState<number>(5);
   const [taxClass, setTaxClass] = useState<'standard' | 'exempt' | 'luxury'>('standard');
   const [taxRate, setTaxRate] = useState<number>(5); // 5% default standard VAT
@@ -880,7 +880,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
                   {productToEdit ? `Edit Product: ${productToEdit.name}` : 'Create product'}
                 </h2>
                 <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-slate-100 text-slate-600">
-                  Zelux Studio Admin
+                  Zeluxi Product Studio
                 </span>
                 {hasUnsavedChanges && (
                   <span className="text-[10px] font-medium text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200 flex items-center gap-1.5">
@@ -890,7 +890,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
                 )}
               </div>
               <p className="text-xs text-slate-500 truncate mt-0.5 hidden sm:block hidden sm:block">
-                Bilingual descriptions, local photo compression, category taxonomy, profit margin architecture, and live storefront view.
+                Add the essentials, then let AI research and prepare the product content.
               </p>
             </div>
           </div>
@@ -1029,7 +1029,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
                           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600"><Boxes className="h-5 w-5" /></div>
                           <div>
                             <h3 className="text-base font-bold text-slate-900">Add a product</h3>
-                            <p className="mt-1 text-sm text-slate-500">Enter the essentials. Zeluxi AI researches the product and prepares the rest.</p>
+                            <p className="mt-1 text-sm text-slate-500">Add the basics once. Zeluxi AI handles the product copy, details and SEO.</p>
                           </div>
                         </div>
                         <div className="space-y-4">
@@ -1059,7 +1059,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
                         </div>
                         <div className="mt-4 flex items-center gap-2 rounded-xl bg-indigo-50/70 px-3.5 py-3 text-xs leading-5 text-indigo-800">
                           <Sparkles className="h-4 w-4 shrink-0" />
-                          <span>Upload product photos/videos and set variants in the tabs above. AI will generate the description, specifications, tags, SEO and product details. You can regenerate before saving.</span>
+                          <span>Add photos or a video below, then generate the description, specifications, tags and SEO. Regenerate whenever you want.</span>
                         </div>
                       </section>
 
@@ -1440,6 +1440,18 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
                 </div>
               )}
 
+              {!productToEdit && (
+                <ProductAIAssistant
+                  productName={name}
+                  selectedCategory={category}
+                  price={price}
+                  regularPrice={compareAtPrice}
+                  variantDetails={enableVariants ? variants.map((variant) => ({ name: variant.name, attributes: variant.attributes, price: variant.price })) : []}
+                  categories={[...new Set(categories.filter((item) => item.isActive !== false).map((item) => item.name))]}
+                  onApply={handleApplyAIDraft}
+                />
+              )}
+
               {/* TAB 2: MEDIA UPLOADS */}
               {(activeTab === 'media' || !productToEdit) && (
                 <div className="space-y-6 text-xs">
@@ -1449,10 +1461,10 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
                       <div>
                         <h3 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
                           <ImageIcon className="w-4 h-4 text-indigo-600" />
-                          <span>Local Device Product Photography Gallery</span>
+                          <span>Product photos</span>
                         </h3>
                         <p className="text-slate-500 text-[11px]">
-                          Select or drag-and-drop JPG, PNG, WEBP, or AVIF files directly from your computer or phone
+                          Add clear product photos. Images are optimized automatically.
                         </p>
                       </div>
                       <span className="text-[11px] font-mono text-indigo-600 font-semibold bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-100">
@@ -1738,10 +1750,10 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
                     <div>
                       <h3 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
                         <Layers className="w-4 h-4 text-indigo-600" />
-                        <span>Product Variants & SKU Matrix</span>
+                        <span>Variants (optional)</span>
                       </h3>
                       <p className="text-slate-500 text-[11px]">
-                        Configure options such as Size, Color, or Finish with specific prices, inventory, barcodes, and image assignments
+                        Add options such as Size or Color only when the product needs them.
                       </p>
                     </div>
 
@@ -1910,18 +1922,6 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
                     </div>
                   )}
                 </div>
-              )}
-
-              {!productToEdit && (
-                <ProductAIAssistant
-                  productName={name}
-                  selectedCategory={category}
-                  price={price}
-                  regularPrice={compareAtPrice}
-                  variantDetails={enableVariants ? variants.map((variant) => ({ name: variant.name, attributes: variant.attributes, price: variant.price })) : []}
-                  categories={[...new Set(categories.filter((item) => item.isActive !== false).map((item) => item.name))]}
-                  onApply={handleApplyAIDraft}
-                />
               )}
 
               {/* TAB 4: SHIPPING, TAX & SPECS */}
