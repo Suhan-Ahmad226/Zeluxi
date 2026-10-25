@@ -37,3 +37,12 @@
 - The fallback uses the same Gemini API project, so it cannot bypass an exhausted project-wide quota. If both model quotas are exhausted, wait for reset; do not silently switch to a paid API.
 - Admin must review all generated claims and specifications before saving or publishing. AI generation never saves/publishes automatically.
 - Keep provider attempts bounded to one primary call and at most one fallback call per user action.
+
+
+## Manual entry and low-friction product creation
+- New product creation starts in Manual Entry mode, so AI quota is never a blocker for catalog work.
+- Offer two explicit modes: Manual Entry (always available, no API call) and AI Assistant (uses the available Gemini quota). Switching modes must not clear already-entered form values.
+- In AI mode, place the assistant near the top of the form; generated copy remains editable in the existing fields. Manual mode uses the same fields and save flow without invoking AI.
+- Keep the quick path focused on product name, selling price, category, primary image, stock, and short/long description. Make regular price, brand, tags, specifications, variants, shipping details, warranty/return policy, and SEO available in the existing sections.
+- Generate slug and SKU automatically but allow editing. Never invent a cost price, barcode, warranty, origin, specs, or shipping claims; keep optional fields optional.
+- Validate only truly required values before save, show errors beside the relevant field, and keep Draft / Publish actions explicit.
