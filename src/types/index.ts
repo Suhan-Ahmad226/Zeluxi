@@ -208,6 +208,10 @@ export interface Order {
   subtotal: number;
   shippingFee: number;
   discount: number;
+  /** COD fee charged to the customer, when applicable. */
+  codFee?: number;
+  /** Actual Pathao rate before any store-funded free-shipping promotion. */
+  pathaoDeliveryFee?: number;
   grandTotal: number;
   couponCode?: string;
   status: OrderStatus;
