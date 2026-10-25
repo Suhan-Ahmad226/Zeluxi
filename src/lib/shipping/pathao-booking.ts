@@ -56,7 +56,7 @@ export async function bookPathaoOrderFromDatabase(
   }
   const fallbackWeightRaw = process.env.PATHAO_DEFAULT_ITEM_WEIGHT_KG;
   const configuredFallbackWeight = fallbackWeightRaw ? Number(fallbackWeightRaw) : null;
-  if (fallbackWeightRaw && (!Number.isFinite(configuredFallbackWeight) || Number(configuredFallbackWeight) <= 0 || Number(configuredFallbackWeight) > 10)) {
+  if (fallbackWeightRaw && (!Number.isFinite(Number(configuredFallbackWeight)) || Number(configuredFallbackWeight) <= 0 || Number(configuredFallbackWeight) > 10)) {
     throw new PathaoBookingError('PATHAO_DEFAULT_ITEM_WEIGHT_KG must be greater than 0 and at most 10 kg.', 503, 'CONFIG_INVALID');
   }
   const calculatedWeight = itemRows.reduce((sum, item) => {
