@@ -1,0 +1,80 @@
+name: Apply Zeluxi Social Studio Supabase migrations
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/apply-social-studio-migrations.yml
+      - supabase/migrations/20261023000000_social_product_boost.sql
+      - supabase/migrations/20261024160000_social_oauth_one_time_state.sql
+
+permissions:
+  contents: read
+
+concurrency:
+  group: zeluxi-social-studio-supabase-migration
+  cancel-in-progress: false
+
+jobs:
+  apply-migrations:
+    name: Apply and verify Social Studio migrations
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Verify required secret
+        shell: bash
+        run: |
+          if [[ -z "${SUPABASE_DB_URL}" ]]; then
+            echo "::error::Missing repository secret SUPABASE_DB_URL. Add the Supabase Postgres connection string in Settings > Secrets and variables > Actions, then rerun this workflow."
+            exit 1
+          fi
+          if [[ "${SUPABASE_DB_URL}" != postgres://* && "${SUPABASE_DB_URL}" != postgresql://* ]]; then
+            echo "::error::SUPABASE_DB_URL must be a postgres:// or postgresql:// connection string."
+            exit 1
+          fi
+
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes postgresql-client
+
+      - name: Normalize PostgreSQL connection URL
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import os
+          from urllib.parse import urlsplit, urlunsplit, parse_qsl, urlencode
+
+          raw = os.environ["SUPABASE_DB_URL"]
+          parts = urlsplit(raw)
+          query = [(key, value) for key, value in parse_qsl(parts.query, keep_blank_values=True)
+                   if key.lower() != "pgbouncer"]
+          normalized = urlunsplit((parts.scheme, parts.netloc, parts.path, urlencode(query), parts.fragment))
+          with open(os.environ["GITHUB_ENV"], "a", encoding="utf-8") as env_file:
+              env_file.write("PSQL_DATABASE_URL=" + normalized + "\n")
+          PY
+
+      - name: Verify database connection
+        run: psql "${PSQL_DATABASE_URL}" -v ON_ERROR_STOP=1 -X -c "select current_database() as database, current_user as role;"
+
+      - name: Apply Social Studio schema migration
+        run: psql "${PSQL_DATABASE_URL}" -v ON_ERROR_STOP=1 -X --file supabase/migrations/20261023000000_social_product_boost.sql
+
+      - name: Apply one-time OAuth state migration
+        run: psql "${PSQL_DATABASE_URL}" -v ON_ERROR_STOP=1 -X --file supabase/migrations/20261024160000_social_oauth_one_time_state.sql
+
+      - name: Verify Social Studio tables and RPC
+        shell: bash
+        run: |
+          psql "${PSQL_DATABASE_URL}" -v ON_ERROR_STOP=1 -X -c "select to_regclass('public.social_accounts') as social_accounts, to_regclass('public.social_promotions') as social_promotions, to_regclass('public.social_posts') as social_posts, to_regclass('public.social_publish_attempts') as social_publish_attempts, to_regclass('public.social_audit_logs') as social_audit_logs, to_regclass('public.social_oauth_states') as social_oauth_states;"
+          psql "${PSQL_DATABASE_URL}" -v ON_ERROR_STOP=1 -X -c "select to_regprocedure('public.claim_social_oauth_state(text)') as claim_social_oauth_state;"
+          psql "${PSQL_DATABASE_URL}" -v ON_ERROR_STOP=1 -X -c "select grantee, privilege_type from information_schema.role_table_grants where table_schema = 'public' and table_name in ('social_accounts','social_promotions','social_posts','social_publish_attempts','social_audit_logs','social_oauth_states') and grantee in ('anon','authenticated','service_role') order by table_name, grantee, privilege_type;"
