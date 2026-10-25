@@ -107,7 +107,9 @@ export async function POST(request: NextRequest) {
   ].join(String.fromCharCode(10));
 
   try {
-    const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent', {
+    const fallbackModel = process.env.GEMINI_FALLBACK_MODEL || 'gemini-3.5-flash-lite';
+    let usedFallback = false;
+    let response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -116,15 +118,51 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify({
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
         tools: [{ google_search: {} }],
-        // Google Search grounding on the GenerateContent API cannot be combined with
-        // responseMimeType: application/json. Ask for JSON in the prompt and validate it below.
+        // Google Search grounding cannot be combined with responseMimeType: application/json.
         generationConfig: { temperature: 0.4, maxOutputTokens: 3000 },
       }),
       cache: 'no-store',
       signal: AbortSignal.timeout(45000),
     });
 
-    const payload = await response.json().catch(() => null);
+    let payload = await response.json().catch(() => null);
+
+    // Zero-budget fallback: use a lower-cost/free-tier text model without Search grounding.
+    // This may still be rate-limited, but it can recover when only the primary model/tool quota is exhausted.
+    if (!response.ok && (response.status === 429 || response.status >= 500) && fallbackModel !== 'gemini-3.8-flash') {
+      console.warn('AI product research primary provider unavailable; trying text-only fallback model.');
+      const fallbackPrompt = [
+        prompt,
+        'IMPORTANT FALLBACK MODE: Live web search is unavailable. Do not claim that you searched the web.',
+        'Do not assert model-specific technical facts unless they are strongly known; when uncertain, omit specifications and use cautious generic copy.',
+        'Return the same JSON schema. This draft will be labelled as not web-verified and must be checked by the admin before publishing.',
+      ].join(String.fromCharCode(10));
+      const fallbackResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(fallbackModel)}:generateContent`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-goog-api-key': apiKey,
+        },
+        body: JSON.stringify({
+          contents: [{ role: 'user', parts: [{ text: fallbackPrompt }] }],
+          generationConfig: { temperature: 0.3, maxOutputTokens: 2500 },
+        }),
+        cache: 'no-store',
+        signal: AbortSignal.timeout(30000),
+      });
+      const fallbackPayload = await fallbackResponse.json().catch(() => null);
+      if (fallbackResponse.ok) {
+        response = fallbackResponse;
+        payload = fallbackPayload;
+        usedFallback = true;
+      } else {
+        console.warn('AI product research fallback model also failed:', fallbackResponse.status);
+        response = fallbackResponse;
+        payload = fallbackPayload;
+        usedFallback = true;
+      }
+    }
+
     if (!response.ok) {
       const providerMessage = typeof payload?.error?.message === 'string' ? payload.error.message : '';
       console.error('AI product research provider error:', response.status, providerMessage.slice(0, 300));
@@ -138,7 +176,9 @@ export async function POST(request: NextRequest) {
         return errorResponse('The configured Gemini model is not available for this API key. Check model access and retry.', 502);
       }
       if (response.status === 429) {
-        return errorResponse('Gemini quota or rate limit reached. Check AI Studio billing/quota, wait, then retry.', 429);
+        return errorResponse(usedFallback
+          ? 'Free Gemini quota is exhausted for both the research and fallback models. Wait for the quota window to reset, then retry. No paid API is used.'
+          : 'Gemini quota or rate limit reached. Trying the free text-only fallback was not possible. Check AI Studio quota and retry later.', 429);
       }
       return errorResponse('Gemini could not complete product research. Check server logs for the provider error, then retry.', 502);
     }
@@ -168,7 +208,7 @@ export async function POST(request: NextRequest) {
       return errorResponse('AI returned incomplete product copy. Please regenerate.', 502);
     }
 
-    const chunks = Array.isArray(candidate?.groundingMetadata?.groundingChunks)
+    const chunks = !usedFallback && Array.isArray(candidate?.groundingMetadata?.groundingChunks)
       ? candidate.groundingMetadata.groundingChunks
       : [];
     const seen = new Set<string>();
@@ -188,6 +228,7 @@ export async function POST(request: NextRequest) {
       ...parsedDraft.data,
       category: input.categories.includes(parsedDraft.data.category) ? parsedDraft.data.category : input.category,
       sources,
+      researchMode: usedFallback ? 'text-only-fallback' : 'web-grounded',
     };
     return NextResponse.json({ draft: safeDraft }, {
       headers: { 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' },
