@@ -1037,10 +1037,20 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
                             </label>
                           </div>
                         </div>
-                        <div className="mt-4 flex items-center gap-2 rounded-xl bg-indigo-50/70 px-3.5 py-3 text-xs leading-5 text-indigo-800">
-                          <Sparkles className="h-4 w-4 shrink-0" />
-                          <span>Add photos or a video below, then generate the description, specifications, tags and SEO. Regenerate whenever you want.</span>
-                        </div>
+                        <section className="mt-5 space-y-4 rounded-xl border border-indigo-100 bg-indigo-50/40 p-4 sm:p-5">
+                          <div>
+                            <h3 className="font-bold text-slate-900">Product Description · Manual Entry</h3>
+                            <p className="mt-1 text-xs leading-5 text-slate-600">AI নেই। নিজের ভাষায় পণ্যের সংক্ষিপ্ত ও বিস্তারিত বিবরণ লিখুন। সংরক্ষণের সময় এই লেখাই ব্যবহার হবে।</p>
+                          </div>
+                          <div>
+                            <label className="font-semibold text-slate-700 block mb-1">Short Description / সংক্ষিপ্ত বিবরণ</label>
+                            <textarea rows={3} value={shortDesc} onChange={(event) => setShortDesc(event.target.value)} placeholder="১-২ বাক্যে পণ্যের প্রধান সুবিধা ও বৈশিষ্ট্য লিখুন..." className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 focus:border-indigo-600 focus:outline-none" />
+                          </div>
+                          <div>
+                            <label className="font-semibold text-slate-700 block mb-1">Full Product Description / বিস্তারিত বিবরণ</label>
+                            <textarea rows={8} value={description} onChange={(event) => setDescription(event.target.value)} placeholder="নিজে পণ্যের বিস্তারিত লিখুন: উপাদান, সাইজ, ব্যবহার, সুবিধা, যত্ন নেওয়ার নিয়ম এবং প্যাকেজে কী থাকবে। নিশ্চিত নন এমন তথ্য লিখবেন না..." className="w-full rounded-xl border border-slate-200 bg-white px-3 py-3 focus:border-indigo-600 focus:outline-none" />
+                          </div>
+                        </section>
                       </section>
 
                     </>
@@ -1418,7 +1428,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
                         className="w-full px-3 py-2 border border-slate-300 rounded-lg"
                       />
                     </div>
-                  </div>
+                  </section>
                   </div>
                   )}
                 </div>
