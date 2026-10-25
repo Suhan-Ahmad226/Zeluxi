@@ -1608,7 +1608,7 @@ export const AdminDashboard: React.FC = () => {
                       </td>
                       <td className="p-3 text-center space-x-1 whitespace-nowrap">
                         {/* Requirement: When order is placed, admin clicks Accept Order to book courier */}
-                        {(ord.status === 'PENDING' || ord.status === 'CONFIRMED') && !['BOOKED', 'BOOKING_IN_PROGRESS', 'BOOKING_FAILED', 'BOOKING_UNKNOWN'].includes(ord.courier.bookingStatus || 'NOT_BOOKED') && (
+                        {(ord.status === 'PENDING' || ord.status === 'CONFIRMED') && !['BOOKED', 'BOOKING_IN_PROGRESS', 'BOOKING_UNKNOWN'].includes(ord.courier.bookingStatus || 'NOT_BOOKED') && (
                           <button
                             onClick={() => handleAdminAcceptOrder(ord.id)}
                             disabled={processingOrderId === ord.id}
@@ -2285,7 +2285,7 @@ export const AdminDashboard: React.FC = () => {
 
                   <div className="flex items-center gap-2">
                     {/* Accept Order Action */}
-                    {(selectedAdminOrder.status === 'PENDING' || selectedAdminOrder.courier.bookingStatus !== 'BOOKED') && (
+                    {['PENDING', 'CONFIRMED'].includes(selectedAdminOrder.status) && !['BOOKED', 'BOOKING_IN_PROGRESS', 'BOOKING_FAILED', 'BOOKING_UNKNOWN'].includes(selectedAdminOrder.courier.bookingStatus || 'NOT_BOOKED') && (
                       <button
                         onClick={async () => {
                           await handleAdminAcceptOrder(selectedAdminOrder.id);
@@ -2406,7 +2406,27 @@ export const AdminDashboard: React.FC = () => {
                 </div>
               </div>
 
-              <div className="flex justify-end gap-2 pt-2 border-t">
+              <div className="flex flex-wrap justify-end gap-2 pt-2 border-t">
+                {['PENDING', 'CONFIRMED', 'PROCESSING'].includes(selectedAdminOrder.status) && !['BOOKED', 'BOOKING_IN_PROGRESS', 'BOOKING_UNKNOWN'].includes(selectedAdminOrder.courier.bookingStatus || 'NOT_BOOKED') && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const orderLabel = selectedAdminOrder.orderNumber || selectedAdminOrder.id;
+                      const paymentWarning = selectedAdminOrder.paymentStatus === 'PAID'
+                        ? '\\n\\nThis order is marked PAID. Cancellation will not automatically refund the payment.'
+                        : '';
+                      if (window.confirm(`Cancel order #${orderLabel}? Inventory will be restored if cancellation succeeds.${paymentWarning}`)) {
+                        updateOrderStatus(selectedAdminOrder.id, 'CANCELLED', 'Cancelled by administrator');
+                        setSelectedAdminOrder(null);
+                      }
+                    }}
+                    disabled={processingOrderId === selectedAdminOrder.id}
+                    className="px-3.5 py-1.5 bg-rose-50 text-rose-700 border border-rose-200 text-xs font-semibold rounded-lg hover:bg-rose-100 disabled:opacity-50"
+                    title="Cancel eligible order after server-side courier checks"
+                  >
+                    Cancel Order
+                  </button>
+                )}
                 {selectedAdminOrder.paymentStatus === 'PAID' && (
                   <button
                     type="button"
