@@ -127,13 +127,20 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
     };
   }, [video?.url]);
 
+  useEffect(() => {
+    if (productToEdit || categories.length === 0) return;
+    const activeMainCategory = categories.find((item) => !item.parentId && item.isActive !== false);
+    const categoryExists = categories.some((item) => item.name === category || item.id === category);
+    if (activeMainCategory && !categoryExists) setCategory(activeMainCategory.name);
+  }, [categories, category, productToEdit]);
+
   // 2. Essential Product Information
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
   const [isSlugManuallyEdited, setIsSlugManuallyEdited] = useState(false);
   const [sku, setSku] = useState('');
   const [barcode, setBarcode] = useState('');
-  const [category, setCategory] = useState('Full-Grain Leather');
+  const [category, setCategory] = useState('');
   const [subcategory, setSubcategory] = useState('Weekender & Travel Bags');
   const [brand, setBrand] = useState('');
   const [productType, setProductType] = useState<'physical' | 'digital' | 'service'>('physical');
@@ -1035,22 +1042,16 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
                             <input type="text" value={name} onChange={(event) => setName(event.target.value)} maxLength={200} placeholder="e.g. Samsung Galaxy A56 5G" className={`mt-1.5 w-full rounded-xl border px-3.5 py-3 text-base font-medium outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 ${formErrors.name ? 'border-rose-400' : 'border-slate-200'}`} />
                             {formErrors.name && <span className="mt-1 block text-xs text-rose-600">{formErrors.name}</span>}
                           </label>
-                          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                             <label className="block text-sm font-semibold text-slate-700">
                               Selling price (৳) <span className="text-rose-500">*</span>
-                              <input type="number" min="1" value={price} onChange={(event) => setPrice(Number(event.target.value))} className={`mt-1.5 w-full rounded-xl border px-3.5 py-3 text-base font-bold outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 ${formErrors.price ? 'border-rose-400' : 'border-slate-200'}`} />
+                              <input type="number" min="1" value={price || ''} onChange={(event) => setPrice(Number(event.target.value))} placeholder="0.00" className={`mt-1.5 w-full rounded-xl border px-3.5 py-3 text-base font-bold outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 ${formErrors.price ? 'border-rose-400' : 'border-slate-200'}`} />
                               {formErrors.price && <span className="mt-1 block text-xs text-rose-600">{formErrors.price}</span>}
                             </label>
                             <label className="block text-sm font-semibold text-slate-700">
                               Regular price (৳)
-                              <input type="number" min="0" value={compareAtPrice} onChange={(event) => setCompareAtPrice(Number(event.target.value))} placeholder="Optional" className="mt-1.5 w-full rounded-xl border border-slate-200 px-3.5 py-3 text-base outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10" />
+                              <input type="number" min="0" value={compareAtPrice || ''} onChange={(event) => setCompareAtPrice(Number(event.target.value))} placeholder="Optional" className="mt-1.5 w-full rounded-xl border border-slate-200 px-3.5 py-3 text-base outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10" />
                               <span className="mt-1 block text-xs font-normal text-slate-500">{compareAtPrice > price ? `Save ৳${(compareAtPrice - price).toLocaleString()} · ${Math.round(((compareAtPrice - price) / compareAtPrice) * 100)}% off` : 'Leave blank if no discount'}</span>
-                            </label>
-                            <label className="block text-sm font-semibold text-slate-700">
-                              Category
-                              <select value={category} onChange={(event) => setCategory(event.target.value)} className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-sm outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10">
-                                {mainCategories.map((item) => <option key={item.id} value={item.name}>{item.name}</option>)}
-                              </select>
                             </label>
                           </div>
                         </div>
@@ -1440,7 +1441,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
               {!productToEdit && (
                 <ProductAIAssistant
                   productName={name}
-                  selectedCategory={category}
+                  selectedCategory={mainCategories.some((item) => item.name === category || item.id === category) ? category : mainCategories[0]?.name || ''}
                   price={price}
                   regularPrice={compareAtPrice}
                   variantDetails={enableVariants ? variants.map((variant) => ({ name: variant.name, attributes: variant.attributes, price: variant.price })) : []}
