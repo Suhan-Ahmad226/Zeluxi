@@ -1015,7 +1015,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
                           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600"><Boxes className="h-5 w-5" /></div>
                           <div>
                             <h3 className="text-base font-bold text-slate-900">Add a product</h3>
-                            <p className="mt-1 text-sm text-slate-500">Add the basics once. Zeluxi AI handles the product copy, details and SEO.</p>
+                            <p className="mt-1 text-sm text-slate-500">Enter the product basics, then write the description yourself in the manual fields below.</p>
                           </div>
                         </div>
                         <div className="space-y-4">
