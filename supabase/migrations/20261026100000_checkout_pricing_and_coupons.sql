@@ -171,7 +171,7 @@ begin
       raise exception 'This coupon has reached its usage limit.' using errcode = '22023';
     end if;
     v_coupon_user_key := lower(trim(coalesce(nullif(p_customer->>'email',''), nullif(p_customer->>'phone',''), p_user_id::text)));
-    v_coupon_used_by := coalesce(v_coupon->'usedBy', '[]'::jsonb);
+    v_coupon_used_by := case when jsonb_typeof(v_coupon->'usedBy') = 'array' then v_coupon->'usedBy' else '[]'::jsonb end;
     select count(*) into v_coupon_user_usage
       from jsonb_array_elements_text(v_coupon_used_by) as used(value)
       where lower(trim(used.value)) in (
