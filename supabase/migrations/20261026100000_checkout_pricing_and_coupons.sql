@@ -19,6 +19,7 @@ create or replace function public.create_customer_order(
   p_free_shipping_threshold numeric,
   p_expected_subtotal numeric,
   p_shipping_fee numeric,
+  p_pathao_fee numeric,
   p_cod_fee numeric,
   p_cod_percentage numeric,
   p_coupon_code text
@@ -134,6 +135,7 @@ begin
     raise exception 'Cart prices changed while checkout was being calculated. Refresh the quote and try again.' using errcode = '40001';
   end if;
   if p_shipping_fee is null or p_shipping_fee < 0 or p_shipping_fee > 2000
+     or p_pathao_fee is null or p_pathao_fee < 0 or p_pathao_fee > 2000
      or p_cod_fee is null or p_cod_fee < 0 or p_cod_fee > 2000
      or p_free_shipping_threshold <= 0 then
     raise exception 'Invalid shipping or COD fee configuration' using errcode = '22023';
@@ -222,7 +224,7 @@ begin
   )
   values (
     p_user_id, p_idempotency_key, 'COD', 'UNPAID', p_customer,
-    v_subtotal, v_shipping_fee, v_cod_fee, v_discount, v_coupon_code, v_shipping_fee,
+    v_subtotal, v_shipping_fee, v_cod_fee, v_discount, v_coupon_code, p_pathao_fee,
     greatest(0, v_subtotal + v_shipping_fee + v_cod_fee - v_discount)
   )
   returning * into v_order;
@@ -314,5 +316,5 @@ begin
 end;
 $$;
 
-revoke all on function public.create_customer_order(uuid, text, jsonb, jsonb, numeric, numeric, numeric, numeric, numeric, numeric, numeric, text) from public, anon, authenticated;
+revoke all on function public.create_customer_order(uuid, text, jsonb, jsonb, numeric, numeric, numeric, numeric, numeric, numeric, numeric, numeric, text) from public, anon, authenticated;
 grant execute on function public.create_customer_order(uuid, text, jsonb, jsonb, numeric, numeric, numeric, numeric, numeric, numeric, text) to service_role;
