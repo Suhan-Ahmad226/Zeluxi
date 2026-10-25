@@ -5,6 +5,8 @@ import { z } from 'zod';
 import { bookPathaoOrderFromDatabase, PathaoBookingError } from '../lib/shipping/pathao-booking';
 import { formatOrderNumber } from '../lib/orders/order-number';
 import { formatCourierAddress, isValidAddressSelection } from '../lib/address/bangladesh-locations';
+import { quotePathaoCheckout } from '../lib/shipping/pathao-checkout';
+import { PathaoApiError } from '../lib/shipping/pathao-server';
 
 const addressSchema = z.object({
   fullName: z.string().trim().min(2).max(100),
@@ -17,6 +19,10 @@ const addressSchema = z.object({
   thanaCity: z.string().trim().min(1).max(100).optional(),
   addressDetails: z.string().trim().min(5).max(1000),
   postalCode: z.string().trim().max(20).optional(),
+  pathaoCityId: z.number().int().positive().optional(),
+  pathaoCityName: z.string().trim().max(100).optional(),
+  pathaoZoneId: z.number().int().positive().optional(),
+  pathaoZoneName: z.string().trim().max(100).optional(),
   notes: z.string().trim().max(300).optional(),
 }).refine((address) => Boolean(address.upazila || address.thanaCity), {
   message: 'Upazila / Thana is required',
@@ -38,6 +44,7 @@ const checkoutSchema = z.object({
     variantId: z.string().trim().min(1).max(100).optional(),
     quantity: z.number().int().min(1).max(20),
   })).min(1).max(50),
+  couponCode: z.string().trim().min(3).max(20).optional(),
 }).strict();
 const statusSchema = z.object({
   orderId: z.string().uuid(),
@@ -351,6 +358,33 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     }
     const items = [...merged.values()];
 
+    // Requote on the server from current catalog prices and the Pathao merchant rate plan.
+    // Never accept shipping, COD or discount amounts supplied by the browser.
+    const quote = await quotePathaoCheckout(admin, {
+      district: parsed.data.customer.district,
+      upazila: parsed.data.customer.upazila || parsed.data.customer.thanaCity || '',
+      items,
+    });
+    const { data: settingsRow, error: settingsError } = await admin.from('store_content')
+      .select('content_value').eq('content_key', 'settings').maybeSingle();
+    if (settingsError) return res.status(503).json({ error: 'Checkout pricing settings could not be loaded.' });
+    const savedSettings = settingsRow?.content_value && typeof settingsRow.content_value === 'object'
+      ? settingsRow.content_value as Record<string, unknown> : {};
+    const configuredFreeThreshold = Number(savedSettings.freeShippingThreshold ?? process.env.FREE_SHIPPING_THRESHOLD ?? 0);
+    const configuredCodFee = Number(savedSettings.codFee ?? process.env.COD_FEE ?? 0);
+    if (!Number.isFinite(configuredFreeThreshold) || configuredFreeThreshold <= 0 ||
+        !Number.isFinite(configuredCodFee) || configuredCodFee < 0 || configuredCodFee > 2000) {
+      return res.status(503).json({ error: 'Free-shipping or COD fee settings are invalid. No order was created.' });
+    }
+    const shippingFee = quote.subtotal >= configuredFreeThreshold ? 0 : quote.pathaoFee;
+    const customerSnapshot = {
+      ...parsed.data.customer,
+      pathaoCityId: quote.cityId,
+      pathaoCityName: quote.cityName,
+      pathaoZoneId: quote.zoneId,
+      pathaoZoneName: quote.zoneName,
+    };
+
     // Fail closed before creating an order if the public order-number migration is pending.
     const { error: orderNumberSchemaError } = await admin
       .from('store_orders')
@@ -380,11 +414,16 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     const { data, error } = await admin.rpc('create_customer_order', {
       p_user_id: user.id,
       p_idempotency_key: idempotencyKey,
-      p_customer: parsed.data.customer,
+      p_customer: customerSnapshot,
       p_items: items,
       p_dhaka_fee: dhakaFee,
       p_outside_dhaka_fee: outsideDhakaFee,
       p_free_shipping_threshold: freeShippingThreshold,
+      p_expected_subtotal: quote.subtotal,
+      p_shipping_fee: shippingFee,
+      p_cod_fee: configuredCodFee,
+      p_cod_percentage: quote.codPercentage,
+      p_coupon_code: parsed.data.couponCode || null,
     });
     if (error) {
       const safeMessage = /Insufficient stock|unavailable|Invalid quantity|Invalid order|Invalid customer|Invalid shipping|select a product variant/i.test(error.message)
@@ -396,7 +435,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     const orderId = String(data?.orderId || '');
     const { data: savedOrder, error: savedOrderError } = await admin
       .from('store_orders')
-      .select('id,order_number,status,customer,subtotal,shipping_fee,discount,grand_total,created_at,store_order_items(*)')
+      .select('id,order_number,status,customer,subtotal,shipping_fee,cod_fee,discount,coupon_code,pathao_delivery_fee,grand_total,created_at,store_order_items(*)')
       .eq('id', orderId)
       .eq('user_id', user.id)
       .single();
@@ -424,13 +463,19 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
         customer: savedOrder.customer,
         subtotal: Number(savedOrder.subtotal),
         shippingFee: Number(savedOrder.shipping_fee),
+        codFee: Number(savedOrder.cod_fee || 0),
         discount: Number(savedOrder.discount || 0),
+        couponCode: savedOrder.coupon_code || undefined,
+        pathaoDeliveryFee: savedOrder.pathao_delivery_fee == null ? undefined : Number(savedOrder.pathao_delivery_fee),
         grandTotal: Number(savedOrder.grand_total),
         items: savedItems,
         replayed: Boolean(data?.replayed),
       },
     });
-  } catch {
+  } catch (error) {
+    if (error instanceof PathaoApiError) {
+      return res.status(error.status || 502).json({ error: error.message, code: error.safeCode });
+    }
     return res.status(500).json({ error: 'Unexpected order service error. No success is implied; check order status before retrying.' });
   }
 }
