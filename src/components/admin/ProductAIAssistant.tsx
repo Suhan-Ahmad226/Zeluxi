@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Sparkles, WandSparkles, LoaderCircle, Check, AlertCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
@@ -36,6 +36,9 @@ export const ProductAIAssistant: React.FC<ProductAIAssistantProps> = ({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [expanded, setExpanded] = useState(true);
+
+  useEffect(() => setName(initialName), [initialName]);
+  useEffect(() => setCategory(selectedCategory), [selectedCategory]);
 
   const generate = async () => {
     if (name.trim().length < 2 || facts.trim().length < 5) {
