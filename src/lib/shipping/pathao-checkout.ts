@@ -19,7 +19,7 @@ const normalizeLocation = (value: string) =>
 
 export async function quotePathaoCheckout(
   db: SupabaseClient,
-  input: { district: string; upazila: string; areaId?: number; requireArea?: boolean; items: CheckoutLine[] },
+  input: { district: string; upazila: string; cityId?: number; zoneId?: number; areaId?: number; requireArea?: boolean; items: CheckoutLine[] },
 ) {
   const storeId = Number(process.env.PATHAO_STORE_ID || 0);
   if (!Number.isSafeInteger(storeId) || storeId <= 0) {
@@ -88,7 +88,7 @@ export async function quotePathaoCheckout(
     cityCache = { expiresAt: now + LOCATION_CACHE_TTL_MS, value: await getPathaoCities() };
   }
   const cities = cityCache.value;
-  const city = cities.find((entry) => normalizeLocation(entry.city_name) === normalizeLocation(input.district));
+  const city = input.cityId ? cities.find((entry) => Number(entry.city_id) === input.cityId) : cities.find((entry) => normalizeLocation(entry.city_name) === normalizeLocation(input.district));
   if (!city) {
     throw new PathaoApiError('Pathao does not have an exact city match for this district. Contact support to map this delivery area; no estimated rate was invented.', 422, 'PATHAO_CITY_MAPPING_REQUIRED');
   }
@@ -99,7 +99,7 @@ export async function quotePathaoCheckout(
     zoneCache.set(cityId, cachedZones);
   }
   const zones = cachedZones.value;
-  const zone = zones.find((entry) => normalizeLocation(entry.zone_name) === normalizeLocation(input.upazila));
+  const zone = input.zoneId ? zones.find((entry) => Number(entry.zone_id) === input.zoneId) : zones.find((entry) => normalizeLocation(entry.zone_name) === normalizeLocation(input.upazila));
   if (!zone) {
     throw new PathaoApiError('Pathao does not have an exact zone match for this thana/upazila. Choose a supported area or ask the store to configure the mapping.', 422, 'PATHAO_ZONE_MAPPING_REQUIRED');
   }
