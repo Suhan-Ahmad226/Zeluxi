@@ -1656,6 +1656,21 @@ export const AdminDashboard: React.FC = () => {
                             Mark Packed
                           </button>
                         )}
+                        {['PENDING', 'CONFIRMED', 'PROCESSING'].includes(ord.status) && !['BOOKED', 'BOOKING_IN_PROGRESS', 'BOOKING_UNKNOWN'].includes(ord.courier.bookingStatus || 'NOT_BOOKED') && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const confirmed = window.confirm(`Cancel order #${ord.orderNumber || ord.id}? Inventory will be restored if cancellation succeeds.`);
+                              if (confirmed) updateOrderStatus(ord.id, 'CANCELLED', 'Cancelled by administrator');
+                            }}
+                            disabled={processingOrderId === ord.id}
+                            className="px-2 py-1 bg-rose-50 text-rose-700 border border-rose-200 rounded text-[11px] font-semibold hover:bg-rose-100 disabled:opacity-50"
+                            title="Cancel this order if no Pathao booking is active or unresolved"
+                          >
+                            Cancel Order
+                          </button>
+                        )}
+
                         {ord.paymentStatus === 'PAID' && (
                           <button
                             onClick={() => setRefundTargetOrder(ord)}
