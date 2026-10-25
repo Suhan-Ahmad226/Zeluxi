@@ -50,11 +50,11 @@ export const ProductAIAssistant: React.FC<ProductAIAssistantProps> = ({
 
   const generate = async () => {
     if (productName.trim().length < 2) {
-      setError('আগে পণ্যের নাম লিখুন।');
+      setError('Enter a product name first.');
       return;
     }
     if (!Number.isFinite(price) || price <= 0) {
-      setError('AI content তৈরি করার আগে সঠিক selling price দিন।');
+      setError('Enter a valid selling price first.');
       return;
     }
     setBusy(true);
@@ -62,7 +62,7 @@ export const ProductAIAssistant: React.FC<ProductAIAssistantProps> = ({
     try {
       const { data, error: sessionError } = await supabase.auth.getSession();
       const token = data.session?.access_token;
-      if (sessionError || !token) throw new Error('অ্যাডমিন অ্যাকাউন্ট দিয়ে সাইন ইন করুন।');
+      if (sessionError || !token) throw new Error('Sign in with an admin account.');
 
       const response = await fetch('/api/admin/products/ai-draft', {
         method: 'POST',
@@ -79,13 +79,13 @@ export const ProductAIAssistant: React.FC<ProductAIAssistantProps> = ({
         cache: 'no-store',
       });
       const payload = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(typeof payload.error === 'string' ? payload.error : 'AI draft তৈরি করা যায়নি। আবার চেষ্টা করুন।');
+      if (!response.ok) throw new Error(typeof payload.error === 'string' ? payload.error : 'Could not generate the draft. Try again.');
       const generatedDraft = payload.draft as AIProductDraft;
       setDraft(generatedDraft);
       onApply(generatedDraft);
       setGenerationCount((count) => count + 1);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'AI draft তৈরি করা যায়নি। আবার চেষ্টা করুন।');
+      setError(err instanceof Error ? err.message : 'Could not generate the draft. Try again.');
     } finally {
       setBusy(false);
     }
@@ -100,7 +100,7 @@ export const ProductAIAssistant: React.FC<ProductAIAssistantProps> = ({
           </div>
           <div className="min-w-0">
             <h3 className="text-base font-bold tracking-tight text-slate-900">Zeluxi AI Product Agent</h3>
-            <p className="mt-1 text-xs leading-5 text-slate-600">Google Search দিয়ে product details, description ও SEO তৈরি করবে।</p>
+            <p className="mt-1 text-xs leading-5 text-slate-600">Generate product details and SEO using web search.</p>
           </div>
         </div>
         <button type="button" onClick={generate} disabled={busy || productName.trim().length < 2 || price <= 0} className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 disabled:cursor-not-allowed disabled:opacity-60">
@@ -112,7 +112,7 @@ export const ProductAIAssistant: React.FC<ProductAIAssistantProps> = ({
       {busy && (
         <div className="space-y-2 border-t border-indigo-100 px-4 py-4 sm:px-5">
           <div className="h-1.5 overflow-hidden rounded-full bg-indigo-100"><div className="h-full w-2/3 animate-pulse rounded-full bg-indigo-600" /></div>
-          <p className="text-xs text-slate-500">পণ্যের তথ্য সার্চ, সোর্স যাচাই এবং product copy/SEO প্রস্তুত করা হচ্ছে। একটু সময় লাগতে পারে।</p>
+          <p className="text-xs text-slate-500">Researching product details and preparing copy. This may take a moment.</p>
         </div>
       )}
 
@@ -163,7 +163,7 @@ export const ProductAIAssistant: React.FC<ProductAIAssistantProps> = ({
         </div>
       )}
 
-      {!draft && !busy && <p className="border-t border-slate-100 px-4 py-3 text-xs text-slate-500 sm:px-5">নাম ও মূল্য দেওয়ার পর Generate করুন। AI লেখা তৈরি করে সরাসরি ফর্মে বসাবে। ফল পছন্দ না হলে Regenerate চাপুন।</p>}
+      {!draft && !busy && <p className="border-t border-slate-100 px-4 py-3 text-xs text-slate-500 sm:px-5">Enter a name and price, then generate a draft. Review it before saving.</p>}
     </section>
   );
 };
