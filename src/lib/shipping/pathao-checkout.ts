@@ -110,7 +110,7 @@ export async function quotePathaoCheckout(
     cachedAreas = { expiresAt: now + LOCATION_CACHE_TTL_MS, value: await getPathaoAreas(zoneId) };
     areaCache.set(zoneId, cachedAreas);
   }
-  const areas = cachedAreas.value.filter((area) => area.home_delivery_available !== false);
+  const areas = cachedAreas.value.filter((area) => area.home_delivery_available === true || Number(area.home_delivery_available) === 1);
   if (input.requireArea && !input.areaId) {
     throw new PathaoApiError('Select a Pathao delivery area for this address before placing the order.', 422, 'PATHAO_AREA_REQUIRED');
   }
@@ -130,6 +130,9 @@ export async function quotePathaoCheckout(
     cityId: Number(city.city_id),
     zoneId: Number(zone.zone_id),
   });
+  if (Number(rate.cod_enabled) !== 1) {
+    throw new PathaoApiError('Pathao does not support COD for this delivery plan. Choose another supported area or contact the store.', 422, 'PATHAO_COD_UNAVAILABLE');
+  }
   const pathaoFee = Number(rate.final_price);
   if (!Number.isFinite(pathaoFee) || pathaoFee < 0) {
     throw new PathaoApiError('Pathao returned an invalid delivery price. Please retry later.', 502, 'PATHAO_PRICE_INVALID');
