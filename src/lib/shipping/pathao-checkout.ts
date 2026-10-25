@@ -41,7 +41,7 @@ export async function quotePathaoCheckout(
   let totalQuantity = 0;
   const fallbackWeightRaw = process.env.PATHAO_DEFAULT_ITEM_WEIGHT_KG;
   const fallbackWeight = fallbackWeightRaw ? Number(fallbackWeightRaw) : null;
-  if (fallbackWeightRaw && (!Number.isFinite(fallbackWeight) || Number(fallbackWeight) <= 0 || Number(fallbackWeight) > 10)) {
+  if (fallbackWeightRaw && (!Number.isFinite(Number(fallbackWeight)) || Number(fallbackWeight) <= 0 || Number(fallbackWeight) > 10)) {
     throw new PathaoApiError('PATHAO_DEFAULT_ITEM_WEIGHT_KG must be greater than 0 and at most 10 kg.', 503, 'PATHAO_WEIGHT_CONFIG_INVALID');
   }
 
