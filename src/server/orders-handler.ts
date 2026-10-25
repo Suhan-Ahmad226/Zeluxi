@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { bookPathaoOrderFromDatabase, PathaoBookingError } from '../lib/shipping/pathao-booking';
 import { formatOrderNumber } from '../lib/orders/order-number';
 import { formatCourierAddress, isValidAddressSelection } from '../lib/address/bangladesh-locations';
+import { calculatePathaoPrice, getPathaoAreas, getPathaoZones, PathaoApiError } from '../lib/shipping/pathao-server';
 import { quotePathaoCheckout } from '../lib/shipping/pathao-checkout';
 import { PathaoApiError } from '../lib/shipping/pathao-server';
 
@@ -41,6 +42,7 @@ const addressSchema = z.object({
 const checkoutSchema = z.object({
   customer: addressSchema,
   paymentMethod: z.literal('COD'),
+  couponCode: z.string().trim().min(3).max(40).toUpperCase().optional(),
   items: z.array(z.object({
     productId: z.string().trim().min(1).max(100),
     variantId: z.string().trim().min(1).max(100).optional(),
@@ -338,9 +340,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
 
     if (!user.email_confirmed_at) return res.status(401).json({ error: 'A verified account is required.' });
     // Legacy zone rates are retained only for RPC compatibility; customer charges use the live Pathao quote below.
-    const dhakaFee = readNonNegativeEnv('SHIPPING_DHAKA_FEE') ?? 0;
-    const outsideDhakaFee = readNonNegativeEnv('SHIPPING_OUTSIDE_DHAKA_FEE') ?? 0;
-    const freeShippingThreshold = readNonNegativeEnv('FREE_SHIPPING_THRESHOLD') ?? 1;
+    const freeShippingThreshold = readNonNegativeEnv('FREE_SHIPPING_THRESHOLD') ?? 0;
     const idempotencyKey = getHeader(req, 'idempotency-key');
     if (idempotencyKey.length < 16 || idempotencyKey.length > 128) {
       return res.status(400).json({ error: 'A valid Idempotency-Key header is required.' });
@@ -418,23 +418,85 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
       });
     }
 
+    // Verify Pathao's city -> zone -> area hierarchy and get a live server-side quote.
+    let pathaoFee = 0;
+    try {
+      const [zones, areas] = await Promise.all([
+        getPathaoZones(parsed.data.customer.pathaoCityId),
+        getPathaoAreas(parsed.data.customer.pathaoZoneId),
+      ]);
+      if (!zones.some((zone) => Number(zone.zone_id) === parsed.data.customer.pathaoZoneId) ||
+          !areas.some((area) => Number(area.area_id) === parsed.data.customer.pathaoAreaId && area.home_delivery_available)) {
+        return res.status(400).json({ error: 'The selected Pathao city, zone and delivery area do not match or home delivery is unavailable.' });
+      }
+      const productIds = [...new Set(items.map((item) => item.productId))];
+      const { data: shippingProducts, error: shippingProductsError } = await admin
+        .from('store_products').select('id,product_data,published,archived').in('id', productIds);
+      if (shippingProductsError || !shippingProducts || shippingProducts.length !== productIds.length ||
+          shippingProducts.some((product: any) => !product.published || product.archived)) {
+        return res.status(409).json({ error: 'A cart product is unavailable for shipping calculation.' });
+      }
+      const shippingProductMap = new Map(shippingProducts.map((product: any) => [String(product.id), product]));
+      const defaultWeight = Number(process.env.PATHAO_DEFAULT_ITEM_WEIGHT_KG || 0.5);
+      if (!Number.isFinite(defaultWeight) || defaultWeight <= 0 || defaultWeight > 10) {
+        return res.status(503).json({ error: 'PATHAO_DEFAULT_ITEM_WEIGHT_KG must be greater than 0 and at most 10 kg.' });
+      }
+      let weightKg = 0;
+      for (const item of items) {
+        const product: any = shippingProductMap.get(item.productId);
+        const productData = product?.product_data && typeof product.product_data === 'object' ? product.product_data : {};
+        const configuredWeight = Number(productData.weightKg || 0);
+        const itemWeight = Number.isFinite(configuredWeight) && configuredWeight > 0 ? configuredWeight : defaultWeight;
+        weightKg += itemWeight * item.quantity;
+      }
+      weightKg = Math.max(0.5, Math.round(weightKg * 100) / 100);
+      if (weightKg > 10) return res.status(422).json({ error: 'This order exceeds Pathao’s 10 kg per-parcel limit. Correct product weights or split the order.' });
+      const quote = await calculatePathaoPrice({
+        storeId: Number(process.env.PATHAO_STORE_ID || 0), itemType: 2, deliveryType: 48,
+        weightKg, cityId: parsed.data.customer.pathaoCityId, zoneId: parsed.data.customer.pathaoZoneId,
+      });
+      pathaoFee = Number(quote.final_price);
+      if (!Number.isFinite(pathaoFee) || pathaoFee < 0 || pathaoFee > 5000) throw new Error('Invalid Pathao quote');
+    } catch (quoteError) {
+      if (quoteError instanceof PathaoApiError) return res.status(503).json({ error: quoteError.message, code: quoteError.safeCode });
+      return res.status(503).json({ error: 'A current Pathao delivery quote is required. No order was created.', code: 'PATHAO_QUOTE_UNAVAILABLE' });
+    }
+
+    let coupon: any = null;
+    const couponCode = parsed.data.couponCode?.trim().toUpperCase() || null;
+    if (couponCode) {
+      const { data: couponRow, error: couponReadError } = await admin.from('store_content')
+        .select('content_value').eq('content_key', 'coupons').maybeSingle();
+      if (couponReadError) return res.status(503).json({ error: 'Coupon service is temporarily unavailable.' });
+      const coupons = Array.isArray(couponRow?.content_value) ? couponRow.content_value : [];
+      coupon = coupons.find((entry: any) => entry && typeof entry.code === 'string' && entry.code.toUpperCase() === couponCode && entry.active === true);
+      if (!coupon) return res.status(400).json({ error: 'This coupon is invalid or inactive.' });
+      if (coupon.expiresAt) {
+        const expiry = Date.parse(String(coupon.expiresAt));
+        if (!Number.isFinite(expiry) || expiry < Date.now()) return res.status(400).json({ error: 'This coupon has expired.' });
+      }
+      if (!['PERCENTAGE', 'FIXED'].includes(String(coupon.type)) ||
+          !Number.isFinite(Number(coupon.value)) || Number(coupon.value) <= 0 ||
+          !Number.isFinite(Number(coupon.minSpend ?? 0)) || Number(coupon.minSpend ?? 0) < 0) {
+        return res.status(400).json({ error: 'This coupon has invalid pricing settings. Contact the store administrator.' });
+      }
+    }
+
     const { data, error } = await admin.rpc('create_customer_order', {
       p_user_id: user.id,
       p_idempotency_key: idempotencyKey,
-      p_customer: customerSnapshot,
+      p_customer: parsed.data.customer,
       p_items: items,
-      p_dhaka_fee: dhakaFee,
-      p_outside_dhaka_fee: outsideDhakaFee,
-      p_free_shipping_threshold: freeShippingThreshold,
-      p_expected_subtotal: quote.subtotal,
-      p_shipping_fee: shippingFee,
-      p_pathao_fee: quote.pathaoFee,
-      p_cod_fee: configuredCodFee,
-      p_cod_percentage: quote.codPercentage,
-      p_coupon_code: parsed.data.couponCode || null,
+      p_shipping_fee: pathaoFee,
+      p_coupon_code: couponCode,
+      p_coupon_type: coupon?.type || null,
+      p_coupon_value: coupon ? Number(coupon.value) : 0,
+      p_coupon_min_spend: coupon ? Number(coupon.minSpend || 0) : 0,
+      p_coupon_max_usage: coupon && Number.isSafeInteger(Number(coupon.maxUsage)) && Number(coupon.maxUsage) > 0 ? Number(coupon.maxUsage) : null,
+      p_coupon_per_user_limit: coupon ? (Number.isSafeInteger(Number(coupon.perUserLimit)) && Number(coupon.perUserLimit) > 0 ? Number(coupon.perUserLimit) : 1) : 1,
     });
     if (error) {
-      const safeMessage = /Insufficient stock|unavailable|Invalid quantity|Invalid order|Invalid customer|Invalid shipping|select a product variant/i.test(error.message)
+      const safeMessage = /Insufficient stock|unavailable|Invalid quantity|Invalid order|Invalid customer|Invalid shipping|Invalid checkout pricing|Coupon|coupon|select a product variant/i.test(error.message)
         ? error.message : 'Order could not be created. Please retry safely.';
       return res.status(409).json({ error: safeMessage });
     }
