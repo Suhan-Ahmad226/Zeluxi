@@ -101,6 +101,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
 
   // Active form tab
   const [activeTab, setActiveTab] = useState<'general' | 'media' | 'variants' | 'specs' | 'seo'>('general');
+  const [entryMode, setEntryMode] = useState<'manual' | 'ai'>('manual');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isProcessingImages, setIsProcessingImages] = useState(false);
   const [showLivePreview, setShowLivePreview] = useState(false);
@@ -892,7 +893,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
                 )}
               </div>
               <p className="text-xs text-slate-500 truncate mt-0.5 hidden sm:block hidden sm:block">
-                Add the essentials, then let AI research and prepare the product content.
+                Choose manual entry or let AI prepare a draft you can review and edit.
               </p>
             </div>
           </div>
@@ -1018,6 +1019,37 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
 
         {/* Modal Scrollable Body */}
         <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 bg-slate-50">
+          {!productToEdit && (
+            <section className="mb-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+              <div className="mb-3">
+                <h3 className="text-sm font-bold text-slate-900">How would you like to add this product?</h3>
+                <p className="mt-1 text-xs leading-5 text-slate-500">Manual mode works without AI quota. You can switch modes anytime; all fields remain editable.</p>
+              </div>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <button type="button" onClick={() => setEntryMode('manual')} aria-pressed={entryMode === 'manual'} className={`flex items-start gap-3 rounded-xl border p-4 text-left transition-colors ${entryMode === 'manual' ? 'border-emerald-500 bg-emerald-50 ring-1 ring-emerald-500/20' : 'border-slate-200 bg-white hover:bg-slate-50'}`}>
+                  <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${entryMode === 'manual' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'}`}><FileText className="h-5 w-5" /></span>
+                  <span className="min-w-0"><span className="block text-sm font-bold text-slate-900">Manual Entry</span><span className="mt-1 block text-xs leading-5 text-slate-600">নিজে নাম, দাম, ছবি, বিবরণ ও SEO পূরণ করো। AI দরকার নেই।</span><span className="mt-2 block text-[11px] font-semibold text-emerald-700">Free · Always available</span></span>
+                </button>
+                <button type="button" onClick={() => setEntryMode('ai')} aria-pressed={entryMode === 'ai'} className={`flex items-start gap-3 rounded-xl border p-4 text-left transition-colors ${entryMode === 'ai' ? 'border-indigo-500 bg-indigo-50 ring-1 ring-indigo-500/20' : 'border-slate-200 bg-white hover:bg-slate-50'}`}>
+                  <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${entryMode === 'ai' ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-600'}`}><Sparkles className="h-5 w-5" /></span>
+                  <span className="min-w-0"><span className="block text-sm font-bold text-slate-900">AI Assistant</span><span className="mt-1 block text-xs leading-5 text-slate-600">পণ্যের নাম ও দাম থেকে বিবরণ, বৈশিষ্ট্য ও SEO draft তৈরি করো।</span><span className="mt-2 block text-[11px] font-semibold text-indigo-700">Uses available Gemini quota</span></span>
+                </button>
+              </div>
+            </section>
+          )}
+          {!productToEdit && entryMode === 'ai' && (
+            <div className="mb-6">
+              <ProductAIAssistant
+                productName={name}
+                selectedCategory={mainCategories.some((item) => item.name === category || item.id === category) ? category : mainCategories[0]?.name || ''}
+                price={price}
+                regularPrice={compareAtPrice}
+                variantDetails={enableVariants ? variants.map((variant) => ({ name: variant.name, attributes: variant.attributes, price: variant.price })) : []}
+                categories={[...new Set(categories.filter((item) => item.isActive !== false).map((item) => item.name))]}
+                onApply={handleApplyAIDraft}
+              />
+            </div>
+          )}
           <div className={`grid grid-cols-1 ${showLivePreview ? 'lg:grid-cols-3' : ''} gap-6`}>
             {/* Form Column */}
             <div className={showLivePreview ? 'lg:col-span-2 space-y-6' : 'space-y-6'}>
@@ -2157,18 +2189,6 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
                     </div>
                   </div>
                 </div>
-              )}
-
-              {!productToEdit && (
-                <ProductAIAssistant
-                  productName={name}
-                  selectedCategory={mainCategories.some((item) => item.name === category || item.id === category) ? category : mainCategories[0]?.name || ''}
-                  price={price}
-                  regularPrice={compareAtPrice}
-                  variantDetails={enableVariants ? variants.map((variant) => ({ name: variant.name, attributes: variant.attributes, price: variant.price })) : []}
-                  categories={[...new Set(categories.filter((item) => item.isActive !== false).map((item) => item.name))]}
-                  onApply={handleApplyAIDraft}
-                />
               )}
 
             </div>
