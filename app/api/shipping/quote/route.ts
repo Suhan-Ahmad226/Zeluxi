@@ -10,6 +10,7 @@ export const dynamic = 'force-dynamic';
 const schema = z.object({
   district: z.string().trim().min(1).max(100),
   upazila: z.string().trim().min(1).max(100),
+  areaId: z.number().int().positive().optional(),
   items: z.array(z.object({
     productId: z.string().trim().min(1).max(100),
     variantId: z.string().trim().min(1).max(100).optional(),
