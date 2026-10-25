@@ -116,7 +116,9 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify({
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
         tools: [{ google_search: {} }],
-        generationConfig: { responseMimeType: 'application/json', temperature: 0.7, maxOutputTokens: 2600 },
+        // Google Search grounding on the GenerateContent API cannot be combined with
+        // responseMimeType: application/json. Ask for JSON in the prompt and validate it below.
+        generationConfig: { temperature: 0.4, maxOutputTokens: 3000 },
       }),
       cache: 'no-store',
       signal: AbortSignal.timeout(45000),
@@ -126,7 +128,19 @@ export async function POST(request: NextRequest) {
     if (!response.ok) {
       const providerMessage = typeof payload?.error?.message === 'string' ? payload.error.message : '';
       console.error('AI product research provider error:', response.status, providerMessage.slice(0, 300));
-      return errorResponse('AI product research failed. Check the Gemini API key, search grounding access and quota, then retry.', 502);
+      if (response.status === 400) {
+        return errorResponse('Gemini rejected the request. Check the API model/tool settings and retry. Details were recorded in server logs.', 502);
+      }
+      if (response.status === 401 || response.status === 403) {
+        return errorResponse('Gemini API key is invalid, restricted, or does not have access to this API. Check the key and Generative Language API settings.', 502);
+      }
+      if (response.status === 404) {
+        return errorResponse('The configured Gemini model is not available for this API key. Check model access and retry.', 502);
+      }
+      if (response.status === 429) {
+        return errorResponse('Gemini quota or rate limit reached. Check AI Studio billing/quota, wait, then retry.', 429);
+      }
+      return errorResponse('Gemini could not complete product research. Check server logs for the provider error, then retry.', 502);
     }
 
     const candidate = payload?.candidates?.[0];
@@ -135,9 +149,17 @@ export async function POST(request: NextRequest) {
 
     let json: unknown;
     try {
-      json = JSON.parse(text);
+      const cleanedText = text.trim()
+        .replace(/^\`\`\`(?:json)?\s*/i, '')
+        .replace(/\s*\`\`\`$/, '');
+      const firstBrace = cleanedText.indexOf('{');
+      const lastBrace = cleanedText.lastIndexOf('}');
+      const jsonText = firstBrace >= 0 && lastBrace > firstBrace
+        ? cleanedText.slice(firstBrace, lastBrace + 1)
+        : cleanedText;
+      json = JSON.parse(jsonText);
     } catch {
-      return errorResponse('AI returned an invalid draft format. Please try again.', 502);
+      return errorResponse('AI returned an invalid draft format. Please regenerate.', 502);
     }
 
     const parsedDraft = draftSchema.safeParse(json);
