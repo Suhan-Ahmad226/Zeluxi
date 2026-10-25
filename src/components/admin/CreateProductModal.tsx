@@ -944,7 +944,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
         </div>}
 
         {/* Tab Navigation & Step Indicators */}
-        <div className="px-2 sm:px-4 border-b border-slate-200 bg-white flex items-center gap-1 overflow-x-auto text-sm font-medium scrollbar-none">
+        {productToEdit && <div className="px-2 sm:px-4 border-b border-slate-200 bg-white flex items-center gap-1 overflow-x-auto text-sm font-medium scrollbar-none">
           <button
             onClick={() => setActiveTab('general')}
             className={`py-3 px-3 sm:px-4 border-b-2 flex items-center gap-2 transition-colors whitespace-nowrap ${
@@ -1012,7 +1012,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
             <Globe className="w-4 h-4" />
             <span>SEO</span>
           </button>}
-        </div>
+        </div>}
 
         {/* Modal Scrollable Body */}
         <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 bg-slate-50">
@@ -1062,15 +1062,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
                           <span>Upload product photos/videos and set variants in the tabs above. AI will generate the description, specifications, tags, SEO and product details. You can regenerate before saving.</span>
                         </div>
                       </section>
-                      <ProductAIAssistant
-                        productName={name}
-                        selectedCategory={category}
-                        price={price}
-                        regularPrice={compareAtPrice}
-                        variantDetails={enableVariants ? variants.map((variant) => ({ name: variant.name, attributes: variant.attributes, price: variant.price })) : []}
-                        categories={[...new Set(categories.filter((item) => item.isActive !== false).map((item) => item.name))]}
-                        onApply={handleApplyAIDraft}
-                      />
+
                     </>
                   )}
                   {productToEdit && (
@@ -1449,7 +1441,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
               )}
 
               {/* TAB 2: MEDIA UPLOADS */}
-              {activeTab === 'media' && (
+              {(activeTab === 'media' || !productToEdit) && (
                 <div className="space-y-6 text-xs">
                   {/* Image Upload Zone */}
                   <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-xs space-y-4">
@@ -1740,7 +1732,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
               )}
 
               {/* TAB 3: VARIANTS & INVENTORY */}
-              {activeTab === 'variants' && (
+              {(activeTab === 'variants' || !productToEdit) && (
                 <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-6 shadow-sm space-y-5 text-xs">
                   <div className="flex items-center justify-between flex-wrap gap-2">
                     <div>
@@ -1918,6 +1910,18 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
                     </div>
                   )}
                 </div>
+              )}
+
+              {!productToEdit && (
+                <ProductAIAssistant
+                  productName={name}
+                  selectedCategory={category}
+                  price={price}
+                  regularPrice={compareAtPrice}
+                  variantDetails={enableVariants ? variants.map((variant) => ({ name: variant.name, attributes: variant.attributes, price: variant.price })) : []}
+                  categories={[...new Set(categories.filter((item) => item.isActive !== false).map((item) => item.name))]}
+                  onApply={handleApplyAIDraft}
+                />
               )}
 
               {/* TAB 4: SHIPPING, TAX & SPECS */}
