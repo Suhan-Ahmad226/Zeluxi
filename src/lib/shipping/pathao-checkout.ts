@@ -19,7 +19,7 @@ const normalizeLocation = (value: string) =>
 
 export async function quotePathaoCheckout(
   db: SupabaseClient,
-  input: { district: string; upazila: string; cityId?: number; zoneId?: number; areaId?: number; requireArea?: boolean; items: CheckoutLine[] },
+  input: { district: string; upazila: string; addressDetails: string; notes?: string; items: CheckoutLine[] },
 ) {
   const storeId = Number(process.env.PATHAO_STORE_ID || 0);
   if (!Number.isSafeInteger(storeId) || storeId <= 0) {
@@ -90,9 +90,7 @@ export async function quotePathaoCheckout(
     cityCache = { expiresAt: now + LOCATION_CACHE_TTL_MS, value: await getPathaoCities() };
   }
   const cities = cityCache.value;
-  const city = input.cityId
-    ? cities.find((entry) => Number(entry.city_id) === input.cityId && normalizeLocation(entry.city_name) === normalizeLocation(input.district))
-    : cities.find((entry) => normalizeLocation(entry.city_name) === normalizeLocation(input.district));
+  const city = cities.find((entry) => normalizeLocation(entry.city_name) === normalizeLocation(input.district));
   if (!city) {
     throw new PathaoApiError('Pathao does not have an exact city match for this district. Contact support to map this delivery area; no estimated rate was invented.', 422, 'PATHAO_CITY_MAPPING_REQUIRED');
   }
@@ -103,7 +101,7 @@ export async function quotePathaoCheckout(
     zoneCache.set(cityId, cachedZones);
   }
   const zones = cachedZones.value;
-  const zone = input.zoneId ? zones.find((entry) => Number(entry.zone_id) === input.zoneId) : zones.find((entry) => normalizeLocation(entry.zone_name) === normalizeLocation(input.upazila));
+  const zone = zones.find((entry) => normalizeLocation(entry.zone_name) === normalizeLocation(input.upazila));
   if (!zone) {
     throw new PathaoApiError('Pathao does not have an exact zone match for this thana/upazila. Choose a supported area or ask the store to configure the mapping.', 422, 'PATHAO_ZONE_MAPPING_REQUIRED');
   }
@@ -115,14 +113,16 @@ export async function quotePathaoCheckout(
     areaCache.set(zoneId, cachedAreas);
   }
   const areas = cachedAreas.value.filter((area) => area.home_delivery_available === true || Number(area.home_delivery_available) === 1);
-  if (input.requireArea && !input.areaId) {
-    throw new PathaoApiError('Select a Pathao delivery area for this address before placing the order.', 422, 'PATHAO_AREA_REQUIRED');
-  }
-  const selectedArea = input.areaId ? areas.find((area) => Number(area.area_id) === input.areaId) : undefined;
-  if (input.areaId && !selectedArea) {
-    throw new PathaoApiError('The selected Pathao delivery area is not available for this zone. Select the area again.', 422, 'PATHAO_AREA_INVALID');
-  }
-  if (input.requireArea && areas.length === 0) {
+  const addressText = normalizeLocation([input.addressDetails, input.upazila, input.district, input.notes || ''].join(' '));
+  const rankedAreas = areas.map((area) => {
+    const name = normalizeLocation(area.area_name);
+    const exact = name.length > 0 && addressText.includes(name) ? 1000 + name.length : 0;
+    const tokens = String(area.area_name || '').toLowerCase().split(/[^a-z0-9]+/).filter((token) => token.length >= 3);
+    const overlap = tokens.filter((token) => addressText.includes(token)).length;
+    return { area, score: exact + overlap };
+  }).sort((a, b) => b.score - a.score || String(a.area.area_name).localeCompare(String(b.area.area_name)));
+  const selectedArea = rankedAreas[0]?.area;
+  if (areas.length === 0) {
     throw new PathaoApiError('Pathao reports no home-delivery areas for this zone.', 422, 'PATHAO_AREA_UNAVAILABLE');
   }
 

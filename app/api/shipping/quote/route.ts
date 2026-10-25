@@ -10,15 +10,14 @@ export const dynamic = 'force-dynamic';
 const schema = z.object({
   district: z.string().trim().min(1).max(100),
   upazila: z.string().trim().min(1).max(100),
-  cityId: z.number().int().positive().optional(),
-  zoneId: z.number().int().positive().optional(),
-  areaId: z.number().int().positive().optional(),
+  addressDetails: z.string().trim().min(1).max(500),
+  notes: z.string().trim().max(300).optional(),
   items: z.array(z.object({
     productId: z.string().trim().min(1).max(100),
     variantId: z.string().trim().min(1).max(100).optional(),
     quantity: z.number().int().min(1).max(20),
   }).strict()).min(1).max(50),
-}).strict().refine((value) => Boolean(value.cityId) === Boolean(value.zoneId), { message: 'Pathao city and zone must be selected together.' });
+}).strict();
 
 function adminDb() {
   const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;

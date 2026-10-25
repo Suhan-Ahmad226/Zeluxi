@@ -22,7 +22,6 @@ import {
 import { PaymentMethod, CourierProvider, ShippingAddress } from '../../types';
 import { shippingAddressSchema } from '../../lib/validation/schemas';
 
-type SavedAddress = { id: string; label: string; full_name: string; phone: string; email: string | null; division: string; district: string; upazila: string; address_details: string; notes: string | null; pathao_city_id: number | null; pathao_zone_id: number | null; pathao_area_id: number | null; is_default: boolean; };
 import { BANGLADESH_DIVISIONS, getDistrictsByDivision, getUpazilasByDistrict } from '../../lib/address/bangladesh-locations';
 
 import { StoreImage } from '../common/StoreImage';
@@ -46,11 +45,6 @@ export const CheckoutModal: React.FC = () => {
   const [division, setDivision] = useState('Dhaka');
   const [district, setDistrict] = useState('');
   const [upazila, setUpazila] = useState('');
-  const [pathaoCityId, setPathaoCityId] = useState('');
-  const [pathaoZoneId, setPathaoZoneId] = useState('');
-  const [pathaoCities, setPathaoCities] = useState<Array<{ city_id: number; city_name: string }>>([]);
-  const [pathaoZones, setPathaoZones] = useState<Array<{ zone_id: number; zone_name: string }>>([]);
-  const [pathaoAreaId, setPathaoAreaId] = useState('');
   const [addressDetails, setAddressDetails] = useState('');
   const [notes, setNotes] = useState('');
 
@@ -63,12 +57,6 @@ export const CheckoutModal: React.FC = () => {
   const [shippingQuote, setShippingQuote] = useState<any>(null);
   const [shippingQuoteError, setShippingQuoteError] = useState<string | null>(null);
   const [isQuoteLoading, setIsQuoteLoading] = useState(false);
-  const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([]);
-  const [selectedSavedAddressId, setSelectedSavedAddressId] = useState('');
-  const [addressLabel, setAddressLabel] = useState('Home');
-  const [isSavingAddress, setIsSavingAddress] = useState(false);
-  const [addressSaveMessage, setAddressSaveMessage] = useState<string | null>(null);
-
   const {
     supabaseUser,
     currentUser,
@@ -88,77 +76,14 @@ export const CheckoutModal: React.FC = () => {
       if (userProfile.division) setDivision(userProfile.division);
       if (userProfile.district) setDistrict(userProfile.district);
       if (userProfile.upazila || (userProfile as any).thanaCity) setUpazila(userProfile.upazila || (userProfile as any).thanaCity || '');
-      if ((userProfile as any).pathaoCityId) setPathaoCityId(String((userProfile as any).pathaoCityId));
-      if ((userProfile as any).pathaoZoneId) setPathaoZoneId(String((userProfile as any).pathaoZoneId));
-      if ((userProfile as any).pathaoAreaId) setPathaoAreaId(String((userProfile as any).pathaoAreaId));
       if (typeof userProfile.notes === 'string') setNotes(userProfile.notes);
     }
   }, [userProfile, isCheckoutOpen]);
 
   useEffect(() => {
-    if (!isCheckoutOpen || !supabaseUser?.id) return;
-    let active = true;
-    void (async () => {
-      const { data, error } = await (supabase as any).from('customer_saved_addresses')
-        .select('id,label,full_name,phone,email,division,district,upazila,address_details,notes,pathao_city_id,pathao_zone_id,pathao_area_id,is_default,created_at')
-        .eq('user_id', supabaseUser.id)
-        .order('is_default', { ascending: false })
-        .order('created_at', { ascending: false });
-      if (!active) return;
-      if (error) {
-        setAddressSaveMessage('Saved addresses are not available yet. Please try again after the address database migration is applied.');
-        return;
-      }
-      const rows = Array.isArray(data) ? data as SavedAddress[] : [];
-      setSavedAddresses(rows);
-      if (rows.length && !selectedSavedAddressId) {
-        const preferred = rows.find((row) => row.is_default) || rows[0];
-        setSelectedSavedAddressId(preferred.id);
-        setAddressLabel(preferred.label || 'Home');
-        if (!fullName) setFullName(preferred.full_name);
-        if (!phone) setPhone(preferred.phone);
-        if (!email) setEmail(preferred.email || '');
-        if (!district) { setDivision(preferred.division); setDistrict(preferred.district); setUpazila(preferred.upazila); }
-        if (!addressDetails) setAddressDetails(preferred.address_details);
-        if (!notes) setNotes(preferred.notes || '');
-        if (preferred.pathao_city_id) setPathaoCityId(String(preferred.pathao_city_id));
-        if (preferred.pathao_zone_id) setPathaoZoneId(String(preferred.pathao_zone_id));
-        if (preferred.pathao_area_id) setPathaoAreaId(String(preferred.pathao_area_id));
-      }
-    })();
-    return () => { active = false; };
-  }, [isCheckoutOpen, supabaseUser?.id]);
-
-  useEffect(() => {
-    if (!isCheckoutOpen || pathaoCities.length) return;
-    let active = true;
-    fetch('/api/shipping/locations?action=cities', { cache: 'no-store' })
-      .then(async (response) => {
-        const payload = await response.json().catch(() => ({}));
-        if (!response.ok) throw new Error(payload.error || 'Pathao cities are unavailable.');
-        if (active) setPathaoCities(Array.isArray(payload.data) ? payload.data : []);
-      })
-      .catch((error) => { if (active) setShippingQuoteError(error instanceof Error ? error.message : 'Pathao cities are unavailable.'); });
-    return () => { active = false; };
-  }, [isCheckoutOpen, pathaoCities.length]);
-
-  useEffect(() => {
-    if (!pathaoCityId) { setPathaoZones([]); return; }
-    let active = true;
-    fetch('/api/shipping/locations?action=zones&id=' + encodeURIComponent(pathaoCityId), { cache: 'no-store' })
-      .then(async (response) => {
-        const payload = await response.json().catch(() => ({}));
-        if (!response.ok) throw new Error(payload.error || 'Pathao zones are unavailable.');
-        if (active) setPathaoZones(Array.isArray(payload.data) ? payload.data : []);
-      })
-      .catch((error) => { if (active) setShippingQuoteError(error instanceof Error ? error.message : 'Pathao zones are unavailable.'); });
-    return () => { active = false; };
-  }, [pathaoCityId]);
-
-  useEffect(() => {
     let active = true;
     const requestQuote = async () => {
-      if (!isCheckoutOpen || !district || !upazila || cart.length === 0 || Boolean(pathaoCityId) !== Boolean(pathaoZoneId)) {
+      if (!isCheckoutOpen || !district || !upazila || !addressDetails.trim() || cart.length === 0) {
         setShippingQuote(null);
         setShippingQuoteError(null);
         setIsQuoteLoading(false);
@@ -176,9 +101,8 @@ export const CheckoutModal: React.FC = () => {
           body: JSON.stringify({
             district,
             upazila,
-            cityId: Number(pathaoCityId) || undefined,
-            zoneId: Number(pathaoZoneId) || undefined,
-            areaId: pathaoAreaId ? Number(pathaoAreaId) : undefined,
+            addressDetails: addressDetails.trim(),
+            notes: notes.trim() || undefined,
             items: cart.map((item) => ({ productId: item.productId, variantId: item.variantId, quantity: item.quantity })),
           }),
           cache: 'no-store',
@@ -187,11 +111,7 @@ export const CheckoutModal: React.FC = () => {
         if (!response.ok || !payload?.quote) {
           throw new Error(typeof payload.error === 'string' ? payload.error : 'Pathao delivery price could not be calculated.');
         }
-        if (active) {
-          setShippingQuote(payload.quote);
-          if (!pathaoCityId && payload.quote.cityId) setPathaoCityId(String(payload.quote.cityId));
-          if (!pathaoZoneId && payload.quote.zoneId) setPathaoZoneId(String(payload.quote.zoneId));
-        }
+        if (active) setShippingQuote(payload.quote);
       } catch (error) {
         if (active) {
           setShippingQuote(null);
@@ -203,7 +123,7 @@ export const CheckoutModal: React.FC = () => {
     };
     void requestQuote();
     return () => { active = false; };
-  }, [isCheckoutOpen, district, upazila, pathaoCityId, pathaoZoneId, pathaoAreaId, cart]);
+  }, [isCheckoutOpen, district, upazila, addressDetails, notes, cart]);
 
   if (!isCheckoutOpen) return null;
 
@@ -223,7 +143,6 @@ export const CheckoutModal: React.FC = () => {
     fee: Number(shippingQuote?.shippingFee || 0),
     isFree: Boolean(shippingQuote?.freeShipping),
     provider: 'PATHAO' as CourierProvider,
-    eta: shippingQuote ? 'Delivery charge calculated from Pathao' : 'Matching your address with Pathao service areas',
   };
 
   let discount = 0;
@@ -477,42 +396,6 @@ export const CheckoutModal: React.FC = () => {
               2. Delivery address
             </h3>
 
-            {savedAddresses.length > 0 && (
-              <div className="space-y-2 rounded-xl border border-slate-200 bg-slate-50/70 p-3">
-                <div className="flex items-center justify-between gap-2">
-                  <p className="text-xs font-bold text-slate-800">Saved addresses</p>
-                  <span className="text-[10px] text-slate-500">Choose once to autofill</span>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {savedAddresses.map((saved) => (
-                    <div key={saved.id} className={`rounded-lg border p-3 ${selectedSavedAddressId === saved.id ? 'border-indigo-500 bg-indigo-50/60' : 'border-slate-200 bg-white'}`}>
-                      <button type="button" onClick={() => {
-                        setSelectedSavedAddressId(saved.id); setAddressLabel(saved.label || 'Home'); setFullName(saved.full_name); setPhone(saved.phone); setEmail(saved.email || '');
-                        setDivision(saved.division); setDistrict(saved.district); setUpazila(saved.upazila); setAddressDetails(saved.address_details); setNotes(saved.notes || '');
-                        setPathaoCityId(saved.pathao_city_id ? String(saved.pathao_city_id) : ''); setPathaoZoneId(saved.pathao_zone_id ? String(saved.pathao_zone_id) : ''); setPathaoAreaId(saved.pathao_area_id ? String(saved.pathao_area_id) : '');
-                        setShippingQuote(null); setShippingQuoteError(null); setAddressSaveMessage(null);
-                      }} className="w-full text-left">
-                        <span className="flex items-center justify-between gap-2"><span className="text-xs font-bold text-slate-900">{saved.label || 'Saved address'}</span>{saved.is_default && <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[9px] font-semibold text-emerald-700">Default</span>}</span>
-                        <span className="mt-1 block text-[11px] text-slate-600">{saved.address_details}, {saved.upazila}, {saved.district}, {saved.division}</span>
-                        <span className="mt-1 block text-[10px] text-slate-500">{saved.full_name} · {saved.phone}</span>
-                      </button>
-                      {!saved.is_default && <button type="button" onClick={async () => {
-                        if (!supabaseUser?.id) return;
-                        setAddressSaveMessage(null);
-                        const client = supabase as any;
-                        const cleared = await client.from('customer_saved_addresses').update({ is_default: false }).eq('user_id', supabaseUser.id);
-                        if (cleared.error) { setAddressSaveMessage('Could not update the default address. Please retry.'); return; }
-                        const chosen = await client.from('customer_saved_addresses').update({ is_default: true }).eq('id', saved.id).eq('user_id', supabaseUser.id);
-                        if (chosen.error) { setAddressSaveMessage('Could not update the default address. Please retry.'); return; }
-                        setSavedAddresses((items) => items.map((item) => ({ ...item, is_default: item.id === saved.id })));
-                        setAddressSaveMessage('Default address updated.');
-                      }} className="mt-2 text-[10px] font-semibold text-indigo-700 underline underline-offset-2">Make default</button>}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="text-xs font-semibold text-slate-700 block mb-1">
@@ -520,7 +403,7 @@ export const CheckoutModal: React.FC = () => {
                 </label>
                 <select
                   value={division}
-                  onChange={(e) => { setDivision(e.target.value); setDistrict(''); setUpazila(''); setPathaoCityId(''); setPathaoZoneId(''); setPathaoAreaId(''); setShippingQuote(null); setShippingQuoteError(null); }}
+                  onChange={(e) => { setDivision(e.target.value); setDistrict(''); setUpazila(''); setShippingQuote(null); setShippingQuoteError(null); }}
                   className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg bg-white focus:outline-none focus:border-indigo-600 cursor-pointer"
                 >
                   {BANGLADESH_DIVISIONS.map((d) => (
@@ -538,7 +421,7 @@ export const CheckoutModal: React.FC = () => {
                 <select
                   required
                   value={district}
-                  onChange={(e) => { setDistrict(e.target.value); setUpazila(''); setPathaoCityId(''); setPathaoZoneId(''); setPathaoAreaId(''); setShippingQuote(null); setShippingQuoteError(null); }}
+                  onChange={(e) => { setDistrict(e.target.value); setUpazila(''); setShippingQuote(null); setShippingQuoteError(null); }}
                   disabled={!division}
                   className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg bg-white focus:outline-none focus:border-indigo-600 disabled:bg-slate-100"
                 >
@@ -556,7 +439,7 @@ export const CheckoutModal: React.FC = () => {
                 <select
                   required
                   value={upazila}
-                  onChange={(e) => { setUpazila(e.target.value); setPathaoCityId(''); setPathaoZoneId(''); setPathaoAreaId(''); setShippingQuote(null); setShippingQuoteError(null); }}
+                  onChange={(e) => { setUpazila(e.target.value); setShippingQuote(null); setShippingQuoteError(null); }}
                   disabled={!district}
                   className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg bg-white focus:outline-none focus:border-indigo-600 disabled:bg-slate-100"
                 >
@@ -565,40 +448,6 @@ export const CheckoutModal: React.FC = () => {
                     <option key={option.kind + '-' + option.value} value={option.value}>{option.label}</option>
                   ))}
                 </select>
-              </div>
-
-              <div>
-                <label className="text-xs font-semibold text-slate-700 block mb-1">Pathao city * <span className="font-normal text-slate-400">(auto-matched; optional override)</span></label>
-                <select value={pathaoCityId} onChange={(e) => { setPathaoCityId(e.target.value); setPathaoZoneId(''); setPathaoAreaId(''); setShippingQuote(null); }} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg bg-white focus:outline-none focus:border-indigo-600">
-                  <option value="">Select Pathao city</option>
-                  {pathaoCities.map((city) => <option key={city.city_id} value={String(city.city_id)}>{city.city_name}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="text-xs font-semibold text-slate-700 block mb-1">Pathao zone * <span className="font-normal text-slate-400">(auto-matched; optional override)</span></label>
-                <select value={pathaoZoneId} onChange={(e) => { setPathaoZoneId(e.target.value); setPathaoAreaId(''); setShippingQuote(null); }} disabled={!pathaoCityId || pathaoZones.length === 0} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg bg-white focus:outline-none focus:border-indigo-600 disabled:bg-slate-100">
-                  <option value="">Select Pathao zone</option>
-                  {pathaoZones.map((zone) => <option key={zone.zone_id} value={String(zone.zone_id)}>{zone.zone_name}</option>)}
-                </select>
-              </div>
-
-              <div className="sm:col-span-2">
-                <label className="text-xs font-semibold text-slate-700 block mb-1">
-                  Pathao delivery area *
-                </label>
-                <select
-                  required
-                  value={pathaoAreaId}
-                  onChange={(e) => setPathaoAreaId(e.target.value)}
-                  disabled={!shippingQuote || !Array.isArray(shippingQuote.areas) || shippingQuote.areas.length === 0 || isQuoteLoading}
-                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg bg-white focus:outline-none focus:border-indigo-600 disabled:bg-slate-100"
-                >
-                  <option value="">{isQuoteLoading ? 'Loading Pathao areas…' : 'Select the nearest Pathao delivery area'}</option>
-                  {(shippingQuote?.areas || []).map((area: { areaId: number; areaName: string }) => (
-                    <option key={area.areaId} value={String(area.areaId)}>{area.areaName}</option>
-                  ))}
-                </select>
-                <p className="text-[10px] text-slate-500 mt-1">Used to validate courier serviceability and prevent incorrect delivery charges.</p>
               </div>
 
               <div className="sm:col-span-2">
@@ -633,64 +482,6 @@ export const CheckoutModal: React.FC = () => {
               </div>
             </div>
 
-            <div className="rounded-xl border border-slate-200 bg-white p-3 space-y-2">
-              <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_auto] gap-2 items-end">
-                <div>
-                  <label className="mb-1 block text-xs font-semibold text-slate-700">Save this address for next time</label>
-                  <input value={addressLabel} onChange={(event) => setAddressLabel(event.target.value)} maxLength={40} placeholder="Home, Office, Family…" className="w-full rounded-lg border border-slate-300 px-3 py-2 text-xs focus:border-indigo-600 focus:outline-none" />
-                </div>
-                {selectedSavedAddressId && <button type="button" onClick={() => { setSelectedSavedAddressId(''); setAddressLabel('Home'); setAddressSaveMessage(null); }} className="mb-1 text-[10px] font-semibold text-indigo-700 underline underline-offset-2">+ Save as a new address</button>}
-                <button type="button" disabled={isSavingAddress || !supabaseUser?.id} onClick={async () => {
-                  setAddressSaveMessage(null);
-                  if (!supabaseUser?.id) { setAddressSaveMessage('Sign in to save delivery addresses.'); return; }
-                  const validation = shippingAddressSchema.safeParse({ fullName: fullName.trim(), phone: phone.trim().replace(/[^0-9+]/g, ''), email: email.trim() || activeUserEmail || '', division, district, upazila, addressDetails: addressDetails.trim(), notes: notes.trim() });
-                  if (!validation.success) { setAddressSaveMessage(validation.error.issues[0]?.message || 'Complete the required address fields first.'); return; }
-                  setIsSavingAddress(true);
-                  try {
-                    const client = supabase as any;
-                    const existing = savedAddresses.find((item) => item.id === selectedSavedAddressId);
-                    const values = {
-                      user_id: supabaseUser.id, label: addressLabel.trim() || 'Home', full_name: fullName.trim(), phone: phone.trim(), email: email.trim() || activeUserEmail || null,
-                      division, district, upazila, address_details: addressDetails.trim(), notes: notes.trim() || null,
-                      pathao_city_id: shippingQuote?.cityId || (pathaoCityId ? Number(pathaoCityId) : null), pathao_zone_id: shippingQuote?.zoneId || (pathaoZoneId ? Number(pathaoZoneId) : null), pathao_area_id: shippingQuote?.areaId || (pathaoAreaId ? Number(pathaoAreaId) : null),
-                    };
-                    const query = existing
-                      ? client.from('customer_saved_addresses').update(values).eq('id', existing.id).eq('user_id', supabaseUser.id)
-                      : client.from('customer_saved_addresses').insert({ ...values, is_default: savedAddresses.length === 0 });
-                    const { data, error } = await query.select('id,label,full_name,phone,email,division,district,upazila,address_details,notes,pathao_city_id,pathao_zone_id,pathao_area_id,is_default').single();
-                    if (error || !data) throw new Error(error?.message || 'Address was not saved.');
-                    setSavedAddresses((items) => existing ? items.map((item) => item.id === existing.id ? data as SavedAddress : item) : [data as SavedAddress, ...items]);
-                    setSelectedSavedAddressId(data.id);
-                    setAddressSaveMessage(existing ? 'Saved address updated.' : 'New address saved. You can use it with one tap next time.');
-                  } catch (error) {
-                    setAddressSaveMessage(error instanceof Error ? error.message : 'Could not save this address. Please retry.');
-                  } finally { setIsSavingAddress(false); }
-                }} className="inline-flex min-h-9 items-center justify-center gap-2 rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-white hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50">{isSavingAddress ? 'Saving…' : selectedSavedAddressId ? 'Update saved address' : 'Save new address'}</button>
-              </div>
-              {addressSaveMessage && <p role="status" className="text-[11px] text-slate-600">{addressSaveMessage}</p>}
-            </div>
-
-            {shippingQuoteError && (
-              <div role="alert" className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900">
-                <strong>Pathao rate unavailable:</strong> {shippingQuoteError}
-              </div>
-            )}
-
-            {/* Courier Dispatch Alert */}
-            <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <Truck className="w-4 h-4 text-indigo-600 shrink-0" />
-                <div>
-                  <span className="font-semibold block">Pathao Express Logistics</span>
-                  <span className="text-[11px] text-slate-500">
-                    Shipping status: {shippingInfo.eta}
-                  </span>
-                </div>
-              </div>
-              <span className="font-bold text-slate-900 tabular-nums">
-                {isQuoteLoading ? 'Calculating…' : shippingQuote ? (shippingInfo.isFree ? 'FREE' : formatPrice(shippingInfo.fee)) : '—'}
-              </span>
-            </div>
           </div>
 
           {/* Section 3: Payment Method */}
