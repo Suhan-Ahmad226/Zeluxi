@@ -1,7 +1,7 @@
 import 'server-only';
 
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { calculatePathaoPrice, getPathaoCities, getPathaoZones, PathaoApiError } from './pathao-server';
+import { calculatePathaoPrice, getPathaoCities, getPathaoZones, getPathaoAreas, PathaoApiError } from './pathao-server';
 
 export interface CheckoutLine {
   productId: string;
@@ -11,6 +11,7 @@ export interface CheckoutLine {
 
 let cityCache: { expiresAt: number; value: Awaited<ReturnType<typeof getPathaoCities>> } | null = null;
 const zoneCache = new Map<number, { expiresAt: number; value: Awaited<ReturnType<typeof getPathaoZones>> }>();
+const areaCache = new Map<number, { expiresAt: number; value: Awaited<ReturnType<typeof getPathaoAreas>> }>();
 const LOCATION_CACHE_TTL_MS = 5 * 60 * 1000;
 
 const normalizeLocation = (value: string) =>
@@ -103,6 +104,24 @@ export async function quotePathaoCheckout(
     throw new PathaoApiError('Pathao does not have an exact zone match for this thana/upazila. Choose a supported area or ask the store to configure the mapping.', 422, 'PATHAO_ZONE_MAPPING_REQUIRED');
   }
 
+  const zoneId = Number(zone.zone_id);
+  let cachedAreas = areaCache.get(zoneId);
+  if (!cachedAreas || cachedAreas.expiresAt <= now) {
+    cachedAreas = { expiresAt: now + LOCATION_CACHE_TTL_MS, value: await getPathaoAreas(zoneId) };
+    areaCache.set(zoneId, cachedAreas);
+  }
+  const areas = cachedAreas.value.filter((area) => area.home_delivery_available !== false);
+  if (input.requireArea && !input.areaId) {
+    throw new PathaoApiError('Select a Pathao delivery area for this address before placing the order.', 422, 'PATHAO_AREA_REQUIRED');
+  }
+  const selectedArea = input.areaId ? areas.find((area) => Number(area.area_id) === input.areaId) : undefined;
+  if (input.areaId && !selectedArea) {
+    throw new PathaoApiError('The selected Pathao delivery area is not available for this zone. Select the area again.', 422, 'PATHAO_AREA_INVALID');
+  }
+  if (input.requireArea && areas.length === 0) {
+    throw new PathaoApiError('Pathao reports no home-delivery areas for this zone.', 422, 'PATHAO_AREA_UNAVAILABLE');
+  }
+
   const rate = await calculatePathaoPrice({
     storeId,
     itemType: 2,
@@ -124,6 +143,9 @@ export async function quotePathaoCheckout(
     cityName: city.city_name,
     zoneId: Number(zone.zone_id),
     zoneName: zone.zone_name,
+    areaId: selectedArea ? Number(selectedArea.area_id) : undefined,
+    areaName: selectedArea?.area_name,
+    areas: areas.map((area) => ({ areaId: Number(area.area_id), areaName: area.area_name, pickupAvailable: Boolean(area.pickup_available) })),
     pathaoFee: Math.round(pathaoFee * 100) / 100,
     planId: Number(rate.plan_id || 0),
     codEnabled: Number(rate.cod_enabled || 0) === 1,
