@@ -135,7 +135,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
   const [barcode, setBarcode] = useState('');
   const [category, setCategory] = useState('Full-Grain Leather');
   const [subcategory, setSubcategory] = useState('Weekender & Travel Bags');
-  const [brand, setBrand] = useState('Zelux Atelier');
+  const [brand, setBrand] = useState('');
   const [productType, setProductType] = useState<'physical' | 'digital' | 'service'>('physical');
   const [condition, setCondition] = useState<'new' | 'refurbished'>('new');
   const [shortDesc, setShortDesc] = useState('');
@@ -144,30 +144,25 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
   const [isFeatured, setIsFeatured] = useState(false);
   const [isNewArrival, setIsNewArrival] = useState(true);
   const [isBestSeller, setIsBestSeller] = useState(false);
-  const [tagsInput, setTagsInput] = useState('handcrafted, leather, luxury, atelier');
+  const [tagsInput, setTagsInput] = useState('');
 
   // 3. Pricing, Inventory & Tax
   const [price, setPrice] = useState<number>(0);
   const [compareAtPrice, setCompareAtPrice] = useState<number>(0);
-  const [costPrice, setCostPrice] = useState<number>(1800);
+  const [costPrice, setCostPrice] = useState<number>(0);
   const [stock, setStock] = useState<number>(0);
   const [lowStockThreshold, setLowStockThreshold] = useState<number>(5);
   const [taxClass, setTaxClass] = useState<'standard' | 'exempt' | 'luxury'>('standard');
   const [taxRate, setTaxRate] = useState<number>(5); // 5% default standard VAT
 
   // 4. Shipping & Specs
-  const [weightKg, setWeightKg] = useState<number>(0.85);
-  const [dimensions, setDimensions] = useState('32 x 22 x 14 cm');
+  const [weightKg, setWeightKg] = useState<number>(0);
+  const [dimensions, setDimensions] = useState('');
   const [shippingClass, setShippingClass] = useState<'standard' | 'fragile_express' | 'heavy'>('standard');
-  const [countryOfOrigin, setCountryOfOrigin] = useState('Bangladesh');
-  const [warrantyPolicy, setWarrantyPolicy] = useState('1-Year Atelier Craftsmanship Warranty');
-  const [returnPolicy, setReturnPolicy] = useState('7-Day Hassle-Free Return & Exchange Policy');
-  const [specList, setSpecList] = useState<Array<{ key: string; value: string }>>([
-    { key: 'Material', value: '1.4mm Full-Grain Pull-Up Cowhide' },
-    { key: 'Hardware', value: 'Antiqued Solid Brass Buckles' },
-    { key: 'Lining', value: 'Raw Cotton Canvas' },
-    { key: 'Craftsmanship', value: 'Hand-stitched in Savar Atelier' },
-  ]);
+  const [countryOfOrigin, setCountryOfOrigin] = useState('');
+  const [warrantyPolicy, setWarrantyPolicy] = useState('');
+  const [returnPolicy, setReturnPolicy] = useState('');
+  const [specList, setSpecList] = useState<Array<{ key: string; value: string }>>([]);
 
   // 5. Variants
   const [enableVariants, setEnableVariants] = useState(false);
