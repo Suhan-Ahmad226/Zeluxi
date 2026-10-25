@@ -20,6 +20,7 @@ create or replace function public.create_customer_order(
   p_expected_subtotal numeric,
   p_shipping_fee numeric,
   p_cod_fee numeric,
+  p_cod_percentage numeric,
   p_coupon_code text
 ) returns jsonb
 language plpgsql
@@ -139,6 +140,9 @@ begin
   end if;
   v_shipping_fee := p_shipping_fee;
   v_cod_fee := p_cod_fee;
+  if p_cod_percentage is null or p_cod_percentage < 0 or p_cod_percentage > 10 then
+    raise exception 'Invalid Pathao COD percentage' using errcode = '22023';
+  end if;
 
   if v_coupon_code is not null then
     select content_value into v_coupon_data
@@ -206,6 +210,10 @@ begin
       from jsonb_array_elements(v_coupon_data) with ordinality as entry(value, ordinality)
     ), updated_at = now()
     where content_key = 'coupons';
+  end if;
+
+  if p_cod_percentage > 0 then
+    v_cod_fee := ceil(greatest(0, v_subtotal + v_shipping_fee - v_discount) * p_cod_percentage / 100);
   end if;
 
   insert into public.store_orders(
@@ -306,5 +314,5 @@ begin
 end;
 $$;
 
-revoke all on function public.create_customer_order(uuid, text, jsonb, jsonb, numeric, numeric, numeric, numeric, numeric, numeric, text) from public, anon, authenticated;
+revoke all on function public.create_customer_order(uuid, text, jsonb, jsonb, numeric, numeric, numeric, numeric, numeric, numeric, numeric, text) from public, anon, authenticated;
 grant execute on function public.create_customer_order(uuid, text, jsonb, jsonb, numeric, numeric, numeric, numeric, numeric, numeric, text) to service_role;
