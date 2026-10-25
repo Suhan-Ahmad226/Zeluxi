@@ -6,6 +6,7 @@ import { supabase } from '../../lib/supabase';
 import { getCloudinaryPublicId, persistProductImageUrls, removeProductImageUrls, uploadCloudinaryMedia } from '../../lib/productImageStorage';
 import { compressImageFile } from '../../utils/imageCompressor';
 import { StoreImage } from '../common/StoreImage';
+import { ProductAIAssistant, AIProductDraft } from './ProductAIAssistant';
 import {
   X,
   Upload,
@@ -271,6 +272,22 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
       setHasUnsavedChanges(true);
     }
   }, [name, sku, description, price, stock, images]);
+
+  const handleApplyAIDraft = (draft: AIProductDraft) => {
+    setName(draft.name);
+    setShortDesc(draft.shortDescription);
+    setDescription(draft.description);
+    setTagsInput(draft.tags.join(', '));
+    setSeoTitle(draft.seoTitle);
+    setSeoDescription(draft.seoDescription);
+    setSeoKeywords(draft.seoKeywords);
+    if (draft.specifications.length > 0) {
+      setSpecList(draft.specifications.map((spec) => ({ key: spec.key, value: spec.value })));
+    }
+    setHasUnsavedChanges(true);
+    showToast('AI draft applied. Review the content before saving the product.', 'success');
+    setActiveTab('general');
+  };
 
   if (!isOpen) return null;
 
@@ -1004,7 +1021,16 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
             <div className={showLivePreview ? 'lg:col-span-2 space-y-6' : 'space-y-6'}>
               {/* TAB 1: GENERAL & PRICING */}
               {activeTab === 'general' && (
-                <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-6 shadow-sm space-y-5 text-sm">
+                <div className="space-y-5 text-sm">
+                  {!productToEdit && (
+                    <ProductAIAssistant
+                      categories={[...new Set(categories.filter((item) => item.isActive !== false).map((item) => item.name))]}
+                      selectedCategory={category}
+                      initialName={name}
+                      onApply={handleApplyAIDraft}
+                    />
+                  )}
+                  <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-6 shadow-sm space-y-5 text-sm">
                   <div>
                     <h3 className="text-sm font-bold text-slate-900">Essential Product Information</h3>
                     <p className="text-slate-500 text-[11px]">Core product identification, category mapping, and pricing architecture</p>
@@ -1372,6 +1398,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
                         className="w-full px-3 py-2 border border-slate-300 rounded-lg"
                       />
                     </div>
+                  </div>
                   </div>
                 </div>
               )}
