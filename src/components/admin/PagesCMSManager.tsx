@@ -239,9 +239,16 @@ export const PagesCMSManager: React.FC = () => {
                 <td className="p-3.5 font-mono text-slate-500 text-[11px]">{formatDateOnly(page.lastUpdated)}</td>
                 <td className="p-3.5 text-right space-x-1">
                   <button
-                    onClick={() => router.push(`/${encodeURIComponent(page.slug)}`)}
-                    className="p-1.5 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-                    title="Open public page"
+                    onClick={() => {
+                      if (!page.isPublished) {
+                        showToast('Publish this page before opening its public URL.', 'info');
+                        return;
+                      }
+                      router.push(`/${encodeURIComponent(page.slug)}`);
+                    }}
+                    className={`p-1.5 rounded-lg transition-colors ${page.isPublished ? 'text-slate-500 hover:text-indigo-600 hover:bg-indigo-50' : 'cursor-not-allowed text-slate-300'}`}
+                    title={page.isPublished ? 'Open public page' : 'Publish this page to make its public URL available'}
+                    aria-label={page.isPublished ? `View ${page.title}` : `Publish ${page.title} to view its public page`}
                   >
                     <Eye className="w-3.5 h-3.5" />
                   </button>
