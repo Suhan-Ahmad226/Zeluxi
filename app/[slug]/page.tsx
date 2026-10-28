@@ -34,7 +34,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function CmsSlugPage({ params }: Props) {
   const { slug } = await params;
-  const page = (await getPublicCmsPages()).find((item) => item.slug === slug);
+  const normalizedSlug = slug.toLowerCase();
+  const page = (await getPublicCmsPages()).find((item) => item.slug.toLowerCase() === normalizedSlug);
   if (!page) notFound();
   return (
     <CmsPageShell>
