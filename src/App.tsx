@@ -154,7 +154,7 @@ const MainStoreContent: React.FC<{ productSlug?: string }> = ({ productSlug }) =
   );
 };
 
-export default function App({ initialView = 'store', productSlug }: { initialView?: 'store' | 'shop' | 'tracking' | 'account' | 'admin' | 'about' | 'verify-email' | 'product'; productSlug?: string }) {
+export default function App({ initialView = 'store', productSlug }: { initialView?: 'store' | 'shop' | 'tracking' | 'account' | 'admin' | 'about' | 'verify-email' | 'product' | 'checkout'; productSlug?: string }) {
   return (
     <AuthProvider>
       <StoreProvider initialView={initialView}>
