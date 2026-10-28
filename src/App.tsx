@@ -42,7 +42,7 @@ const MainStoreContent: React.FC<{ productSlug?: string }> = ({ productSlug }) =
   const [authModalLoaded, setAuthModalLoaded] = React.useState(false);
   const [productModalLoaded, setProductModalLoaded] = React.useState(false);
   const [cartDrawerLoaded, setCartDrawerLoaded] = React.useState(false);
-  const [checkoutModalLoaded, setCheckoutModalLoaded] = React.useState(false);
+  const [checkoutModalLoaded, setCheckoutModalLoaded] = React.useState(activeView === 'checkout');
   const [orderSuccessLoaded, setOrderSuccessLoaded] = React.useState(false);
   const [sizeGuideLoaded, setSizeGuideLoaded] = React.useState(false);
   const [compareModalLoaded, setCompareModalLoaded] = React.useState(false);
@@ -50,7 +50,7 @@ const MainStoreContent: React.FC<{ productSlug?: string }> = ({ productSlug }) =
   React.useEffect(() => { if (isAuthModalOpen) setAuthModalLoaded(true); }, [isAuthModalOpen]);
   React.useEffect(() => { if (selectedProduct) setProductModalLoaded(true); }, [selectedProduct]);
   React.useEffect(() => { if (isCartOpen) setCartDrawerLoaded(true); }, [isCartOpen]);
-  React.useEffect(() => { if (isCheckoutOpen) setCheckoutModalLoaded(true); }, [isCheckoutOpen]);
+  React.useEffect(() => { if (isCheckoutOpen || activeView === 'checkout') setCheckoutModalLoaded(true); }, [isCheckoutOpen, activeView]);
   React.useEffect(() => { if (lastCreatedOrder) setOrderSuccessLoaded(true); }, [lastCreatedOrder]);
   React.useEffect(() => { if (isSizeGuideOpen) setSizeGuideLoaded(true); }, [isSizeGuideOpen]);
   React.useEffect(() => { if (isCompareOpen) setCompareModalLoaded(true); }, [isCompareOpen]);
@@ -118,6 +118,10 @@ const MainStoreContent: React.FC<{ productSlug?: string }> = ({ productSlug }) =
         {activeView === 'account' && <React.Suspense fallback={<div className="min-h-[40vh]" aria-busy="true" />}><CustomerAccountView /></React.Suspense>}
 
         {activeView === 'verify-email' && <React.Suspense fallback={<div className="min-h-[40vh]" aria-busy="true" />}><VerifyEmailScreen /></React.Suspense>}
+
+        {activeView === 'checkout' && <React.Suspense fallback={<div className="min-h-[40vh]" aria-busy="true" />}>
+          {checkoutModalLoaded && <CheckoutModal pageMode />}
+        </React.Suspense>}
       </main>
 
       <Footer />
@@ -138,7 +142,7 @@ const MainStoreContent: React.FC<{ productSlug?: string }> = ({ productSlug }) =
         {authModalLoaded && <AuthModal />}
         {productModalLoaded && <ProductModal />}
         {cartDrawerLoaded && <CartDrawer />}
-        {checkoutModalLoaded && <CheckoutModal />}
+        {checkoutModalLoaded && activeView !== 'checkout' && <CheckoutModal />}
         {orderSuccessLoaded && <OrderSuccessModal />}
         {sizeGuideLoaded && <SizeGuideModal />}
         {compareModalLoaded && <ProductCompareModal />}
