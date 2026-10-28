@@ -9,7 +9,8 @@ export const dynamic = 'force-dynamic';
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const page = (await getPublicCmsPages()).find((item) => item.slug === slug);
+  const normalizedSlug = slug.toLowerCase();
+  const page = (await getPublicCmsPages()).find((item) => item.slug.toLowerCase() === normalizedSlug);
   if (!page) return { title: 'Page not found', robots: { index: false, follow: false } };
   const storeName = await getPublicStoreName();
   const base = (await getPublicSiteOrigin()).replace(/\/$/, '');
