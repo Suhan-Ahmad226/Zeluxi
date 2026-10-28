@@ -66,7 +66,7 @@ interface StoreContextType {
   isCompareOpen: boolean;
   isSizeGuideOpen: boolean;
   language: Language;
-  activeView: 'store' | 'shop' | 'tracking' | 'account' | 'admin' | 'about' | 'verify-email' | 'product';
+  activeView: 'store' | 'shop' | 'tracking' | 'account' | 'admin' | 'about' | 'verify-email' | 'product' | 'checkout';
   activeFilterTab: 'all' | 'new-arrivals' | 'best-sellers' | 'deals' | 'featured';
   selectedCategoryFilter: string | null;
   searchQuery: string;
@@ -163,7 +163,7 @@ const pendingProductCreates = new Map<string, Product>();
 // New namespace intentionally ignores legacy browser-only commerce records during hardening.
 const LOCAL_STORAGE_KEY = 'ZELUX_ECOMMERCE_STATE_V3';
 
-type StoreView = 'store' | 'shop' | 'tracking' | 'account' | 'admin' | 'about' | 'verify-email' | 'product';
+type StoreView = 'store' | 'shop' | 'tracking' | 'account' | 'admin' | 'about' | 'verify-email' | 'product' | 'checkout';
 
 export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: StoreView }> = ({ children, initialView = 'store' }) => {
   const router = useRouter();
