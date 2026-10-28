@@ -1,9 +1,8 @@
 import type { MetadataRoute } from 'next';
-import { getPublicCmsPages } from './_components/PublicCmsPage';
-
-const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || 'https://zeluxi.vercel.app').replace(/\/$/, '');
+import { getPublicCmsPages, getPublicSiteOrigin } from './_components/PublicCmsPage';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const siteUrl = (await getPublicSiteOrigin()).replace(/\/$/, '');
   const now = new Date();
   const fixed: MetadataRoute.Sitemap = [
     { url: siteUrl, lastModified: now, changeFrequency: 'daily', priority: 1 },

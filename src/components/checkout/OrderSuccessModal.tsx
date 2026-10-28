@@ -100,7 +100,7 @@ export const OrderSuccessModal: React.FC = () => {
 
           {/* Shared canonical invoice markup renders productSku, specifications, variantSku, and variant attributes from immutable order snapshots. */}
           <div
-            id="zeluxi-order-invoice"
+            id="store-order-invoice"
             className="invoice-print border border-slate-200 rounded-xl p-5 bg-white"
             dangerouslySetInnerHTML={{ __html: buildOrderInvoiceHtml(lastCreatedOrder, settings) }}
           />

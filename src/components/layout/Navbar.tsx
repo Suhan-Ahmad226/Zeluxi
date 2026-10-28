@@ -199,7 +199,7 @@ export const Navbar: React.FC = () => {
               <StoreImage src={settings.logoUrl.trim()} alt="" aria-hidden="true" className="h-9 w-9 sm:h-10 sm:w-10 max-w-10 object-contain shrink-0" loading="eager" decoding="async" preset="logo" />
             )}
             <span className="min-w-0 max-w-[9rem] truncate text-base sm:text-xl font-black tracking-tight text-slate-950 group-hover:text-indigo-600 transition-colors uppercase font-mono">
-              {settings.storeName?.trim() || 'Zelux'}
+              {settings.storeName?.trim() || 'Store'}
             </span>
             <span className="hidden sm:inline-block text-[9px] font-bold tracking-widest uppercase px-1.5 py-0.5 bg-slate-900 text-white rounded font-mono">
               BD

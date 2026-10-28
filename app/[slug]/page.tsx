@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { CmsPageContent, getPublicCmsPages } from '../_components/PublicCmsPage';
+import { CmsPageContent, getPublicCmsPages, getPublicSiteOrigin, getPublicStoreName, replaceStoreName } from '../_components/PublicCmsPage';
 import { CmsPageShell } from '../_components/CmsPageShell';
 
 type Props = { params: Promise<{ slug: string }> };
@@ -11,17 +11,20 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const page = (await getPublicCmsPages()).find((item) => item.slug === slug);
   if (!page) return { title: 'Page not found', robots: { index: false, follow: false } };
-  const base = (process.env.NEXT_PUBLIC_SITE_URL || 'https://zeluxi.vercel.app').replace(/\/$/, '');
+  const storeName = await getPublicStoreName();
+  const base = (await getPublicSiteOrigin()).replace(/\/$/, '');
   const canonical = `${base}/${encodeURIComponent(page.slug)}`;
+  const title = replaceStoreName(page.seoTitle || page.title, storeName);
+  const description = replaceStoreName(page.seoDescription || page.title, storeName);
   return {
-    title: page.seoTitle || page.title,
-    description: page.seoDescription || page.title,
+    title,
+    description,
     alternates: { canonical },
     robots: { index: true, follow: true },
     openGraph: {
       type: 'website',
-      title: page.seoTitle || page.title,
-      description: page.seoDescription || page.title,
+      title,
+      description,
       url: canonical,
       ...(page.ogImageUrl ? { images: [page.ogImageUrl] } : {}),
     },

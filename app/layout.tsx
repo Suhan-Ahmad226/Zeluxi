@@ -4,7 +4,7 @@ import { headers } from 'next/headers';
 import './site.css';
 import { PwaRegister } from './PwaRegister';
 
-const fallbackSiteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+const fallbackSiteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://pelomart.com';
 const fallbackDescription = 'Discover thoughtfully curated products from our store in Bangladesh.';
 
 async function readPublicStoreSettings(origin: string): Promise<Record<string, unknown>> {
@@ -31,17 +31,18 @@ export async function generateMetadata(): Promise<Metadata> {
   const storeName = typeof settings.storeName === 'string' && settings.storeName.trim()
     ? settings.storeName.trim()
     : 'Store';
-  const description = typeof settings.seoDescription === 'string' && settings.seoDescription.trim()
+  const replaceBrand = (value: string) => value.replace(/\bzeluxi\b(?!\.)/gi, storeName);
+  const description = replaceBrand(typeof settings.seoDescription === 'string' && settings.seoDescription.trim()
     ? settings.seoDescription.trim()
     : typeof settings.tagline === 'string' && settings.tagline.trim()
       ? settings.tagline.trim()
-      : fallbackDescription;
-  const title = typeof settings.seoTitle === 'string' && settings.seoTitle.trim()
+      : fallbackDescription);
+  const title = replaceBrand(typeof settings.seoTitle === 'string' && settings.seoTitle.trim()
     ? settings.seoTitle.trim()
-    : `${storeName} — Online Store in Bangladesh`;
+    : `${storeName} — Online Store in Bangladesh`);
 
   return {
-    metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || origin),
+    metadataBase: new URL(origin),
     applicationName: storeName,
     title: { default: title, template: `%s | ${storeName}` },
     description,

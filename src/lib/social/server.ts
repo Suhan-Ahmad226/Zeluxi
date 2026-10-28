@@ -53,7 +53,7 @@ export function decryptSocialToken(payload: string): string {
 }
 
 export function productUrl(slug: unknown, id: string): string {
-  const origin = (process.env.NEXT_PUBLIC_SITE_URL || 'https://zeluxi.vercel.app').replace(/\/$/, '');
+  const origin = (process.env.NEXT_PUBLIC_SITE_URL || 'https://pelomart.com').replace(/\/$/, '');
   const safeSlug = typeof slug === 'string' && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug) ? slug : '';
   return `${origin}/products/${encodeURIComponent(safeSlug || id)}`;
 }
