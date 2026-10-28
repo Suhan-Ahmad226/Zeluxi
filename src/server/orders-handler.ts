@@ -399,6 +399,9 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
       notes: parsed.data.customer.notes,
       items,
     });
+    if (parsed.data.paymentMethod === 'COD' && !quote.codEnabled) {
+      return res.status(422).json({ error: 'Cash on delivery is not available for this delivery plan. Please choose a prepaid mobile wallet method.', code: 'PATHAO_COD_UNAVAILABLE' });
+    }
     const { data: settingsRow, error: settingsError } = await admin.from('store_content')
       .select('content_value').eq('content_key', 'settings').maybeSingle();
     if (settingsError) return res.status(503).json({ error: 'Checkout pricing settings could not be loaded.' });

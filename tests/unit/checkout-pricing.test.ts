@@ -28,7 +28,9 @@ test('Pathao city, zone and area matching stays server-side with no courier cont
 test('shipping quote is calculated from catalog prices and product weights, never browser totals', () => {
   assert.match(quoteService, /select\('id,name,price,stock,published,archived,product_data'\)/);
   assert.match(quoteService, /calculatePathaoPrice/);
-  assert.match(quoteService, /PATHAO_COD_UNAVAILABLE/);
+  assert.match(quoteService, /codEnabled: Number\(rate\.cod_enabled \|\| 0\) === 1/);
+  assert.match(orderApi, /parsed\.data\.paymentMethod === 'COD' && !quote\.codEnabled/);
+  assert.match(orderApi, /PATHAO_COD_UNAVAILABLE/);
   assert.match(quoteService, /PRODUCT_WEIGHT_REQUIRED/);
   assert.equal(quoteService.includes('PATHAO_DEFAULT_ITEM_WEIGHT_KG || 0.5'), false);
   assert.match(read('src/lib/shipping/pathao-booking.ts'), /PRODUCT_WEIGHT_REQUIRED/);
