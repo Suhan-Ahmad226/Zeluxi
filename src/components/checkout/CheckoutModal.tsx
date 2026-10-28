@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useStore } from '../../context/StoreContext';
 import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../lib/supabase';
@@ -25,7 +26,8 @@ import { shippingAddressSchema } from '../../lib/validation/schemas';
 import { BANGLADESH_DIVISIONS, getDistrictsByDivision, getUpazilasByDistrict } from '../../lib/address/bangladesh-locations';
 
 import { StoreImage } from '../common/StoreImage';
-export const CheckoutModal: React.FC = () => {
+export const CheckoutModal: React.FC<{ pageMode?: boolean }> = ({ pageMode = false }) => {
+  const router = useRouter();
   const {
     isCheckoutOpen,
     setIsCheckoutOpen,
@@ -69,7 +71,11 @@ export const CheckoutModal: React.FC = () => {
   } = useAuth();
 
   useEffect(() => {
-    if (userProfile && isCheckoutOpen) {
+    if (!pageMode && isCheckoutOpen) router.replace('/checkout');
+  }, [pageMode, isCheckoutOpen, router]);
+
+  useEffect(() => {
+    if (userProfile && (pageMode || isCheckoutOpen)) {
       if (userProfile.displayName && !fullName) setFullName(userProfile.displayName);
       if (userProfile.phone && !phone) setPhone(userProfile.phone);
       if (userProfile.email && !email) setEmail(userProfile.email);
@@ -79,12 +85,12 @@ export const CheckoutModal: React.FC = () => {
       if (userProfile.upazila || (userProfile as any).thanaCity) setUpazila(userProfile.upazila || (userProfile as any).thanaCity || '');
       if (typeof userProfile.notes === 'string') setNotes(userProfile.notes);
     }
-  }, [userProfile, isCheckoutOpen]);
+  }, [userProfile, pageMode, isCheckoutOpen]);
 
   useEffect(() => {
     let active = true;
     const requestQuote = async () => {
-      if (!isCheckoutOpen || !district || !upazila || !addressDetails.trim() || cart.length === 0) {
+      if ((!pageMode && !isCheckoutOpen) || !district || !upazila || !addressDetails.trim() || cart.length === 0) {
         setShippingQuote(null);
         setShippingQuoteError(null);
         setIsQuoteLoading(false);
@@ -124,9 +130,9 @@ export const CheckoutModal: React.FC = () => {
     };
     void requestQuote();
     return () => { active = false; };
-  }, [isCheckoutOpen, district, upazila, addressDetails, notes, cart]);
+  }, [pageMode, isCheckoutOpen, district, upazila, addressDetails, notes, cart]);
 
-  if (!isCheckoutOpen) return null;
+  if (!pageMode) return null;
 
   const activeUserEmail = supabaseUser?.email || currentUser?.email || userProfile?.email;
   const isAuthenticated = Boolean(supabaseUser || currentUser);
@@ -278,26 +284,29 @@ export const CheckoutModal: React.FC = () => {
   };
 
   return (
-      <div className="fixed inset-0 z-[60] overflow-y-auto bg-slate-50 animate-in fade-in duration-150">
-      <div className="mx-auto min-h-full w-full max-w-6xl bg-white shadow-xl sm:border-x sm:border-slate-200">
+      <div className={pageMode ? 'w-full bg-slate-50 py-5 sm:py-8 lg:py-10' : 'hidden'}>
+      <div className={pageMode ? "mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8" : "hidden"}>
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/70">
+        <div className="flex items-center justify-between border-b border-slate-200 px-0 py-4">
           <div className="flex items-center gap-2">
             <Lock className="w-4 h-4 text-emerald-600" />
             <h2 className="text-base font-bold text-slate-900">
               Checkout
             </h2>
           </div>
-          <button
-            onClick={() => setIsCheckoutOpen(false)}
-            className="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-200/60"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          {!pageMode && (
+            <button
+              onClick={() => setIsCheckoutOpen(false)}
+              aria-label="Close checkout"
+              className="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-200/60"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          )}
         </div>
 
         {/* Checkout Form */}
-        <form onSubmit={handleSubmitOrder} className="grid grid-cols-1 gap-5 p-4 sm:p-6 lg:grid-cols-[minmax(0,1fr)_minmax(320px,0.78fr)] lg:gap-8 lg:p-8">
+        <form onSubmit={handleSubmitOrder} className="grid min-w-0 grid-cols-1 gap-8 py-5 sm:py-7 lg:gap-8">
           {formError && (
             <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 flex items-center gap-2">
               <AlertCircle className="w-4 h-4 shrink-0 text-red-600" />
@@ -306,16 +315,16 @@ export const CheckoutModal: React.FC = () => {
           )}
 
           {/* Cart and checkout are one continuous page. */}
-          <section className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 lg:col-span-2">
+          <section className="min-w-0 space-y-4 border-b border-slate-200 pb-6 ">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
                 <h3 className="text-sm font-bold text-slate-900">Your items</h3>
                 <p className="mt-1 text-xs text-slate-500">{cart.reduce((count, item) => count + item.quantity, 0)} items · Review options and quantities before ordering</p>
               </div>
-              <button type="button" onClick={() => { setIsCheckoutOpen(false); setActiveView('store'); }} className="text-xs font-semibold text-slate-600 underline underline-offset-4 hover:text-slate-950">Continue shopping</button>
+              <button type="button" onClick={() => { setIsCheckoutOpen(false); if (pageMode) router.push('/'); else setActiveView('store'); }} className="text-xs font-semibold text-slate-600 underline underline-offset-4 hover:text-slate-950">Continue shopping</button>
             </div>
             {cart.length === 0 ? (
-              <div className="rounded-xl bg-slate-50 p-6 text-center text-sm text-slate-500">Your cart is empty. Add a product before checkout.</div>
+              <div className="py-8 text-center text-sm text-slate-500">Your cart is empty. Add a product before checkout.</div>
             ) : (
               <div className="divide-y divide-slate-100">
                 {cart.map((item) => (
@@ -341,7 +350,8 @@ export const CheckoutModal: React.FC = () => {
             )}
           </section>
 
-          <div className="space-y-5 lg:col-start-1">
+          <div className="grid min-w-0 grid-cols-1 gap-8  lg:grid-cols-[minmax(0,1.45fr)_minmax(300px,0.8fr)] lg:items-start lg:gap-12">
+          <div className="min-w-0 space-y-8">
           {/* Section 1: Contact Information */}
           <div className="space-y-3">
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">
@@ -402,7 +412,7 @@ export const CheckoutModal: React.FC = () => {
           </div>
 
           {/* Section 2: Shipping Destination */}
-          <div className="space-y-3 pt-3 border-t border-slate-100">
+          <div className="space-y-3 border-t border-slate-200 pt-5">
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">
               2. Delivery address
             </h3>
@@ -732,7 +742,7 @@ export const CheckoutModal: React.FC = () => {
           </div>
 
           {/* Order Summary and coupon controls */}
-          <section className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:p-5 lg:sticky lg:top-5 lg:self-start">
+          <section className="min-w-0 space-y-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5 lg:sticky lg:top-24 lg:self-start">
             <h3 className="text-sm font-bold text-slate-900">Order summary</h3>
             {appliedCoupon ? (
               <div className="flex items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs">
@@ -746,7 +756,7 @@ export const CheckoutModal: React.FC = () => {
                 <button type="button" onClick={handleApplyCoupon} disabled={!couponCodeInput.trim()} className="min-h-11 rounded-xl bg-slate-900 px-4 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-40">Apply</button>
               </div>
             )}
-            <div className="rounded-xl border border-slate-200 bg-white p-4 space-y-2 text-xs text-slate-600">
+            <div className="space-y-3 py-3 text-sm text-slate-600">
             <div className="flex justify-between">
               <span>Subtotal</span>
               <span className="font-semibold text-slate-900 tabular-nums">{formatPrice(pricingSubtotal)}</span>
@@ -775,9 +785,11 @@ export const CheckoutModal: React.FC = () => {
             </div>
           </section>
 
+          </div>
+
           {/* Customer Verification Status Banner */}
           {isAuthenticated && isEmailConfirmed ? (
-            <div className="lg:col-span-2 p-3 bg-emerald-50/80 border border-emerald-200 rounded-xl text-xs flex items-center justify-between text-emerald-900">
+            <div className=" p-3 bg-emerald-50/80 border border-emerald-200 rounded-xl text-xs flex items-center justify-between text-emerald-900">
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
                 <span>
@@ -790,7 +802,7 @@ export const CheckoutModal: React.FC = () => {
               </span>
             </div>
           ) : isAuthenticated && !isEmailConfirmed ? (
-            <div className="lg:col-span-2 p-3.5 bg-amber-50 border border-amber-200 rounded-xl text-xs space-y-2 text-amber-900">
+            <div className=" p-3.5 bg-amber-50 border border-amber-200 rounded-xl text-xs space-y-2 text-amber-900">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 font-bold">
                   <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
@@ -819,7 +831,7 @@ export const CheckoutModal: React.FC = () => {
               </button>
             </div>
           ) : (
-            <div className="lg:col-span-2 p-3.5 bg-slate-100 border border-slate-200 rounded-xl text-xs space-y-2">
+            <div className=" p-3.5 bg-slate-100 border border-slate-200 rounded-xl text-xs space-y-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 font-bold text-slate-800">
                   <Lock className="w-4 h-4 text-slate-600 shrink-0" />
@@ -848,7 +860,7 @@ export const CheckoutModal: React.FC = () => {
           )}
 
           {/* Submit Action */}
-          <div className="sticky bottom-0 z-20 -mx-4 border-t border-slate-200 bg-white/95 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] backdrop-blur sm:-mx-6 sm:px-6 lg:col-span-2 lg:mx-0 lg:rounded-xl lg:border lg:p-4">
+          <div className="border-t border-slate-200 pt-5 ">
             <button
               type="submit"
               disabled={isProcessing || cart.length === 0 || !shippingQuote || !shippingQuote.areaId || isQuoteLoading}

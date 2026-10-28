@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useStore } from '../../context/StoreContext';
 import { formatPrice } from '../../utils/formatters';
 import { StoreImage } from '../common/StoreImage';
@@ -22,6 +23,7 @@ import {
 
 import { ModalPortal } from '../common/ModalPortal';
 export const ProductModal: React.FC = () => {
+  const router = useRouter();
   const {
     selectedProduct,
     setSelectedProduct,
@@ -92,7 +94,8 @@ export const ProductModal: React.FC = () => {
     if (isOutOfStock || requiresVariantSelection) return;
     addToCart(selectedProduct, selectedVariantId, quantity);
     setSelectedProduct(null);
-    setIsCheckoutOpen(true);
+    setIsCheckoutOpen(false);
+    router.push('/checkout');
   };
 
   const handleShare = () => {
