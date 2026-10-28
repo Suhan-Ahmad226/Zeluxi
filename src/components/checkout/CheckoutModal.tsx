@@ -339,7 +339,8 @@ export const CheckoutModal: React.FC<{ pageMode?: boolean }> = ({ pageMode = fal
             )}
           </section>
 
-          <div className="grid min-w-0 grid-cols-1 gap-8  lg:grid-cols-[minmax(0,1.45fr)_minmax(300px,0.8fr)] lg:items-start lg:gap-12">\n          <div className="min-w-0 space-y-8">
+          <div className="grid min-w-0 grid-cols-1 gap-8  lg:grid-cols-[minmax(0,1.45fr)_minmax(300px,0.8fr)] lg:items-start lg:gap-12">
+          <div className="min-w-0 space-y-8">
           {/* Section 1: Contact Information */}
           <div className="space-y-3">
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">
