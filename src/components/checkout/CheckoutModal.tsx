@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useStore } from '../../context/StoreContext';
 import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../lib/supabase';
@@ -25,7 +26,8 @@ import { shippingAddressSchema } from '../../lib/validation/schemas';
 import { BANGLADESH_DIVISIONS, getDistrictsByDivision, getUpazilasByDistrict } from '../../lib/address/bangladesh-locations';
 
 import { StoreImage } from '../common/StoreImage';
-export const CheckoutModal: React.FC = () => {
+export const CheckoutModal: React.FC<{ pageMode?: boolean }> = ({ pageMode = false }) => {
+  const router = useRouter();
   const {
     isCheckoutOpen,
     setIsCheckoutOpen,
@@ -68,7 +70,7 @@ export const CheckoutModal: React.FC = () => {
   } = useAuth();
 
   useEffect(() => {
-    if (userProfile && isCheckoutOpen) {
+    if (userProfile && (pageMode || isCheckoutOpen)) {
       if (userProfile.displayName && !fullName) setFullName(userProfile.displayName);
       if (userProfile.phone && !phone) setPhone(userProfile.phone);
       if (userProfile.email && !email) setEmail(userProfile.email);
@@ -78,12 +80,12 @@ export const CheckoutModal: React.FC = () => {
       if (userProfile.upazila || (userProfile as any).thanaCity) setUpazila(userProfile.upazila || (userProfile as any).thanaCity || '');
       if (typeof userProfile.notes === 'string') setNotes(userProfile.notes);
     }
-  }, [userProfile, isCheckoutOpen]);
+  }, [userProfile, pageMode, isCheckoutOpen]);
 
   useEffect(() => {
     let active = true;
     const requestQuote = async () => {
-      if (!isCheckoutOpen || !district || !upazila || !addressDetails.trim() || cart.length === 0) {
+      if ((!pageMode && !isCheckoutOpen) || !district || !upazila || !addressDetails.trim() || cart.length === 0) {
         setShippingQuote(null);
         setShippingQuoteError(null);
         setIsQuoteLoading(false);
@@ -123,9 +125,9 @@ export const CheckoutModal: React.FC = () => {
     };
     void requestQuote();
     return () => { active = false; };
-  }, [isCheckoutOpen, district, upazila, addressDetails, notes, cart]);
+  }, [pageMode, isCheckoutOpen, district, upazila, addressDetails, notes, cart]);
 
-  if (!isCheckoutOpen) return null;
+  if (!pageMode && !isCheckoutOpen) return null;
 
   const activeUserEmail = supabaseUser?.email || currentUser?.email || userProfile?.email;
   const isAuthenticated = Boolean(supabaseUser || currentUser);
@@ -267,7 +269,7 @@ export const CheckoutModal: React.FC = () => {
   };
 
   return (
-      <div className="fixed inset-0 z-[60] overflow-y-auto bg-slate-50 animate-in fade-in duration-150">
+      <div className={pageMode ? 'min-h-[60vh] bg-slate-50' : 'fixed inset-0 z-[60] overflow-y-auto bg-slate-50 animate-in fade-in duration-150'}>
       <div className="mx-auto min-h-full w-full max-w-6xl bg-white shadow-xl sm:border-x sm:border-slate-200">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/70">
@@ -278,7 +280,8 @@ export const CheckoutModal: React.FC = () => {
             </h2>
           </div>
           <button
-            onClick={() => setIsCheckoutOpen(false)}
+            onClick={() => pageMode ? router.push('/') : setIsCheckoutOpen(false)}
+            aria-label={pageMode ? 'Continue shopping' : 'Close checkout'}
             className="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-200/60"
           >
             <X className="w-5 h-5" />
@@ -301,7 +304,7 @@ export const CheckoutModal: React.FC = () => {
                 <h3 className="text-sm font-bold text-slate-900">Your items</h3>
                 <p className="mt-1 text-xs text-slate-500">{cart.reduce((count, item) => count + item.quantity, 0)} items · Review options and quantities before ordering</p>
               </div>
-              <button type="button" onClick={() => { setIsCheckoutOpen(false); setActiveView('store'); }} className="text-xs font-semibold text-slate-600 underline underline-offset-4 hover:text-slate-950">Continue shopping</button>
+              <button type="button" onClick={() => { setIsCheckoutOpen(false); if (pageMode) router.push('/'); else setActiveView('store'); }} className="text-xs font-semibold text-slate-600 underline underline-offset-4 hover:text-slate-950">Continue shopping</button>
             </div>
             {cart.length === 0 ? (
               <div className="rounded-xl bg-slate-50 p-6 text-center text-sm text-slate-500">Your cart is empty. Add a product before checkout.</div>
