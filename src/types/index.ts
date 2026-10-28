@@ -220,6 +220,7 @@ export interface Order {
   paymentMethod: PaymentMethod;
   paymentStatus: PaymentStatus;
   transactionId?: string;
+  paymentSenderNumber?: string;
   courier: {
     provider: CourierProvider;
     trackingCode: string;
@@ -305,6 +306,10 @@ export interface StoreSettings {
   pathaoApiKeyConfigured: boolean;
   steadfastApiKeyConfigured: boolean;
   bkashMerchantConfigured: boolean;
+  /** Admin-managed recipient accounts for manual mobile-wallet payments. */
+  bkashPaymentNumber?: string;
+  nagadPaymentNumber?: string;
+  rocketPaymentNumber?: string;
   seoTitle?: string;
   seoDescription?: string;
   seoKeywords?: string;

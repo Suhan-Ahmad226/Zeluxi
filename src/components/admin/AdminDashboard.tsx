@@ -86,6 +86,7 @@ export const AdminDashboard: React.FC = () => {
     storefrontCMS,
     answerQuestion,
     updateOrderStatus,
+    updateOrderPaymentStatus,
     acceptOrderAndBookCourier,
     retryCourierBooking,
     syncCourierStatus,
@@ -325,6 +326,9 @@ export const AdminDashboard: React.FC = () => {
   const [shippingDhakaInput, setShippingDhakaInput] = useState(settings.shippingDhaka);
   const [shippingOutsideInput, setShippingOutsideInput] = useState(settings.shippingOutsideDhaka);
   const [freeThresholdInput, setFreeThresholdInput] = useState(settings.freeShippingThreshold);
+  const [bkashPaymentNumberInput, setBkashPaymentNumberInput] = useState(settings.bkashPaymentNumber || '');
+  const [nagadPaymentNumberInput, setNagadPaymentNumberInput] = useState(settings.nagadPaymentNumber || '');
+  const [rocketPaymentNumberInput, setRocketPaymentNumberInput] = useState(settings.rocketPaymentNumber || '');
 
   // Settings may arrive asynchronously from the content API after this component mounts.
   React.useEffect(() => {
@@ -356,6 +360,9 @@ export const AdminDashboard: React.FC = () => {
     setShippingDhakaInput(settings.shippingDhaka);
     setShippingOutsideInput(settings.shippingOutsideDhaka);
     setFreeThresholdInput(settings.freeShippingThreshold);
+    setBkashPaymentNumberInput(settings.bkashPaymentNumber || '');
+    setNagadPaymentNumberInput(settings.nagadPaymentNumber || '');
+    setRocketPaymentNumberInput(settings.rocketPaymentNumber || '');
   }, [settings]);
 
   // Quick Edit Price & Delete Product States
@@ -532,6 +539,9 @@ export const AdminDashboard: React.FC = () => {
       shippingDhaka: Number(shippingDhakaInput),
       shippingOutsideDhaka: Number(shippingOutsideInput),
       freeShippingThreshold: Number(freeThresholdInput),
+      bkashPaymentNumber: bkashPaymentNumberInput.trim(),
+      nagadPaymentNumber: nagadPaymentNumberInput.trim(),
+      rocketPaymentNumber: rocketPaymentNumberInput.trim(),
     });
   };
 
@@ -2261,6 +2271,9 @@ export const AdminDashboard: React.FC = () => {
                   <p className="font-bold text-slate-900">Method: {selectedAdminOrder.paymentMethod}</p>
                   <p className="font-mono font-bold text-indigo-700">Total: {formatPrice(selectedAdminOrder.grandTotal, language)}</p>
                   <p className="text-slate-600">Status: <strong className={selectedAdminOrder.paymentStatus === 'PAID' ? 'text-emerald-700' : 'text-slate-700'}>{selectedAdminOrder.paymentStatus}</strong></p>
+                  {selectedAdminOrder.paymentSenderNumber && <p className="text-slate-600">Sender number: <strong className="font-mono">{selectedAdminOrder.paymentSenderNumber}</strong></p>}
+                  {selectedAdminOrder.transactionId && <p className="text-slate-600">Transaction ID: <strong className="font-mono">{selectedAdminOrder.transactionId}</strong></p>}
+                  {selectedAdminOrder.paymentMethod !== 'COD' && selectedAdminOrder.paymentStatus !== 'PAID' && <button type="button" onClick={async () => { try { await updateOrderPaymentStatus(selectedAdminOrder.id, 'PAID'); setSelectedAdminOrder((current) => current ? { ...current, paymentStatus: 'PAID' } : current); } catch (error) { showToast(error instanceof Error ? error.message : 'Payment status could not be saved.', 'error'); } }} className="mt-2 w-full rounded-lg bg-emerald-600 px-3 py-2 font-semibold text-white hover:bg-emerald-700">Confirm payment received</button>}
                 </div>
               </div>
 
@@ -2760,6 +2773,17 @@ export const AdminDashboard: React.FC = () => {
             </div>
 
             <form onSubmit={handleSaveSettings} className="space-y-4 text-xs">
+              <div className="rounded-xl border border-indigo-100 bg-indigo-50/50 p-4 space-y-3">
+                <div>
+                  <h4 className="text-sm font-bold text-slate-900">Mobile payment numbers</h4>
+                  <p className="mt-1 text-[11px] leading-5 text-slate-600">Customers will send payment to these accounts. Wallet options become available at checkout after a number is saved. Verify each transaction manually before marking an order Paid.</p>
+                </div>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                  <label className="block"><span className="mb-1 block font-semibold text-pink-700">bKash recipient number</span><input type="text" inputMode="tel" maxLength={30} value={bkashPaymentNumberInput} onChange={(e) => setBkashPaymentNumberInput(e.target.value)} placeholder="01XXXXXXXXX" className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 focus:border-indigo-600 focus:outline-none" /></label>
+                  <label className="block"><span className="mb-1 block font-semibold text-amber-700">Nagad recipient number</span><input type="text" inputMode="tel" maxLength={30} value={nagadPaymentNumberInput} onChange={(e) => setNagadPaymentNumberInput(e.target.value)} placeholder="01XXXXXXXXX" className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 focus:border-indigo-600 focus:outline-none" /></label>
+                  <label className="block"><span className="mb-1 block font-semibold text-purple-700">Rocket recipient number</span><input type="text" inputMode="tel" maxLength={30} value={rocketPaymentNumberInput} onChange={(e) => setRocketPaymentNumberInput(e.target.value)} placeholder="Rocket account number" className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 focus:border-indigo-600 focus:outline-none" /></label>
+                </div>
+              </div>
               <div>
                 <label className="font-semibold block mb-1">Brand & Store Name</label>
                 <input
