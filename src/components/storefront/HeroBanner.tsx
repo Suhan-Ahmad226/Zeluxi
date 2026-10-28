@@ -129,7 +129,7 @@ export const HeroBanner: React.FC = () => {
         <div className="grid grid-cols-1 items-center gap-6 sm:gap-8 lg:grid-cols-12 lg:gap-10">
           <div className="min-w-0 space-y-5 lg:col-span-7">
             <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-indigo-300">
-              <span>{banner.tagline && banner.tagline !== 'Zelux Atelier' ? banner.tagline : (settings.tagline?.trim() || settings.storeName?.trim() || 'Store')}</span>
+              <span>{banner.tagline?.trim() || settings.tagline?.trim() || settings.storeName?.trim() || 'Store'}</span>
               <span aria-hidden="true">·</span>
               <span>Curated for you</span>
             </div>

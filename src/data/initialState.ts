@@ -20,7 +20,7 @@ import {
  * into a real storefront.
  */
 export const INITIAL_SETTINGS: StoreSettings = {
-  storeName: 'Zelux',
+  storeName: 'Store',
   logoUrl: '',
   tagline: '',
   phone: '',
@@ -72,7 +72,7 @@ export const INITIAL_PAGES: StaticPageContent[] = [];
 
 export const INITIAL_STOREFRONT_CMS: StorefrontCMS = {
   hero: {
-    tagline: 'Zelux Atelier',
+    tagline: '',
     headline: 'Thoughtfully made for everyday living.',
     description: '',
     primaryButtonText: 'Shop collection',
@@ -87,7 +87,7 @@ export const INITIAL_STOREFRONT_CMS: StorefrontCMS = {
       id: 'hero-default',
       active: true,
       order: 0,
-      tagline: 'Zelux Atelier',
+      tagline: '',
       headline: 'Thoughtfully made for everyday living.',
       description: '',
       primaryButtonText: 'Shop collection',
