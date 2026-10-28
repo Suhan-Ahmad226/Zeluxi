@@ -279,13 +279,15 @@ export const CheckoutModal: React.FC<{ pageMode?: boolean }> = ({ pageMode = fal
               Checkout
             </h2>
           </div>
-          <button
-            onClick={() => pageMode ? router.push('/') : setIsCheckoutOpen(false)}
-            aria-label={pageMode ? 'Continue shopping' : 'Close checkout'}
-            className="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-200/60"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          {!pageMode && (
+            <button
+              onClick={() => setIsCheckoutOpen(false)}
+              aria-label="Close checkout"
+              className="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-200/60"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          )}
         </div>
 
         {/* Checkout Form */}
@@ -724,7 +726,7 @@ export const CheckoutModal: React.FC<{ pageMode?: boolean }> = ({ pageMode = fal
           </div>
 
           {/* Order Summary and coupon controls */}
-          <section className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:p-5 lg:sticky lg:top-5 lg:self-start">
+          <section className="min-w-0 space-y-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:p-5 lg:self-start">
             <h3 className="text-sm font-bold text-slate-900">Order summary</h3>
             {appliedCoupon ? (
               <div className="flex items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs">
