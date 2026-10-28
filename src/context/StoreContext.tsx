@@ -80,7 +80,7 @@ interface StoreContextType {
 
   // Actions
   setLanguage: (lang: Language) => void;
-  setActiveView: (view: 'store' | 'shop' | 'tracking' | 'account' | 'admin' | 'about' | 'verify-email' | 'product') => void;
+  setActiveView: (view: 'store' | 'shop' | 'tracking' | 'account' | 'admin' | 'about' | 'verify-email' | 'product' | 'checkout') => void;
   setActiveFilterTab: (tab: 'all' | 'new-arrivals' | 'best-sellers' | 'deals' | 'featured') => void;
   setActiveStaticPage: (page: string | null) => void;
   setSelectedCategoryFilter: (cat: string | null) => void;
