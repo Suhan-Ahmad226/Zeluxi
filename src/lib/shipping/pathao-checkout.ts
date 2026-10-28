@@ -139,9 +139,7 @@ export async function quotePathaoCheckout(
     cityId: Number(city.city_id),
     zoneId: Number(zone.zone_id),
   });
-  if (Number(rate.cod_enabled) !== 1) {
-    throw new PathaoApiError('Pathao does not support COD for this delivery plan. Choose another supported area or contact the store.', 422, 'PATHAO_COD_UNAVAILABLE');
-  }
+  // COD support is payment-method-specific. Prepaid orders may still use this delivery rate.
   const pathaoFee = Number(rate.final_price);
   if (!Number.isFinite(pathaoFee) || pathaoFee < 0) {
     throw new PathaoApiError('Pathao returned an invalid delivery price. Please retry later.', 502, 'PATHAO_PRICE_INVALID');
