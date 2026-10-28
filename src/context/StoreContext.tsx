@@ -112,7 +112,8 @@ interface StoreContextType {
     paymentMethod: PaymentMethod,
     courierChoice: CourierProvider,
     transactionId?: string,
-    couponCode?: string
+    couponCode?: string,
+    paymentSenderNumber?: string
   ) => Promise<Order>;
   requestOrderCancellation: (orderId: string, reason: string) => Promise<void>;
   requestOrderReturn: (orderId: string, reason: string) => Promise<void>;
@@ -127,6 +128,7 @@ interface StoreContextType {
   retryCourierBooking: (orderId: string, adminActor?: string) => Promise<{ success: boolean; message: string }>;
   syncCourierStatus: (orderId: string, adminActor?: string) => Promise<{ success: boolean; status?: string; message: string }>;
   updateOrderStatus: (orderId: string, status: OrderStatus, note: string, trackingCode?: string) => void;
+  updateOrderPaymentStatus: (orderId: string, paymentStatus: 'PAID' | 'UNPAID' | 'FAILED') => Promise<void>;
   refundOrder: (orderId: string, amount: number, reason: string, adminActor?: string) => Promise<{ success: boolean; message: string }>;
   addProduct: (product: Omit<Product, 'id' | 'rating' | 'reviewCount'> & { id?: string; slug?: string }) => Product;
   /** Update in-memory catalog after a component has already persisted the product through the API. */
@@ -759,12 +761,15 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
     customer: ShippingAddress,
     paymentMethod: PaymentMethod,
     _courierChoice: CourierProvider,
-    _transactionId?: string,
-    couponCode?: string
+    transactionId?: string,
+    couponCode?: string,
+    paymentSenderNumber?: string
   ): Promise<Order> => {
-    // Only COD is supported by the server-side order service. Never accept client totals as authoritative.
-    if (paymentMethod !== 'COD') {
-      throw new Error('Only Cash on Delivery is currently available. Online payments are not enabled yet.');
+    if (!['COD', 'BKASH', 'NAGAD', 'ROCKET'].includes(paymentMethod)) {
+      throw new Error('This payment method is not available. Please choose Cash on Delivery, bKash, Nagad or Rocket.');
+    }
+    if (paymentMethod !== 'COD' && (!transactionId?.trim() || !paymentSenderNumber?.trim())) {
+      throw new Error('Enter the sender wallet number and transaction ID before placing your order.');
     }
     if (!cart.length) throw new Error('Your cart is empty.');
     const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
@@ -794,7 +799,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
       },
       body: JSON.stringify({
         customer,
-        paymentMethod: 'COD',
+        paymentMethod,
+        transactionId: paymentMethod === 'COD' ? undefined : transactionId?.trim(),
+        paymentSenderNumber: paymentMethod === 'COD' ? undefined : paymentSenderNumber?.trim(),
         items: cart.map((item) => ({ productId: item.productId, variantId: item.variantId, quantity: item.quantity })),
         couponCode: couponCode || undefined,
       }),
@@ -832,8 +839,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
       pathaoDeliveryFee: Number.isFinite(Number(payload.order.pathaoDeliveryFee)) ? Number(payload.order.pathaoDeliveryFee) : undefined,
       grandTotal: Number(payload.order.grandTotal),
       status: 'PENDING',
-      paymentMethod: 'COD',
+      paymentMethod: payload.order.paymentMethod === 'BKASH' || payload.order.paymentMethod === 'NAGAD' || payload.order.paymentMethod === 'ROCKET' ? payload.order.paymentMethod : 'COD',
       paymentStatus: 'UNPAID',
+      transactionId: typeof payload.order.transactionId === 'string' ? payload.order.transactionId : undefined,
+      paymentSenderNumber: typeof payload.order.paymentSenderNumber === 'string' ? payload.order.paymentSenderNumber : undefined,
       courier: {
         provider: 'PATHAO',
         trackingCode: '',
@@ -849,6 +858,22 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
     setAppliedCoupon(null);
     showToast('Your order has been placed successfully.', 'success');
     return order;
+  };
+
+  const updateOrderPaymentStatus = async (orderId: string, paymentStatus: 'PAID' | 'UNPAID' | 'FAILED'): Promise<void> => {
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    const token = sessionData.session?.access_token;
+    if (sessionError || !token) throw new Error('Sign in as an administrator before updating payment status.');
+    const response = await fetch('/api/orders', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ action: 'SET_PAYMENT_STATUS', orderId, paymentStatus }),
+      cache: 'no-store',
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(typeof payload.error === 'string' ? payload.error : 'Payment status could not be saved.');
+    setOrders((previous) => previous.map((order) => order.id === orderId ? { ...order, paymentStatus: payload.order.paymentStatus || paymentStatus } : order));
+    showToast(paymentStatus === 'PAID' ? 'Payment marked as paid after verification.' : 'Payment status updated.', 'success');
   };
 
   const acceptOrderAndBookCourier = async (
@@ -1542,6 +1567,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
         askQuestion,
         answerQuestion,
         updateOrderStatus,
+        updateOrderPaymentStatus,
         addProduct,
         syncProduct,
         updateProduct,

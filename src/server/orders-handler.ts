@@ -43,7 +43,9 @@ const addressSchema = z.object({
 });
 const checkoutSchema = z.object({
   customer: addressSchema,
-  paymentMethod: z.literal('COD'),
+  paymentMethod: z.enum(['COD', 'BKASH', 'NAGAD', 'ROCKET']),
+  paymentSenderNumber: z.string().trim().min(8).max(20).regex(/^[0-9+\s-]+$/).optional(),
+  transactionId: z.string().trim().min(4).max(80).regex(/^[A-Za-z0-9_-]+$/).optional(),
   items: z.array(z.object({
     productId: z.string().trim().min(1).max(100),
     variantId: z.string().trim().min(1).max(100).optional(),
@@ -54,6 +56,11 @@ const checkoutSchema = z.object({
 const statusSchema = z.object({
   orderId: z.string().uuid(),
   status: z.enum(['PENDING','CONFIRMED','PROCESSING','READY_TO_SHIP','SHIPPED','OUT_FOR_DELIVERY','DELIVERED','CANCELLED','RETURN_REQUESTED','RETURNED','REFUNDED']),
+}).strict();
+const paymentStatusSchema = z.object({
+  action: z.literal('SET_PAYMENT_STATUS'),
+  orderId: z.string().uuid(),
+  paymentStatus: z.enum(['PAID', 'UNPAID', 'FAILED']),
 }).strict();
 const customerOrderActionSchema = z.object({
   action: z.enum(['CANCEL', 'RETURN']),
@@ -152,6 +159,8 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
           status,
           paymentMethod: row.payment_method,
           paymentStatus: row.payment_status,
+          transactionId: row.transaction_id || undefined,
+          paymentSenderNumber: row.payment_sender_number || undefined,
           courier: (() => {
             const shipment = Array.isArray(row.courier_shipments) ? row.courier_shipments[0] : row.courier_shipments;
             const status = shipment?.status;
@@ -245,6 +254,23 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
           return res.status(409).json({ error: 'The order changed while this request was being submitted. Refresh the order and try again.' });
         }
         return res.status(200).json({ order: { id: updatedOrder.id, status: updatedOrder.status } });
+      }
+
+      const paymentUpdate = paymentStatusSchema.safeParse(req.body);
+      if (paymentUpdate.success) {
+        const { orderId, paymentStatus } = paymentUpdate.data;
+        const { data: paymentOrder, error: paymentOrderError } = await admin.from('store_orders')
+          .select('id,payment_method,payment_sender_number,transaction_id').eq('id', orderId).maybeSingle();
+        if (paymentOrderError) return res.status(503).json({ error: 'Payment details could not be verified.' });
+        if (!paymentOrder) return res.status(404).json({ error: 'Order not found.' });
+        if (paymentStatus === 'PAID' && paymentOrder.payment_method !== 'COD' && (!paymentOrder.payment_sender_number || !paymentOrder.transaction_id)) {
+          return res.status(409).json({ error: 'This mobile payment has no sender number or transaction ID to verify.' });
+        }
+        const { data: updatedPayment, error: updatePaymentError } = await admin.from('store_orders')
+          .update({ payment_status: paymentStatus }).eq('id', orderId).select('id,payment_status').maybeSingle();
+        if (updatePaymentError) return res.status(503).json({ error: 'Payment status could not be saved.' });
+        if (!updatedPayment) return res.status(404).json({ error: 'Order not found.' });
+        return res.status(200).json({ order: { id: updatedPayment.id, paymentStatus: updatedPayment.payment_status } });
       }
 
       const parsed = statusSchema.safeParse(req.body);
@@ -378,6 +404,20 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     if (settingsError) return res.status(503).json({ error: 'Checkout pricing settings could not be loaded.' });
     const savedSettings = settingsRow?.content_value && typeof settingsRow.content_value === 'object'
       ? settingsRow.content_value as Record<string, unknown> : {};
+    const paymentMethod = parsed.data.paymentMethod;
+    let paymentSenderNumber: string | null = null;
+    let transactionId: string | null = null;
+    if (paymentMethod !== 'COD') {
+      const recipientKey = paymentMethod === 'BKASH' ? 'bkashPaymentNumber' : paymentMethod === 'NAGAD' ? 'nagadPaymentNumber' : 'rocketPaymentNumber';
+      if (!String(savedSettings[recipientKey] || '').trim()) {
+        return res.status(400).json({ error: 'This mobile payment method is not configured by the store yet.' });
+      }
+      paymentSenderNumber = parsed.data.paymentSenderNumber?.replace(/[\s-]/g, '') || null;
+      transactionId = parsed.data.transactionId?.trim().toUpperCase() || null;
+      if (!paymentSenderNumber || !transactionId) {
+        return res.status(400).json({ error: 'Sender wallet number and transaction ID are required for mobile payments.' });
+      }
+    }
     const configuredFreeThreshold = Number(savedSettings.freeShippingThreshold ?? process.env.FREE_SHIPPING_THRESHOLD ?? 0);
     const configuredCodFee = Number(savedSettings.codFee ?? process.env.COD_FEE ?? 0);
     if (!Number.isFinite(configuredFreeThreshold) || configuredFreeThreshold <= 0 ||
@@ -421,7 +461,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
       });
     }
 
-    const { data, error } = await admin.rpc('create_customer_order', {
+    const { data, error } = await admin.rpc('create_customer_order_with_payment', {
       p_user_id: user.id,
       p_idempotency_key: idempotencyKey,
       p_customer: customerSnapshot,
@@ -432,12 +472,18 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
       p_expected_subtotal: quote.subtotal,
       p_shipping_fee: shippingFee,
       p_pathao_fee: quote.pathaoFee,
-      p_cod_fee: configuredCodFee,
-      p_cod_percentage: 1,
+      p_cod_fee: paymentMethod === 'COD' ? configuredCodFee : 0,
+      p_cod_percentage: paymentMethod === 'COD' ? 1 : 0,
       p_coupon_code: parsed.data.couponCode || null,
+      p_payment_method: paymentMethod,
+      p_payment_sender_number: paymentSenderNumber,
+      p_transaction_id: transactionId,
     });
     if (error) {
-      const safeMessage = /Insufficient stock|unavailable|Invalid quantity|Invalid order|Invalid customer|Invalid shipping|select a product variant|coupon|cart prices changed|COD fee|Pathao COD percentage|discount value/i.test(error.message)
+      if (error.code === '23505' || /store_orders_transaction_ref_unique/i.test(error.message)) {
+        return res.status(409).json({ error: 'This transaction ID has already been submitted for another order. Check the ID and try again.' });
+      }
+      const safeMessage = /Insufficient stock|unavailable|Invalid quantity|Invalid order|Invalid customer|Invalid shipping|select a product variant|coupon|cart prices changed|COD fee|Pathao COD percentage|discount value|payment method|transaction/i.test(error.message)
         ? error.message : 'Order could not be created. Please retry safely.';
       return res.status(409).json({ error: safeMessage });
     }
@@ -446,7 +492,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     const orderId = String(data?.orderId || '');
     const { data: savedOrder, error: savedOrderError } = await admin
       .from('store_orders')
-      .select('id,order_number,status,customer,subtotal,shipping_fee,cod_fee,discount,coupon_code,pathao_delivery_fee,grand_total,created_at,store_order_items(*)')
+      .select('id,order_number,status,customer,subtotal,shipping_fee,cod_fee,discount,coupon_code,pathao_delivery_fee,grand_total,created_at,payment_method,payment_sender_number,transaction_id,store_order_items(*)')
       .eq('id', orderId)
       .eq('user_id', user.id)
       .single();
@@ -479,6 +525,9 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
         couponCode: savedOrder.coupon_code || undefined,
         pathaoDeliveryFee: savedOrder.pathao_delivery_fee == null ? undefined : Number(savedOrder.pathao_delivery_fee),
         grandTotal: Number(savedOrder.grand_total),
+        paymentMethod: savedOrder.payment_method,
+        paymentSenderNumber: savedOrder.payment_sender_number || undefined,
+        transactionId: savedOrder.transaction_id || undefined,
         items: savedItems,
         replayed: Boolean(data?.replayed),
       },
