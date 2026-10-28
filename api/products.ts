@@ -126,6 +126,9 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
   try {
     if (req.method === 'GET') {
       const token = getHeader(req, 'authorization').replace(/^Bearer\s+/i, '');
+      // Anonymous catalog responses contain only published, sanitized product data.
+      // Let the Vercel edge reuse them briefly; authenticated requests remain no-store.
+      if (!token) res.setHeader('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=120');
       if (token && serviceRoleKey) {
         const authClient = createClient(url, anonKey, { auth: { persistSession: false, autoRefreshToken: false } });
         const { data: authData } = await authClient.auth.getUser(token);
