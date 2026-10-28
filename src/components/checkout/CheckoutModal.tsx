@@ -273,7 +273,7 @@ export const CheckoutModal: React.FC<{ pageMode?: boolean }> = ({ pageMode = fal
   };
 
   return (
-      <div className={pageMode ? 'w-full bg-white py-5 sm:py-8 lg:py-10' : 'hidden'}>
+      <div className={pageMode ? 'w-full bg-slate-50 py-5 sm:py-8 lg:py-10' : 'hidden'}>
       <div className={pageMode ? "mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8" : "hidden"}>
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-200 px-0 py-4">
@@ -295,7 +295,7 @@ export const CheckoutModal: React.FC<{ pageMode?: boolean }> = ({ pageMode = fal
         </div>
 
         {/* Checkout Form */}
-        <form onSubmit={handleSubmitOrder} className="grid min-w-0 grid-cols-1 gap-8 py-5 sm:py-7 lg:grid-cols-[minmax(0,1.45fr)_minmax(300px,0.8fr)] lg:gap-12">
+        <form onSubmit={handleSubmitOrder} className="grid min-w-0 grid-cols-1 gap-8 py-5 sm:py-7 lg:gap-8">
           {formError && (
             <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 flex items-center gap-2">
               <AlertCircle className="w-4 h-4 shrink-0 text-red-600" />
@@ -339,7 +339,7 @@ export const CheckoutModal: React.FC<{ pageMode?: boolean }> = ({ pageMode = fal
             )}
           </section>
 
-          <div className="min-w-0 space-y-8 lg:col-start-1">
+          <div className="grid min-w-0 grid-cols-1 gap-8 lg:col-span-2 lg:grid-cols-[minmax(0,1.45fr)_minmax(300px,0.8fr)] lg:items-start lg:gap-12">\n          <div className="min-w-0 space-y-8">
           {/* Section 1: Contact Information */}
           <div className="space-y-3">
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">
@@ -730,7 +730,7 @@ export const CheckoutModal: React.FC<{ pageMode?: boolean }> = ({ pageMode = fal
           </div>
 
           {/* Order Summary and coupon controls */}
-          <section className="min-w-0 space-y-4 border-t border-slate-200 pt-5 lg:sticky lg:top-24 lg:col-start-2 lg:row-start-2 lg:self-start lg:border-t-0 lg:pt-0">
+          <section className="min-w-0 space-y-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5 lg:sticky lg:top-24 lg:self-start">
             <h3 className="text-sm font-bold text-slate-900">Order summary</h3>
             {appliedCoupon ? (
               <div className="flex items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs">
@@ -774,7 +774,7 @@ export const CheckoutModal: React.FC<{ pageMode?: boolean }> = ({ pageMode = fal
             </div>
           </section>
 
-          {/* Customer Verification Status Banner */}
+          </div>\n\n          {/* Customer Verification Status Banner */}
           {isAuthenticated && isEmailConfirmed ? (
             <div className="lg:col-span-2 p-3 bg-emerald-50/80 border border-emerald-200 rounded-xl text-xs flex items-center justify-between text-emerald-900">
               <div className="flex items-center gap-2">
