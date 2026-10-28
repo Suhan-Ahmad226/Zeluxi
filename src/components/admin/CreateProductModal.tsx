@@ -193,7 +193,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
       setBarcode(productToEdit.barcode || '');
       setCategory(productToEdit.category || 'Full-Grain Leather');
       setSubcategory(productToEdit.subcategory || '');
-      setBrand(productToEdit.brand || 'Zelux Atelier');
+      setBrand(productToEdit.brand || settings.storeName?.trim() || 'Store');
       setProductType(productToEdit.productType || 'physical');
       setCondition(productToEdit.condition || 'new');
       setShortDesc(productToEdit.shortDescription || '');
@@ -590,7 +590,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
         barcode: barcode.trim() || undefined,
         category,
         subcategory,
-        brand: brand.trim() || 'Zelux Atelier',
+        brand: brand.trim() || settings.storeName?.trim() || 'Store',
         productType,
         condition,
         description: description.trim(),
@@ -620,7 +620,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
         seoTitle: seoTitle.trim() || name.trim(),
         seoDescription: seoDescription.trim() || shortDesc.trim() || undefined,
         seoKeywords: seoKeywords.trim() || tags.join(', '),
-        canonicalUrl: `${(process.env.NEXT_PUBLIC_SITE_URL || 'https://zeluxi.vercel.app').replace(/\/$/, '')}/products/${slug || 'product'}`,
+        canonicalUrl: `${(process.env.NEXT_PUBLIC_SITE_URL || 'https://pelomart.com').replace(/\/$/, '')}/products/${slug || 'product'}`,
         ogImageUrl: sortedImages[0]?.url,
       };
 
@@ -866,7 +866,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
                   {productToEdit ? `Edit Product: ${productToEdit.name}` : 'Create product'}
                 </h2>
                 <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-slate-100 text-slate-600">
-                  Zeluxi Product Studio
+                  {settings.storeName?.trim() || 'Store'} Product Studio
                 </span>
                 {hasUnsavedChanges && (
                   <span className="text-[10px] font-medium text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200 flex items-center gap-1.5">
@@ -1212,7 +1212,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
                         type="text"
                         value={brand}
                         onChange={(e) => setBrand(e.target.value)}
-                        placeholder="Zelux Atelier"
+                        placeholder={settings.storeName?.trim() || 'Store'}
                         className="w-full px-3 py-2 border border-slate-300 rounded-lg"
                       />
                     </div>
@@ -2072,13 +2072,13 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
                       <span>Google Search Result Snippet</span>
                     </p>
                     <p className="text-blue-700 hover:underline font-medium text-sm truncate">
-                      {seoTitle || name || 'Product Title — Zelux Single-Store Bangladesh'}
+                      {seoTitle || name || `${settings.storeName?.trim() || 'Store'} Single-Store Bangladesh`}
                     </p>
                     <p className="text-emerald-700 text-[11px] font-mono truncate">
-                      https://zelux.vercel.app/product/{slug || 'product-slug'}
+                      {(process.env.NEXT_PUBLIC_SITE_URL || 'https://pelomart.com').replace(/\/$/, '')}/products/{slug || 'product-slug'}
                     </p>
                     <p className="text-slate-600 text-xs line-clamp-2">
-                      {seoDescription || shortDesc || description || 'Handcrafted luxury goods by Zelux. Fast 24-48h courier delivery across Bangladesh.'}
+                      {seoDescription || shortDesc || description || `Shop products from ${settings.storeName?.trim() || 'our store'} with delivery across Bangladesh.`}
                     </p>
                   </div>
 
@@ -2099,9 +2099,9 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
                         )}
                       </div>
                       <div className="p-3 space-y-1">
-                        <span className="text-[10px] text-slate-400 uppercase font-mono">zelux.vercel.app</span>
+                        <span className="text-[10px] text-slate-400 uppercase font-mono">pelomart.com</span>
                         <h5 className="font-bold text-slate-900 text-xs truncate">
-                          {seoTitle || name || 'Zelux Handcrafted Lifestyle'}
+                          {seoTitle || name || `${settings.storeName?.trim() || 'Store'} Online Store`}
                         </h5>
                         <p className="text-[11px] text-slate-500 line-clamp-2">
                           {seoDescription || shortDesc || 'Curated handcrafted products designed in Bangladesh.'}
@@ -2122,7 +2122,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
                         type="text"
                         value={seoTitle}
                         onChange={(e) => setSeoTitle(e.target.value)}
-                        placeholder={name || 'Zelux Handcrafted Product'}
+                        placeholder={name || 'Product name'}
                         className="w-full px-3 py-2 border border-slate-300 rounded-lg"
                       />
                     </div>
