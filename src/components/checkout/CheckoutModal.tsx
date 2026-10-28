@@ -774,7 +774,9 @@ export const CheckoutModal: React.FC<{ pageMode?: boolean }> = ({ pageMode = fal
             </div>
           </section>
 
-          </div>\n\n          {/* Customer Verification Status Banner */}
+          </div>
+
+          {/* Customer Verification Status Banner */}
           {isAuthenticated && isEmailConfirmed ? (
             <div className="lg:col-span-2 p-3 bg-emerald-50/80 border border-emerald-200 rounded-xl text-xs flex items-center justify-between text-emerald-900">
               <div className="flex items-center gap-2">
