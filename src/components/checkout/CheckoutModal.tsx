@@ -304,7 +304,7 @@ export const CheckoutModal: React.FC<{ pageMode?: boolean }> = ({ pageMode = fal
           )}
 
           {/* Cart and checkout are one continuous page. */}
-          <section className="min-w-0 space-y-4 border-b border-slate-200 pb-6 lg:col-span-2">
+          <section className="min-w-0 space-y-4 border-b border-slate-200 pb-6 ">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
                 <h3 className="text-sm font-bold text-slate-900">Your items</h3>
@@ -339,7 +339,7 @@ export const CheckoutModal: React.FC<{ pageMode?: boolean }> = ({ pageMode = fal
             )}
           </section>
 
-          <div className="grid min-w-0 grid-cols-1 gap-8 lg:col-span-2 lg:grid-cols-[minmax(0,1.45fr)_minmax(300px,0.8fr)] lg:items-start lg:gap-12">\n          <div className="min-w-0 space-y-8">
+          <div className="grid min-w-0 grid-cols-1 gap-8  lg:grid-cols-[minmax(0,1.45fr)_minmax(300px,0.8fr)] lg:items-start lg:gap-12">\n          <div className="min-w-0 space-y-8">
           {/* Section 1: Contact Information */}
           <div className="space-y-3">
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">
@@ -778,7 +778,7 @@ export const CheckoutModal: React.FC<{ pageMode?: boolean }> = ({ pageMode = fal
 
           {/* Customer Verification Status Banner */}
           {isAuthenticated && isEmailConfirmed ? (
-            <div className="lg:col-span-2 p-3 bg-emerald-50/80 border border-emerald-200 rounded-xl text-xs flex items-center justify-between text-emerald-900">
+            <div className=" p-3 bg-emerald-50/80 border border-emerald-200 rounded-xl text-xs flex items-center justify-between text-emerald-900">
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
                 <span>
@@ -791,7 +791,7 @@ export const CheckoutModal: React.FC<{ pageMode?: boolean }> = ({ pageMode = fal
               </span>
             </div>
           ) : isAuthenticated && !isEmailConfirmed ? (
-            <div className="lg:col-span-2 p-3.5 bg-amber-50 border border-amber-200 rounded-xl text-xs space-y-2 text-amber-900">
+            <div className=" p-3.5 bg-amber-50 border border-amber-200 rounded-xl text-xs space-y-2 text-amber-900">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 font-bold">
                   <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
@@ -820,7 +820,7 @@ export const CheckoutModal: React.FC<{ pageMode?: boolean }> = ({ pageMode = fal
               </button>
             </div>
           ) : (
-            <div className="lg:col-span-2 p-3.5 bg-slate-100 border border-slate-200 rounded-xl text-xs space-y-2">
+            <div className=" p-3.5 bg-slate-100 border border-slate-200 rounded-xl text-xs space-y-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 font-bold text-slate-800">
                   <Lock className="w-4 h-4 text-slate-600 shrink-0" />
@@ -849,7 +849,7 @@ export const CheckoutModal: React.FC<{ pageMode?: boolean }> = ({ pageMode = fal
           )}
 
           {/* Submit Action */}
-          <div className="border-t border-slate-200 pt-5 lg:col-span-2">
+          <div className="border-t border-slate-200 pt-5 ">
             <button
               type="submit"
               disabled={isProcessing || cart.length === 0 || !shippingQuote || !shippingQuote.areaId || isQuoteLoading}
