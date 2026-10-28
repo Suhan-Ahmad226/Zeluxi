@@ -730,7 +730,7 @@ export const CheckoutModal: React.FC<{ pageMode?: boolean }> = ({ pageMode = fal
           </div>
 
           {/* Order Summary and coupon controls */}
-          <section className="min-w-0 space-y-4 border-t border-slate-200 pt-5 lg:col-start-2 lg:row-start-2 lg:border-t-0 lg:pt-0">
+          <section className="min-w-0 space-y-4 border-t border-slate-200 pt-5 lg:sticky lg:top-24 lg:col-start-2 lg:row-start-2 lg:self-start lg:border-t-0 lg:pt-0">
             <h3 className="text-sm font-bold text-slate-900">Order summary</h3>
             {appliedCoupon ? (
               <div className="flex items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs">
