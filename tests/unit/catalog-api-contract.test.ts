@@ -42,3 +42,9 @@ test('procurement cost is stored in a server-only column, not public product met
   assert.match(catalogMigration, /grant select \(id, name, price, stock, published, archived, image_url, product_data, updated_at\)/i);
   assert.match(catalogMigration, /add column if not exists cost_price numeric/i);
 });
+
+test('anonymous public catalog responses can be edge-cached while authenticated responses stay private', () => {
+  assert.match(catalogApi, /res\.setHeader\('Cache-Control', 'no-store'\)/);
+  assert.match(catalogApi, /if \(!token\) res\.setHeader\('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=120'\)/);
+  assert.match(catalogApi, /const token = getHeader\(req, 'authorization'\)/);
+});
