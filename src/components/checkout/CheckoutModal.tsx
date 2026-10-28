@@ -36,6 +36,7 @@ export const CheckoutModal: React.FC = () => {
     removeFromCart,
     updateCartQuantity,
     createOrder,
+    settings,
     setActiveView,
   } = useStore();
 
@@ -155,15 +156,24 @@ export const CheckoutModal: React.FC = () => {
   }
   discount = Math.min(pricingSubtotal, Math.max(0, discount));
   // COD fee is a fixed 1% of the discounted order value including delivery, rounded up to the next BDT.
-  const codFee = shippingQuote ? Math.ceil(Math.max(0, pricingSubtotal + shippingInfo.fee - discount) * 0.01) : 0;
+  const codFee = shippingQuote && paymentMethod === 'COD' ? Math.ceil(Math.max(0, pricingSubtotal + shippingInfo.fee - discount) * 0.01) : 0;
   const grandTotal = Math.max(0, pricingSubtotal + shippingInfo.fee + codFee - discount);
   const handleSubmitOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
 
     if (paymentMethod !== 'COD') {
-      setFormError('Only Cash on Delivery is currently enabled. Online payments have not been integrated yet.');
-      return;
+      const sender = bkashNumber.trim().replace(/[\s-]/g, '');
+      const transaction = bkashTrxId.trim();
+      if (!sender || !/^[0-9+]{8,20}$/.test(sender) || !transaction || !/^[A-Za-z0-9_-]{4,80}$/.test(transaction)) {
+        setFormError('Enter a valid sender wallet number and transaction ID for the selected payment method.');
+        return;
+      }
+      const recipient = paymentMethod === 'BKASH' ? settings.bkashPaymentNumber : paymentMethod === 'NAGAD' ? settings.nagadPaymentNumber : settings.rocketPaymentNumber;
+      if (!recipient?.trim()) {
+        setFormError('This mobile payment method has not been configured by the store yet. Please choose another method or contact the store.');
+        return;
+      }
     }
 
     if (!shippingQuote || !shippingQuote.areaId || isQuoteLoading || shippingQuoteError) {
@@ -246,8 +256,9 @@ export const CheckoutModal: React.FC = () => {
         address,
         paymentMethod,
         courierPartner,
-        undefined,
-        appliedCoupon?.code
+        paymentMethod === 'COD' ? undefined : bkashTrxId.trim(),
+        appliedCoupon?.code,
+        paymentMethod === 'COD' ? undefined : bkashNumber.trim()
       );
 
       setIsProcessing(false);
@@ -518,8 +529,8 @@ export const CheckoutModal: React.FC = () => {
               {/* bKash */}
               <button
                 type="button"
-                disabled
-                title="Coming soon. Cash on Delivery is currently available."
+                disabled={!settings.bkashPaymentNumber?.trim()}
+                title={settings.bkashPaymentNumber?.trim() ? 'Use the store-configured BKASH account.' : 'The store has not configured a BKASH account yet.'}
                 onClick={() => setPaymentMethod('BKASH')}
                 className={`p-2.5 rounded-xl border text-left flex flex-col justify-between transition-all ${
                   paymentMethod === 'BKASH'
@@ -536,7 +547,7 @@ export const CheckoutModal: React.FC = () => {
                     bKash
                   </p>
                   <p className="text-[10px] text-slate-500 mt-0.5">
-                    Mobile banking
+                    {settings.bkashPaymentNumber?.trim() ? 'Mobile banking' : 'Not configured'}
                   </p>
                 </div>
               </button>
@@ -544,8 +555,8 @@ export const CheckoutModal: React.FC = () => {
               {/* Nagad */}
               <button
                 type="button"
-                disabled
-                title="Coming soon. Cash on Delivery is currently available."
+                disabled={!settings.nagadPaymentNumber?.trim()}
+                title={settings.nagadPaymentNumber?.trim() ? 'Use the store-configured NAGAD account.' : 'The store has not configured a NAGAD account yet.'}
                 onClick={() => setPaymentMethod('NAGAD')}
                 className={`p-2.5 rounded-xl border text-left flex flex-col justify-between transition-all ${
                   paymentMethod === 'NAGAD'
@@ -562,7 +573,7 @@ export const CheckoutModal: React.FC = () => {
                     Nagad
                   </p>
                   <p className="text-[10px] text-slate-500 mt-0.5">
-                    Instant wallet
+                    {settings.nagadPaymentNumber?.trim() ? 'Instant wallet' : 'Not configured'}
                   </p>
                 </div>
               </button>
@@ -570,8 +581,8 @@ export const CheckoutModal: React.FC = () => {
               {/* Rocket */}
               <button
                 type="button"
-                disabled
-                title="Coming soon. Cash on Delivery is currently available."
+                disabled={!settings.rocketPaymentNumber?.trim()}
+                title={settings.rocketPaymentNumber?.trim() ? 'Use the store-configured ROCKET account.' : 'The store has not configured a ROCKET account yet.'}
                 onClick={() => setPaymentMethod('ROCKET')}
                 className={`p-2.5 rounded-xl border text-left flex flex-col justify-between transition-all ${
                   paymentMethod === 'ROCKET'
@@ -588,7 +599,7 @@ export const CheckoutModal: React.FC = () => {
                     Rocket
                   </p>
                   <p className="text-[10px] text-slate-500 mt-0.5">
-                    DBBL Rocket
+                    {settings.rocketPaymentNumber?.trim() ? 'DBBL Rocket' : 'Not configured'}
                   </p>
                 </div>
               </button>
@@ -627,7 +638,7 @@ export const CheckoutModal: React.FC = () => {
                   bKash Merchant Payment:
                 </p>
                 <p className="text-[11px] text-pink-800">
-                  Send Money or Merchant Payment to <strong>01700-112233</strong> or enter your transaction ID:
+                  Send money to the store's bKash number <strong>{settings.bkashPaymentNumber}</strong> and enter the transaction ID:
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
                   <input
@@ -654,7 +665,7 @@ export const CheckoutModal: React.FC = () => {
                   Nagad Wallet Payment:
                 </p>
                 <p className="text-[11px] text-amber-800">
-                  Send Payment to Nagad Merchant <strong>01700-112233</strong> and input the TrxID below:
+                  Send money to the store's Nagad number <strong>{settings.nagadPaymentNumber}</strong> and enter the transaction ID:
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
                   <input
@@ -681,7 +692,7 @@ export const CheckoutModal: React.FC = () => {
                   DBBL Rocket Payment:
                 </p>
                 <p className="text-[11px] text-purple-800">
-                  Send Payment to Rocket Biller / Merchant <strong>01700-112233-0</strong> and enter TrxID below:
+                  Send money to the store's Rocket number <strong>{settings.rocketPaymentNumber}</strong> and enter the transaction ID:
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
                   <input
@@ -753,8 +764,7 @@ export const CheckoutModal: React.FC = () => {
               </div>
             )}
             <div className="flex justify-between">
-              <span>COD fee (1%)</span>
-              <span className="font-semibold text-slate-900 tabular-nums">{shippingQuote ? formatPrice(codFee) : '—'}</span>
+              {paymentMethod === 'COD' && <><span>COD fee (1%)</span><span className="font-semibold text-slate-900 tabular-nums">{shippingQuote ? formatPrice(codFee) : '—'}</span></>}
             </div>
             <div className="flex justify-between text-sm font-bold text-slate-900 pt-2 border-t border-slate-200">
               <span>Total</span>

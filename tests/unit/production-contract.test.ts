@@ -7,11 +7,26 @@ const commerceMigration = readFileSync(
   new URL('../../supabase/migrations/20261016000100_production_commerce.sql', import.meta.url),
   'utf8'
 );
+const mobilePaymentMigration = readFileSync(
+  new URL('../../supabase/migrations/20261028100000_manual_mobile_wallet_payments.sql', import.meta.url),
+  'utf8'
+);
 
-test('order endpoint accepts COD only and rejects unexpected client fields', () => {
-  assert.match(orderApi, /paymentMethod:\s*z\.literal\('COD'\)/);
+test('order endpoint supports manual mobile-wallet payments and rejects unexpected client fields', () => {
+  assert.match(orderApi, /paymentMethod:\s*z\.enum\(\['COD', 'BKASH', 'NAGAD', 'ROCKET'\]\)/);
+  assert.match(orderApi, /paymentSenderNumber:\s*z\.string/);
+  assert.match(orderApi, /transactionId:\s*z\.string/);
+  assert.match(orderApi, /create_customer_order_with_payment/);
   assert.match(orderApi, /\.strict\(\)/);
-  assert.doesNotMatch(orderApi, /transactionId:\s*z\.string/);
+});
+
+test('manual wallet orders store payment references atomically and stay unpaid until verification', () => {
+  assert.match(mobilePaymentMigration, /payment_sender_number text/i);
+  assert.match(mobilePaymentMigration, /transaction_id text/i);
+  assert.match(mobilePaymentMigration, /payment_status = 'UNPAID'/i);
+  assert.match(mobilePaymentMigration, /create_customer_order_with_payment/);
+  assert.match(mobilePaymentMigration, /store_orders_transaction_ref_unique/);
+  assert.match(orderApi, /action:\s*z\.literal\('SET_PAYMENT_STATUS'\)/);
 });
 
 test('order endpoint requires verified Supabase identity and idempotency key', () => {
