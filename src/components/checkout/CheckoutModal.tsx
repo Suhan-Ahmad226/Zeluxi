@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useStore } from '../../context/StoreContext';
 import { useAuth } from '../../context/AuthContext';
+import { supabase } from '../../lib/supabase';
 import { verifyCustomerOrderEligibility } from '../../lib/auth/verifyCustomer';
-import { formatPrice, calculateShipping } from '../../utils/formatters';
+import { formatPrice } from '../../utils/formatters';
 import {
   X,
   ShieldCheck,
@@ -20,17 +21,20 @@ import {
 } from 'lucide-react';
 import { PaymentMethod, CourierProvider, ShippingAddress } from '../../types';
 import { shippingAddressSchema } from '../../lib/validation/schemas';
+
 import { BANGLADESH_DIVISIONS, getDistrictsByDivision, getUpazilasByDistrict } from '../../lib/address/bangladesh-locations';
 
-import { ModalPortal } from '../common/ModalPortal';
+import { StoreImage } from '../common/StoreImage';
 export const CheckoutModal: React.FC = () => {
   const {
     isCheckoutOpen,
     setIsCheckoutOpen,
     cart,
     appliedCoupon,
+    applyCoupon,
     removeCoupon,
-    settings,
+    removeFromCart,
+    updateCartQuantity,
     createOrder,
     setActiveView,
   } = useStore();
@@ -49,7 +53,10 @@ export const CheckoutModal: React.FC = () => {
   const [bkashTrxId, setBkashTrxId] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
-
+  const [couponCodeInput, setCouponCodeInput] = useState('');
+  const [shippingQuote, setShippingQuote] = useState<any>(null);
+  const [shippingQuoteError, setShippingQuoteError] = useState<string | null>(null);
+  const [isQuoteLoading, setIsQuoteLoading] = useState(false);
   const {
     supabaseUser,
     currentUser,
@@ -73,6 +80,51 @@ export const CheckoutModal: React.FC = () => {
     }
   }, [userProfile, isCheckoutOpen]);
 
+  useEffect(() => {
+    let active = true;
+    const requestQuote = async () => {
+      if (!isCheckoutOpen || !district || !upazila || !addressDetails.trim() || cart.length === 0) {
+        setShippingQuote(null);
+        setShippingQuoteError(null);
+        setIsQuoteLoading(false);
+        return;
+      }
+      setIsQuoteLoading(true);
+      setShippingQuoteError(null);
+      try {
+        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+        const token = sessionData.session?.access_token;
+        if (sessionError || !token) throw new Error('Sign in again to calculate Pathao delivery.');
+        const response = await fetch('/api/shipping/quote', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+          body: JSON.stringify({
+            district,
+            upazila,
+            addressDetails: addressDetails.trim(),
+            notes: notes.trim() || undefined,
+            items: cart.map((item) => ({ productId: item.productId, variantId: item.variantId, quantity: item.quantity })),
+          }),
+          cache: 'no-store',
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok || !payload?.quote) {
+          throw new Error(typeof payload.error === 'string' ? payload.error : 'Pathao delivery price could not be calculated.');
+        }
+        if (active) setShippingQuote(payload.quote);
+      } catch (error) {
+        if (active) {
+          setShippingQuote(null);
+          setShippingQuoteError(error instanceof Error ? error.message : 'Pathao delivery price could not be calculated.');
+        }
+      } finally {
+        if (active) setIsQuoteLoading(false);
+      }
+    };
+    void requestQuote();
+    return () => { active = false; };
+  }, [isCheckoutOpen, district, upazila, addressDetails, notes, cart]);
+
   if (!isCheckoutOpen) return null;
 
   const activeUserEmail = supabaseUser?.email || currentUser?.email || userProfile?.email;
@@ -86,25 +138,25 @@ export const CheckoutModal: React.FC = () => {
   );
 
   const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-
-  const shippingInfo = calculateShipping(
-    division,
-    subtotal,
-    settings.freeShippingThreshold,
-    settings.shippingDhaka,
-    settings.shippingOutsideDhaka
-  );
+  const pricingSubtotal = Number.isFinite(Number(shippingQuote?.subtotal)) ? Number(shippingQuote.subtotal) : subtotal;
+  const shippingInfo = {
+    fee: Number(shippingQuote?.shippingFee || 0),
+    isFree: Boolean(shippingQuote?.freeShipping),
+    provider: 'PATHAO' as CourierProvider,
+  };
 
   let discount = 0;
-  if (appliedCoupon) {
+  if (appliedCoupon && appliedCoupon.active && (!appliedCoupon.expiresAt || new Date(appliedCoupon.expiresAt).getTime() >= Date.now()) && pricingSubtotal >= Number(appliedCoupon.minSpend || 0)) {
     if (appliedCoupon.type === 'PERCENTAGE') {
-      discount = Math.round((subtotal * appliedCoupon.value) / 100);
+      discount = Math.round((pricingSubtotal * appliedCoupon.value) / 100 * 100) / 100;
     } else {
-      discount = appliedCoupon.value;
+      discount = Math.min(pricingSubtotal, appliedCoupon.value);
     }
   }
-
-  const grandTotal = Math.max(0, subtotal + shippingInfo.fee - discount);
+  discount = Math.min(pricingSubtotal, Math.max(0, discount));
+  // COD fee is a fixed 1% of the discounted order value including delivery, rounded up to the next BDT.
+  const codFee = shippingQuote ? Math.ceil(Math.max(0, pricingSubtotal + shippingInfo.fee - discount) * 0.01) : 0;
+  const grandTotal = Math.max(0, pricingSubtotal + shippingInfo.fee + codFee - discount);
   const handleSubmitOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
@@ -114,8 +166,8 @@ export const CheckoutModal: React.FC = () => {
       return;
     }
 
-    if (appliedCoupon) {
-      setFormError('Coupon discounts are not yet supported by secure server-side checkout. Please click "Remove coupon" below to proceed.');
+    if (!shippingQuote || !shippingQuote.areaId || isQuoteLoading || shippingQuoteError) {
+      setFormError(shippingQuoteError || 'Wait for a valid Pathao delivery quote before placing your order.');
       return;
     }
 
@@ -130,6 +182,12 @@ export const CheckoutModal: React.FC = () => {
       upazila: upazila.trim(),
       addressDetails: addressDetails.trim(),
       notes: notes.trim(),
+      pathaoCityId: Number(shippingQuote.cityId),
+      pathaoCityName: String(shippingQuote.cityName || ''),
+      pathaoZoneId: Number(shippingQuote.zoneId),
+      pathaoZoneName: String(shippingQuote.zoneName || ''),
+      pathaoAreaId: Number(shippingQuote.areaId),
+      pathaoAreaName: String(shippingQuote.areaName || ''),
     };
 
     const parseResult = shippingAddressSchema.safeParse(candidateAddress);
@@ -173,6 +231,12 @@ export const CheckoutModal: React.FC = () => {
       upazila: candidateAddress.upazila,
       addressDetails: candidateAddress.addressDetails,
       notes: candidateAddress.notes,
+      pathaoCityId: candidateAddress.pathaoCityId,
+      pathaoCityName: candidateAddress.pathaoCityName,
+      pathaoZoneId: candidateAddress.pathaoZoneId,
+      pathaoZoneName: candidateAddress.pathaoZoneName,
+      pathaoAreaId: candidateAddress.pathaoAreaId,
+      pathaoAreaName: candidateAddress.pathaoAreaName,
     };
 
     const courierPartner: CourierProvider = shippingInfo.provider;
@@ -181,7 +245,9 @@ export const CheckoutModal: React.FC = () => {
       await createOrder(
         address,
         paymentMethod,
-        courierPartner
+        courierPartner,
+        undefined,
+        appliedCoupon?.code
       );
 
       setIsProcessing(false);
@@ -192,10 +258,17 @@ export const CheckoutModal: React.FC = () => {
     }
   };
 
+  const handleApplyCoupon = () => {
+    const code = couponCodeInput.trim().toUpperCase();
+    if (!code) return;
+    const result = applyCoupon(code, phone.trim() || activeUserEmail || undefined);
+    setFormError(result.success ? null : result.message);
+    if (result.success) setCouponCodeInput('');
+  };
+
   return (
-    <ModalPortal>
-      <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 animate-in fade-in duration-200">
-      <div className="relative w-full max-w-3xl bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden max-h-[94vh] flex flex-col">
+      <div className="fixed inset-0 z-[60] overflow-y-auto bg-slate-50 animate-in fade-in duration-150">
+      <div className="mx-auto min-h-full w-full max-w-6xl bg-white shadow-xl sm:border-x sm:border-slate-200">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/70">
           <div className="flex items-center gap-2">
@@ -213,7 +286,7 @@ export const CheckoutModal: React.FC = () => {
         </div>
 
         {/* Checkout Form */}
-        <form onSubmit={handleSubmitOrder} className="overflow-y-auto p-6 space-y-5">
+        <form onSubmit={handleSubmitOrder} className="grid grid-cols-1 gap-5 p-4 sm:p-6 lg:grid-cols-[minmax(0,1fr)_minmax(320px,0.78fr)] lg:gap-8 lg:p-8">
           {formError && (
             <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 flex items-center gap-2">
               <AlertCircle className="w-4 h-4 shrink-0 text-red-600" />
@@ -221,6 +294,43 @@ export const CheckoutModal: React.FC = () => {
             </div>
           )}
 
+          {/* Cart and checkout are one continuous page. */}
+          <section className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 lg:col-span-2">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <h3 className="text-sm font-bold text-slate-900">Your items</h3>
+                <p className="mt-1 text-xs text-slate-500">{cart.reduce((count, item) => count + item.quantity, 0)} items · Review options and quantities before ordering</p>
+              </div>
+              <button type="button" onClick={() => { setIsCheckoutOpen(false); setActiveView('store'); }} className="text-xs font-semibold text-slate-600 underline underline-offset-4 hover:text-slate-950">Continue shopping</button>
+            </div>
+            {cart.length === 0 ? (
+              <div className="rounded-xl bg-slate-50 p-6 text-center text-sm text-slate-500">Your cart is empty. Add a product before checkout.</div>
+            ) : (
+              <div className="divide-y divide-slate-100">
+                {cart.map((item) => (
+                  <div key={item.productId + ':' + (item.variantId || 'default')} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
+                    <StoreImage src={item.image} alt={item.name} className="h-16 w-16 shrink-0 rounded-xl border border-slate-100 bg-slate-50 object-contain sm:h-20 sm:w-20" loading="lazy" decoding="async" />
+                    <div className="min-w-0 flex-1">
+                      <p className="line-clamp-2 text-sm font-semibold text-slate-900">{item.name}</p>
+                      {item.variantLabel && <p className="mt-1 text-xs text-slate-500">{item.variantLabel}</p>}
+                      <p className="mt-1 text-sm font-bold tabular-nums text-slate-900">{formatPrice(item.price)}</p>
+                      <div className="mt-2 inline-flex items-center rounded-lg border border-slate-200 bg-white">
+                        <button type="button" aria-label={'Decrease quantity of ' + item.name} onClick={() => updateCartQuantity(item.productId, item.quantity - 1, item.variantId)} className="min-h-9 min-w-9 rounded-l-lg text-base hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-600">−</button>
+                        <span className="min-w-8 text-center text-xs font-semibold tabular-nums">{item.quantity}</span>
+                        <button type="button" aria-label={'Increase quantity of ' + item.name} disabled={item.quantity >= item.stock} onClick={() => updateCartQuantity(item.productId, item.quantity + 1, item.variantId)} className="min-h-9 min-w-9 rounded-r-lg text-base hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-600">+</button>
+                      </div>
+                    </div>
+                    <div className="flex shrink-0 flex-col items-end gap-3">
+                      <p className="text-sm font-bold tabular-nums text-slate-900">{formatPrice(item.price * item.quantity)}</p>
+                      <button type="button" onClick={() => removeFromCart(item.productId, item.variantId)} className="rounded-lg px-2 py-1 text-xs font-medium text-rose-600 hover:bg-rose-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-rose-500">Remove</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+
+          <div className="space-y-5 lg:col-start-1">
           {/* Section 1: Contact Information */}
           <div className="space-y-3">
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">
@@ -293,7 +403,7 @@ export const CheckoutModal: React.FC = () => {
                 </label>
                 <select
                   value={division}
-                  onChange={(e) => { setDivision(e.target.value); setDistrict(''); setUpazila(''); }}
+                  onChange={(e) => { setDivision(e.target.value); setDistrict(''); setUpazila(''); setShippingQuote(null); setShippingQuoteError(null); }}
                   className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg bg-white focus:outline-none focus:border-indigo-600 cursor-pointer"
                 >
                   {BANGLADESH_DIVISIONS.map((d) => (
@@ -311,7 +421,7 @@ export const CheckoutModal: React.FC = () => {
                 <select
                   required
                   value={district}
-                  onChange={(e) => { setDistrict(e.target.value); setUpazila(''); }}
+                  onChange={(e) => { setDistrict(e.target.value); setUpazila(''); setShippingQuote(null); setShippingQuoteError(null); }}
                   disabled={!division}
                   className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg bg-white focus:outline-none focus:border-indigo-600 disabled:bg-slate-100"
                 >
@@ -329,7 +439,7 @@ export const CheckoutModal: React.FC = () => {
                 <select
                   required
                   value={upazila}
-                  onChange={(e) => setUpazila(e.target.value)}
+                  onChange={(e) => { setUpazila(e.target.value); setShippingQuote(null); setShippingQuoteError(null); }}
                   disabled={!district}
                   className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg bg-white focus:outline-none focus:border-indigo-600 disabled:bg-slate-100"
                 >
@@ -372,23 +482,6 @@ export const CheckoutModal: React.FC = () => {
               </div>
             </div>
 
-            {/* Courier Dispatch Alert */}
-            <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <Truck className="w-4 h-4 text-indigo-600 shrink-0" />
-                <div>
-                  <span className="font-semibold block">
-                    {shippingInfo.provider === 'PATHAO' ? 'Pathao Express Logistics' : 'Steadfast Courier'}
-                  </span>
-                  <span className="text-[11px] text-slate-500">
-                    Estimated arrival: {shippingInfo.eta}
-                  </span>
-                </div>
-              </div>
-              <span className="font-bold text-slate-900 tabular-nums">
-                {shippingInfo.isFree ? 'FREE' : `৳${shippingInfo.fee}`}
-              </span>
-            </div>
           </div>
 
           {/* Section 3: Payment Method */}
@@ -425,6 +518,8 @@ export const CheckoutModal: React.FC = () => {
               {/* bKash */}
               <button
                 type="button"
+                disabled
+                title="Coming soon. Cash on Delivery is currently available."
                 onClick={() => setPaymentMethod('BKASH')}
                 className={`p-2.5 rounded-xl border text-left flex flex-col justify-between transition-all ${
                   paymentMethod === 'BKASH'
@@ -449,6 +544,8 @@ export const CheckoutModal: React.FC = () => {
               {/* Nagad */}
               <button
                 type="button"
+                disabled
+                title="Coming soon. Cash on Delivery is currently available."
                 onClick={() => setPaymentMethod('NAGAD')}
                 className={`p-2.5 rounded-xl border text-left flex flex-col justify-between transition-all ${
                   paymentMethod === 'NAGAD'
@@ -473,6 +570,8 @@ export const CheckoutModal: React.FC = () => {
               {/* Rocket */}
               <button
                 type="button"
+                disabled
+                title="Coming soon. Cash on Delivery is currently available."
                 onClick={() => setPaymentMethod('ROCKET')}
                 className={`p-2.5 rounded-xl border text-left flex flex-col justify-between transition-all ${
                   paymentMethod === 'ROCKET'
@@ -497,6 +596,8 @@ export const CheckoutModal: React.FC = () => {
               {/* SSLCommerz */}
               <button
                 type="button"
+                disabled
+                title="Coming soon. Cash on Delivery is currently available."
                 onClick={() => setPaymentMethod('SSLCOMMERZ')}
                 className={`p-2.5 rounded-xl border text-left flex flex-col justify-between transition-all ${
                   paymentMethod === 'SSLCOMMERZ'
@@ -617,55 +718,56 @@ export const CheckoutModal: React.FC = () => {
             )}
           </div>
 
-          {/* Section 4: Order Financial Summary */}
-          <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-2 text-xs text-slate-600">
+          </div>
+
+          {/* Order Summary and coupon controls */}
+          <section className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:p-5 lg:sticky lg:top-5 lg:self-start">
+            <h3 className="text-sm font-bold text-slate-900">Order summary</h3>
+            {appliedCoupon ? (
+              <div className="flex items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs">
+                <div className="min-w-0"><p className="font-bold text-emerald-800">{appliedCoupon.code} applied</p><p className="mt-0.5 text-emerald-700">Discount will be revalidated when the order is saved.</p></div>
+                <button type="button" onClick={() => { removeCoupon(); setFormError(null); }} className="shrink-0 rounded-lg px-2 py-1.5 font-semibold text-emerald-800 underline underline-offset-2 hover:bg-emerald-100">Remove</button>
+              </div>
+            ) : (
+              <div className="flex gap-2">
+                <label className="sr-only" htmlFor="checkout-coupon-code">Coupon code</label>
+                <input id="checkout-coupon-code" value={couponCodeInput} onChange={(event) => setCouponCodeInput(event.target.value.toUpperCase())} maxLength={40} autoComplete="off" placeholder="Enter coupon code" className="min-h-11 min-w-0 flex-1 rounded-xl border border-slate-300 bg-white px-3 text-sm uppercase outline-none transition focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100" />
+                <button type="button" onClick={handleApplyCoupon} disabled={!couponCodeInput.trim()} className="min-h-11 rounded-xl bg-slate-900 px-4 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-40">Apply</button>
+              </div>
+            )}
+            <div className="rounded-xl border border-slate-200 bg-white p-4 space-y-2 text-xs text-slate-600">
             <div className="flex justify-between">
               <span>Subtotal</span>
-              <span className="font-semibold text-slate-900 tabular-nums">{formatPrice(subtotal)}</span>
+              <span className="font-semibold text-slate-900 tabular-nums">{formatPrice(pricingSubtotal)}</span>
             </div>
             <div className="flex justify-between">
-              <span>Shipping</span>
+              <span>Pathao shipping</span>
               <span className="font-semibold text-slate-900 tabular-nums">
-                {shippingInfo.isFree ? 'FREE' : `৳${shippingInfo.fee}`}
+                {isQuoteLoading ? 'Calculating…' : shippingQuote ? (shippingInfo.isFree ? 'FREE' : formatPrice(shippingInfo.fee)) : '—'}
               </span>
             </div>
             {discount > 0 && (
               <div className="flex justify-between text-emerald-600 font-semibold">
-                <span>Discount</span>
+                <span>{appliedCoupon ? `Coupon (${appliedCoupon.code})` : 'Discount'}</span>
                 <span className="tabular-nums">-{formatPrice(discount)}</span>
               </div>
             )}
+            <div className="flex justify-between">
+              <span>COD fee (1%)</span>
+              <span className="font-semibold text-slate-900 tabular-nums">{shippingQuote ? formatPrice(codFee) : '—'}</span>
+            </div>
             <div className="flex justify-between text-sm font-bold text-slate-900 pt-2 border-t border-slate-200">
               <span>Total</span>
               <span className="text-lg font-extrabold text-slate-950 tabular-nums">
-                {formatPrice(grandTotal)}
+                {shippingQuote ? formatPrice(grandTotal) : 'Awaiting delivery quote'}
               </span>
             </div>
-          </div>
-
-          {/* Coupon Checkout Resolution Notice */}
-          {appliedCoupon && (
-            <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-amber-900">
-              <div className="space-y-0.5">
-                <p className="font-semibold">Coupon Applied: {appliedCoupon.code}</p>
-                <p className="text-[11px] text-amber-700">Server-side automated coupon verification is currently being upgraded.</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  removeCoupon();
-                  setFormError(null);
-                }}
-                className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-semibold shrink-0 transition-colors self-start sm:self-auto"
-              >
-                Remove coupon to proceed
-              </button>
             </div>
-          )}
+          </section>
 
           {/* Customer Verification Status Banner */}
           {isAuthenticated && isEmailConfirmed ? (
-            <div className="p-3 bg-emerald-50/80 border border-emerald-200 rounded-xl text-xs flex items-center justify-between text-emerald-900">
+            <div className="lg:col-span-2 p-3 bg-emerald-50/80 border border-emerald-200 rounded-xl text-xs flex items-center justify-between text-emerald-900">
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
                 <span>
@@ -678,7 +780,7 @@ export const CheckoutModal: React.FC = () => {
               </span>
             </div>
           ) : isAuthenticated && !isEmailConfirmed ? (
-            <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-xl text-xs space-y-2 text-amber-900">
+            <div className="lg:col-span-2 p-3.5 bg-amber-50 border border-amber-200 rounded-xl text-xs space-y-2 text-amber-900">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 font-bold">
                   <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
@@ -707,7 +809,7 @@ export const CheckoutModal: React.FC = () => {
               </button>
             </div>
           ) : (
-            <div className="p-3.5 bg-slate-100 border border-slate-200 rounded-xl text-xs space-y-2">
+            <div className="lg:col-span-2 p-3.5 bg-slate-100 border border-slate-200 rounded-xl text-xs space-y-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 font-bold text-slate-800">
                   <Lock className="w-4 h-4 text-slate-600 shrink-0" />
@@ -736,15 +838,15 @@ export const CheckoutModal: React.FC = () => {
           )}
 
           {/* Submit Action */}
-          <div className="pt-2">
+          <div className="sticky bottom-0 z-20 -mx-4 border-t border-slate-200 bg-white/95 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] backdrop-blur sm:-mx-6 sm:px-6 lg:col-span-2 lg:mx-0 lg:rounded-xl lg:border lg:p-4">
             <button
               type="submit"
-              disabled={isProcessing || cart.length === 0}
+              disabled={isProcessing || cart.length === 0 || !shippingQuote || !shippingQuote.areaId || isQuoteLoading}
               className="w-full flex items-center justify-center gap-2 py-3.5 px-4 bg-slate-950 hover:bg-slate-800 text-white text-sm font-semibold rounded-xl shadow-sm transition-colors active:scale-98 disabled:opacity-50"
             >
               <ShieldCheck className="w-4 h-4 text-emerald-400" />
               <span>
-                {isProcessing ? 'Processing order...' : `Place order · ${formatPrice(grandTotal)}`}
+                {isProcessing ? 'Processing order...' : shippingQuote ? `Place order · ${formatPrice(grandTotal)}` : isQuoteLoading ? 'Calculating delivery...' : 'Select delivery area to continue'}
               </span>
             </button>
             <p className="text-[11px] text-center text-slate-400 mt-2">
@@ -754,6 +856,5 @@ export const CheckoutModal: React.FC = () => {
         </form>
       </div>
       </div>
-    </ModalPortal>
   );
 };

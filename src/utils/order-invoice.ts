@@ -95,7 +95,9 @@ export function buildOrderInvoiceHtml(
     <table><thead><tr><th>Item / Description</th><th>Qty</th><th>Unit price</th><th>Line total</th></tr></thead><tbody>${rows}</tbody></table>
     <section class="totals">
       <div class="total-row"><span>Subtotal</span><strong>${escapeHtml(formatPrice(order.subtotal, language))}</strong></div>
-      <div class="total-row"><span>Shipping (${escapeHtml(order.courier?.provider || 'Delivery')})</span><strong>${escapeHtml(formatPrice(order.shippingFee, language))}</strong></div>
+      <div class="total-row"><span>Shipping charged (${escapeHtml(order.courier?.provider || 'Delivery')})</span><strong>${escapeHtml(formatPrice(order.shippingFee, language))}</strong></div>
+      ${typeof order.pathaoDeliveryFee === 'number' && order.pathaoDeliveryFee !== order.shippingFee ? `<div class="total-row"><span>Pathao delivery cost</span><strong>${escapeHtml(formatPrice(order.pathaoDeliveryFee, language))}</strong></div>` : ''}
+      ${typeof order.codFee === 'number' && order.codFee > 0 ? `<div class="total-row"><span>COD charge</span><strong>${escapeHtml(formatPrice(order.codFee, language))}</strong></div>` : ''}
       ${order.discount > 0 ? `<div class="total-row"><span>Discount${order.couponCode ? ` (${escapeHtml(order.couponCode)})` : ''}</span><strong>−${escapeHtml(formatPrice(order.discount, language))}</strong></div>` : ''}
       <div class="total-row"><span>Payment method / status</span><strong>${escapeHtml(order.paymentMethod)} / ${escapeHtml(order.paymentStatus)}</strong></div>
       ${order.courier?.trackingCode ? `<div class="total-row"><span>Courier tracking</span><strong>${escapeHtml(order.courier.trackingCode)}</strong></div>` : ''}

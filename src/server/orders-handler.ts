@@ -5,6 +5,8 @@ import { z } from 'zod';
 import { bookPathaoOrderFromDatabase, PathaoBookingError } from '../lib/shipping/pathao-booking';
 import { formatOrderNumber } from '../lib/orders/order-number';
 import { formatCourierAddress, isValidAddressSelection } from '../lib/address/bangladesh-locations';
+import { quotePathaoCheckout } from '../lib/shipping/pathao-checkout';
+import { PathaoApiError } from '../lib/shipping/pathao-server';
 
 const addressSchema = z.object({
   fullName: z.string().trim().min(2).max(100),
@@ -17,11 +19,20 @@ const addressSchema = z.object({
   thanaCity: z.string().trim().min(1).max(100).optional(),
   addressDetails: z.string().trim().min(5).max(1000),
   postalCode: z.string().trim().max(20).optional(),
+  pathaoCityId: z.number().int().positive().optional(),
+  pathaoCityName: z.string().trim().max(100).optional(),
+  pathaoZoneId: z.number().int().positive().optional(),
+  pathaoZoneName: z.string().trim().max(100).optional(),
+  pathaoAreaId: z.number().int().positive().optional(),
+  pathaoAreaName: z.string().trim().max(100).optional(),
   notes: z.string().trim().max(300).optional(),
 }).refine((address) => Boolean(address.upazila || address.thanaCity), {
   message: 'Upazila / Thana is required',
   path: ['upazila'],
 }).superRefine((address, ctx) => {
+  if (address.pathaoAreaId && (!address.pathaoCityId || !address.pathaoZoneId)) {
+    ctx.addIssue({ code: 'custom', path: ['pathaoAreaId'], message: 'Select a Pathao city and zone before selecting the delivery area.' });
+  }
   // Validate new hierarchical addresses, while allowing legacy thanaCity records during rollout.
   if (address.upazila && !isValidAddressSelection(address.division, address.district, address.upazila)) {
     ctx.addIssue({ code: 'custom', path: ['upazila'], message: 'District and upazila / thana must match the selected division.' });
@@ -38,6 +49,7 @@ const checkoutSchema = z.object({
     variantId: z.string().trim().min(1).max(100).optional(),
     quantity: z.number().int().min(1).max(20),
   })).min(1).max(50),
+  couponCode: z.string().trim().min(3).max(20).optional(),
 }).strict();
 const statusSchema = z.object({
   orderId: z.string().uuid(),
@@ -133,6 +145,9 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
           subtotal: Number(row.subtotal),
           shippingFee: Number(row.shipping_fee),
           discount: Number(row.discount || 0),
+          codFee: Number(row.cod_fee || 0),
+          couponCode: row.coupon_code || undefined,
+          pathaoDeliveryFee: row.pathao_delivery_fee == null ? undefined : Number(row.pathao_delivery_fee),
           grandTotal: Number(row.grand_total),
           status,
           paymentMethod: row.payment_method,
@@ -325,12 +340,10 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     }
 
     if (!user.email_confirmed_at) return res.status(401).json({ error: 'A verified account is required.' });
-    const dhakaFee = readNonNegativeEnv('SHIPPING_DHAKA_FEE');
-    const outsideDhakaFee = readNonNegativeEnv('SHIPPING_OUTSIDE_DHAKA_FEE');
-    const freeShippingThreshold = readNonNegativeEnv('FREE_SHIPPING_THRESHOLD');
-    if (dhakaFee === null || outsideDhakaFee === null || freeShippingThreshold === null || freeShippingThreshold <= 0) {
-      return res.status(503).json({ error: 'Shipping configuration is incomplete. No order was created.' });
-    }
+    // Legacy zone rates are retained only for RPC compatibility; customer charges use the live Pathao quote below.
+    const dhakaFee = readNonNegativeEnv('SHIPPING_DHAKA_FEE') ?? 0;
+    const outsideDhakaFee = readNonNegativeEnv('SHIPPING_OUTSIDE_DHAKA_FEE') ?? 0;
+    const freeShippingThreshold = readNonNegativeEnv('FREE_SHIPPING_THRESHOLD') ?? 1;
     const idempotencyKey = getHeader(req, 'idempotency-key');
     if (idempotencyKey.length < 16 || idempotencyKey.length > 128) {
       return res.status(400).json({ error: 'A valid Idempotency-Key header is required.' });
@@ -350,6 +363,37 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
       return res.status(400).json({ error: 'Maximum quantity per product variant is 20.' });
     }
     const items = [...merged.values()];
+
+    // Requote on the server from current catalog prices and the Pathao merchant rate plan.
+    // Never accept shipping, COD or discount amounts supplied by the browser.
+    const quote = await quotePathaoCheckout(admin, {
+      district: parsed.data.customer.district,
+      upazila: parsed.data.customer.upazila || parsed.data.customer.thanaCity || '',
+      addressDetails: parsed.data.customer.addressDetails,
+      notes: parsed.data.customer.notes,
+      items,
+    });
+    const { data: settingsRow, error: settingsError } = await admin.from('store_content')
+      .select('content_value').eq('content_key', 'settings').maybeSingle();
+    if (settingsError) return res.status(503).json({ error: 'Checkout pricing settings could not be loaded.' });
+    const savedSettings = settingsRow?.content_value && typeof settingsRow.content_value === 'object'
+      ? settingsRow.content_value as Record<string, unknown> : {};
+    const configuredFreeThreshold = Number(savedSettings.freeShippingThreshold ?? process.env.FREE_SHIPPING_THRESHOLD ?? 0);
+    const configuredCodFee = Number(savedSettings.codFee ?? process.env.COD_FEE ?? 0);
+    if (!Number.isFinite(configuredFreeThreshold) || configuredFreeThreshold <= 0 ||
+        !Number.isFinite(configuredCodFee) || configuredCodFee < 0 || configuredCodFee > 2000) {
+      return res.status(503).json({ error: 'Free-shipping or COD fee settings are invalid. No order was created.' });
+    }
+    const shippingFee = quote.subtotal >= configuredFreeThreshold ? 0 : quote.pathaoFee;
+    const customerSnapshot = {
+      ...parsed.data.customer,
+      pathaoCityId: quote.cityId,
+      pathaoCityName: quote.cityName,
+      pathaoZoneId: quote.zoneId,
+      pathaoZoneName: quote.zoneName,
+      pathaoAreaId: quote.areaId,
+      pathaoAreaName: quote.areaName,
+    };
 
     // Fail closed before creating an order if the public order-number migration is pending.
     const { error: orderNumberSchemaError } = await admin
@@ -380,14 +424,20 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     const { data, error } = await admin.rpc('create_customer_order', {
       p_user_id: user.id,
       p_idempotency_key: idempotencyKey,
-      p_customer: parsed.data.customer,
+      p_customer: customerSnapshot,
       p_items: items,
       p_dhaka_fee: dhakaFee,
       p_outside_dhaka_fee: outsideDhakaFee,
       p_free_shipping_threshold: freeShippingThreshold,
+      p_expected_subtotal: quote.subtotal,
+      p_shipping_fee: shippingFee,
+      p_pathao_fee: quote.pathaoFee,
+      p_cod_fee: configuredCodFee,
+      p_cod_percentage: 1,
+      p_coupon_code: parsed.data.couponCode || null,
     });
     if (error) {
-      const safeMessage = /Insufficient stock|unavailable|Invalid quantity|Invalid order|Invalid customer|Invalid shipping|select a product variant/i.test(error.message)
+      const safeMessage = /Insufficient stock|unavailable|Invalid quantity|Invalid order|Invalid customer|Invalid shipping|select a product variant|coupon|cart prices changed|COD fee|Pathao COD percentage|discount value/i.test(error.message)
         ? error.message : 'Order could not be created. Please retry safely.';
       return res.status(409).json({ error: safeMessage });
     }
@@ -396,7 +446,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     const orderId = String(data?.orderId || '');
     const { data: savedOrder, error: savedOrderError } = await admin
       .from('store_orders')
-      .select('id,order_number,status,customer,subtotal,shipping_fee,discount,grand_total,created_at,store_order_items(*)')
+      .select('id,order_number,status,customer,subtotal,shipping_fee,cod_fee,discount,coupon_code,pathao_delivery_fee,grand_total,created_at,store_order_items(*)')
       .eq('id', orderId)
       .eq('user_id', user.id)
       .single();
@@ -424,13 +474,19 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
         customer: savedOrder.customer,
         subtotal: Number(savedOrder.subtotal),
         shippingFee: Number(savedOrder.shipping_fee),
+        codFee: Number(savedOrder.cod_fee || 0),
         discount: Number(savedOrder.discount || 0),
+        couponCode: savedOrder.coupon_code || undefined,
+        pathaoDeliveryFee: savedOrder.pathao_delivery_fee == null ? undefined : Number(savedOrder.pathao_delivery_fee),
         grandTotal: Number(savedOrder.grand_total),
         items: savedItems,
         replayed: Boolean(data?.replayed),
       },
     });
-  } catch {
+  } catch (error) {
+    if (error instanceof PathaoApiError) {
+      return res.status(error.status || 502).json({ error: error.message, code: error.safeCode });
+    }
     return res.status(500).json({ error: 'Unexpected order service error. No success is implied; check order status before retrying.' });
   }
 }
