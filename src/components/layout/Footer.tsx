@@ -59,7 +59,7 @@ export const Footer: React.FC = () => {
       container.scrollTo({ top: 0, behavior: reduceMotion ? 'auto' : 'smooth' });
     });
   };
-  const storeName = settings.storeName?.trim() || 'Zelux';
+  const storeName = settings.storeName?.trim() || 'Store';
   const phone = settings.phone?.trim() || '';
   const email = settings.email?.trim() || '';
   const address = settings.address?.trim() || '';

@@ -12,15 +12,55 @@ export type PublicCmsPage = {
   lastUpdated?: string;
 };
 
-const SITE_FALLBACK = 'https://zeluxi.vercel.app';
+const SITE_FALLBACK = 'https://pelomart.com';
 
-export async function getPublicCmsPages(): Promise<PublicCmsPage[]> {
+function escapeHtmlText(value: string): string {
+  return value.replace(/[&<>"']/g, (character) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  })[character] || character);
+}
+
+export function replaceStoreName(value: string, storeName: string): string {
+  return value
+    .replace(/\{\{storeName\}\}/g, storeName)
+    .replace(/\bzeluxi\b(?!\.)/gi, storeName);
+}
+
+function applyStoreNameToHtml(value: string, storeName: string): string {
+  const safeName = escapeHtmlText(storeName);
+  return value
+    .replace(/\{\{storeName\}\}/g, safeName)
+    .replace(/\bzeluxi\b(?!\.)/gi, safeName);
+}
+
+export async function getPublicSiteOrigin(): Promise<string> {
   try {
     const requestHeaders = await headers();
     const rawHost = requestHeaders.get('x-forwarded-host') || requestHeaders.get('host') || '';
     const host = /^[a-z0-9.-]+(?::\d{1,5})?$/i.test(rawHost) ? rawHost : '';
     const protocol = requestHeaders.get('x-forwarded-proto')?.split(',')[0]?.trim() === 'http' ? 'http' : 'https';
-    const origin = host ? `${protocol}://${host}` : (process.env.NEXT_PUBLIC_SITE_URL || SITE_FALLBACK);
+    return host ? `${protocol}://${host}` : (process.env.NEXT_PUBLIC_SITE_URL || SITE_FALLBACK);
+  } catch {
+    return process.env.NEXT_PUBLIC_SITE_URL || SITE_FALLBACK;
+  }
+}
+
+export async function getPublicStoreName(): Promise<string> {
+  try {
+    const origin = await getPublicSiteOrigin();
+    const response = await fetch(new URL('/api/content', origin), { cache: 'no-store' });
+    if (!response.ok) return 'Store';
+    const payload = await response.json();
+    const name = payload?.content?.settings?.storeName;
+    return typeof name === 'string' && name.trim() ? name.trim().slice(0, 120) : 'Store';
+  } catch {
+    return 'Store';
+  }
+}
+
+export async function getPublicCmsPages(): Promise<PublicCmsPage[]> {
+  try {
+    const origin = await getPublicSiteOrigin();
     const response = await fetch(new URL('/api/content', origin), { cache: 'no-store' });
     if (!response.ok) return [];
     const payload = await response.json();
@@ -43,17 +83,18 @@ export async function getPublicCmsPage(slugs: string[]): Promise<PublicCmsPage |
   return pages.find((page) => slugs.includes(page.slug.toLowerCase())) || null;
 }
 
-export function CmsPageContent({ page, fallbackTitle, fallbackContent }: {
+export async function CmsPageContent({ page, fallbackTitle, fallbackContent }: {
   page: PublicCmsPage | null;
   fallbackTitle: string;
   fallbackContent: string;
 }) {
-  const title = page?.title || fallbackTitle;
-  const content = page?.content?.trim() || fallbackContent;
+  const storeName = await getPublicStoreName();
+  const title = replaceStoreName(page?.title || fallbackTitle, storeName);
+  const content = applyStoreNameToHtml(page?.content?.trim() || fallbackContent, storeName);
   return (
     <main className="min-h-screen bg-white px-4 py-10 text-slate-800 sm:px-6 sm:py-16">
       <article className="mx-auto max-w-3xl">
-        <a href="/" className="text-sm font-semibold text-indigo-600 hover:underline">← Back to Zeluxi</a>
+        <a href="/" className="text-sm font-semibold text-indigo-600 hover:underline">← Back to {storeName}</a>
         <h1 className="mt-6 text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">{title}</h1>
         {page?.lastUpdated && <p className="mt-3 text-sm text-slate-500">Last updated: {page.lastUpdated}</p>}
         <div className="cms-rich-text mt-6 leading-7" dangerouslySetInnerHTML={{ __html: sanitizeRichTextHtml(content) }} />
@@ -62,16 +103,19 @@ export function CmsPageContent({ page, fallbackTitle, fallbackContent }: {
   );
 }
 
-export function pageMetadata(page: PublicCmsPage | null, title: string, description: string, canonical: string) {
+export async function pageMetadata(page: PublicCmsPage | null, title: string, description: string, canonical: string) {
+  const storeName = await getPublicStoreName();
+  const metadataTitle = replaceStoreName(page?.seoTitle || page?.title || title, storeName);
+  const metadataDescription = replaceStoreName(page?.seoDescription || description, storeName);
   return {
-    title: page?.seoTitle || page?.title || title,
-    description: page?.seoDescription || description,
+    title: metadataTitle,
+    description: metadataDescription,
     alternates: { canonical },
     robots: { index: true, follow: true },
     openGraph: {
       type: 'website' as const,
-      title: page?.seoTitle || page?.title || title,
-      description: page?.seoDescription || description,
+      title: metadataTitle,
+      description: metadataDescription,
       url: canonical,
       ...(page?.ogImageUrl ? { images: [page.ogImageUrl] } : {}),
     },

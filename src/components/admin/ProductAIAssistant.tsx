@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { AlertCircle, Check, ExternalLink, LoaderCircle, RefreshCw, Sparkles, WandSparkles } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { useStore } from '../../context/StoreContext';
 
 export interface AIProductSource {
   title: string;
@@ -43,6 +44,7 @@ export const ProductAIAssistant: React.FC<ProductAIAssistantProps> = ({
   categories,
   onApply,
 }) => {
+  const { settings } = useStore();
   const [draft, setDraft] = useState<AIProductDraft | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -99,7 +101,7 @@ export const ProductAIAssistant: React.FC<ProductAIAssistantProps> = ({
             <Sparkles className="h-5 w-5" />
           </div>
           <div className="min-w-0">
-            <h3 className="text-base font-bold tracking-tight text-slate-900">Zeluxi AI Product Agent</h3>
+            <h3 className="text-base font-bold tracking-tight text-slate-900">{settings.storeName?.trim() || 'Store'} AI Product Agent</h3>
             <p className="mt-1 text-xs leading-5 text-slate-600">Generate product details and SEO using web search.</p>
           </div>
         </div>

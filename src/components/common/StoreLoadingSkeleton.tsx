@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 
 type StoreLoadingSkeletonProps = {
   variant?: 'store' | 'admin';
@@ -13,6 +13,19 @@ type StoreLoadingSkeletonProps = {
  */
 export const StoreLoadingSkeleton: React.FC<StoreLoadingSkeletonProps> = ({ variant = 'store' }) => {
   const isAdmin = variant === 'admin';
+  const [storeName, setStoreName] = useState('Store');
+
+  useEffect(() => {
+    let active = true;
+    fetch('/api/content', { cache: 'no-store' })
+      .then((response) => response.ok ? response.json() : null)
+      .then((payload) => {
+        const name = payload?.content?.settings?.storeName;
+        if (active && typeof name === 'string' && name.trim()) setStoreName(name.trim().slice(0, 120));
+      })
+      .catch(() => undefined);
+    return () => { active = false; };
+  }, []);
 
   return (
     <main
@@ -41,12 +54,12 @@ export const StoreLoadingSkeleton: React.FC<StoreLoadingSkeletonProps> = ({ vari
             aria-hidden="true"
             className="hidden h-full w-full place-items-center bg-indigo-600 text-3xl font-bold text-white"
           >
-            Z
+            {Array.from(storeName)[0]?.toLocaleUpperCase() || 'S'}
           </span>
         </div>
 
         <h1 className="mt-5 max-w-full truncate text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-          Zeluxi
+          {storeName}
         </h1>
         <p className="mt-2 text-sm font-medium text-slate-500">
           {isAdmin ? 'Loading your workspace...' : 'Loading...'}

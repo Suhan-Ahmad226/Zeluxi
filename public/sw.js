@@ -1,14 +1,15 @@
-const CACHE_NAME = 'store-pwa-v3-offline-screen';
+const CACHE_NAME = 'store-pwa-v4-dynamic-offline-screen';
+const OFFLINE_PAGE_KEY = '/__store-offline-page';
 // Brand icons are resolved dynamically from Admin Settings. Do not pin old static logo files.
 const STATIC_ASSETS = ['/manifest.webmanifest', '/offline-reconnect.js'];
 
-const offlinePage = `<!doctype html>
+const offlinePageTemplate = `<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#0f172a">
-  <title>You’re offline | Zeluxi</title>
+  <title>You’re offline | {{STORE_NAME}}</title>
   <style>
     *{box-sizing:border-box}
     body{margin:0;min-height:100vh;min-height:100dvh;padding:24px;display:grid;place-items:center;background:#f8fafc;color:#0f172a;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
@@ -26,7 +27,7 @@ const offlinePage = `<!doctype html>
 <body>
   <script src="/offline-reconnect.js" defer></script>
   <main>
-    <div class="brand">ZELUXI</div>
+    <div class="brand">{{STORE_NAME}}</div>
     <div class="icon" aria-hidden="true">
       <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3l18 18"/><path d="M8.5 8.5A9.7 9.7 0 0 1 12 8c3.2 0 6.1 1.5 8 4"/><path d="M5 12a10 10 0 0 1 2.2-1.8"/><path d="M2 8.8A15.5 15.5 0 0 1 12 5c1.1 0 2.2.1 3.2.3"/><path d="M9.5 15.5a4 4 0 0 1 5 0"/><path d="M12 19h.01"/></svg>
     </div>
@@ -38,12 +39,39 @@ const offlinePage = `<!doctype html>
 </body>
 </html>`;
 
+function escapeHtml(value) {
+  return String(value || 'Store').replace(/[&<>"']/g, (character) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  })[character] || character);
+}
+
+function renderOfflinePage(storeName) {
+  return offlinePageTemplate.replaceAll('{{STORE_NAME}}', escapeHtml(storeName));
+}
+
+async function cacheOfflinePageFromSettings() {
+  try {
+    const response = await fetch('/api/content', { cache: 'no-store' });
+    if (!response.ok) return;
+    const payload = await response.json();
+    const name = payload?.content?.settings?.storeName;
+    if (typeof name !== 'string' || !name.trim()) return;
+    const cache = await caches.open(CACHE_NAME);
+    await cache.put(OFFLINE_PAGE_KEY, new Response(renderOfflinePage(name.trim().slice(0, 120)), {
+      headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' },
+    }));
+  } catch {
+    // Offline branding is best-effort. The generic store label remains safe.
+  }
+}
+
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then(async (cache) => {
       await Promise.all(STATIC_ASSETS.map(async (asset) => {
         try { await cache.add(asset); } catch { /* A missing optional asset must not block installation. */ }
       }));
+      await cacheOfflinePageFromSettings();
     })
   );
   self.skipWaiting();
@@ -61,17 +89,41 @@ self.addEventListener('fetch', (event) => {
   if (request.method !== 'GET') return;
 
   const url = new URL(request.url);
-  if (url.origin !== self.location.origin || url.pathname.startsWith('/api/') || url.pathname.includes('/auth/')) return;
+  if (url.origin !== self.location.origin || url.pathname.includes('/auth/')) return;
+
+  if (url.pathname === '/api/content') {
+    event.respondWith(fetch(request).then(async (response) => {
+      if (response.ok) {
+        try {
+          const payload = await response.clone().json();
+          const name = payload?.content?.settings?.storeName;
+          if (typeof name === 'string' && name.trim()) {
+            const cache = await caches.open(CACHE_NAME);
+            await cache.put(OFFLINE_PAGE_KEY, new Response(renderOfflinePage(name.trim().slice(0, 120)), {
+              headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' },
+            }));
+          }
+        } catch { /* A malformed content response must not affect the original request. */ }
+      }
+      return response;
+    }));
+    return;
+  }
+  if (url.pathname.startsWith('/api/')) return;
 
   if (request.mode === 'navigate') {
-    event.respondWith(fetch(request).catch(() => new Response(offlinePage, {
-      status: 503,
-      headers: {
-        'Content-Type': 'text/html; charset=utf-8',
-        'Cache-Control': 'no-store',
-        'X-Content-Type-Options': 'nosniff'
-      }
-    })));
+    event.respondWith(fetch(request).catch(async () => {
+      const cache = await caches.open(CACHE_NAME);
+      const cachedPage = await cache.match(OFFLINE_PAGE_KEY);
+      return cachedPage || new Response(renderOfflinePage('Store'), {
+        status: 503,
+        headers: {
+          'Content-Type': 'text/html; charset=utf-8',
+          'Cache-Control': 'no-store',
+          'X-Content-Type-Options': 'nosniff'
+        }
+      });
+    }));
     return;
   }
 

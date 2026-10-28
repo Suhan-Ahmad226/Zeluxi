@@ -4,6 +4,7 @@ import { Product } from '../../types';
 import { supabase } from '../../lib/supabase';
 import { formatPrice } from '../../utils/formatters';
 import { StoreImage } from '../common/StoreImage';
+import { useStore } from '../../context/StoreContext';
 
 type Account = { id: string; provider_account_id: string; account_name: string; status: string };
 type Post = { id: string; product_id: string | null; account_id: string; caption: string; media_urls: string[]; product_url: string; status: string; scheduled_at: string | null; published_at: string | null; last_error: string | null; created_at: string };
@@ -11,6 +12,7 @@ type Promotion = { id: string; product_id: string; product_name_snapshot: string
 type Props = { products: Product[]; initialProduct?: Product | null; onInitialProductHandled?: () => void };
 
 export const SocialPostStudio: React.FC<Props> = ({ products, initialProduct, onInitialProductHandled }) => {
+  const { settings } = useStore();
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [posts, setPosts] = useState<Post[]>([]);
   const [promotions, setPromotions] = useState<Promotion[]>([]);
@@ -198,7 +200,7 @@ export const SocialPostStudio: React.FC<Props> = ({ products, initialProduct, on
       <div className="rounded-2xl bg-gradient-to-r from-slate-950 via-indigo-950 to-slate-900 p-5 sm:p-7 text-white shadow-sm">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2 text-indigo-200 text-xs font-semibold uppercase tracking-wider"><Megaphone className="w-4 h-4" /> Zeluxi Social Studio</div>
+            <div className="flex items-center gap-2 text-indigo-200 text-xs font-semibold uppercase tracking-wider"><Megaphone className="w-4 h-4" /> {settings.storeName?.trim() || 'Store'} Social Studio</div>
             <h2 className="mt-2 text-xl sm:text-2xl font-bold">Create once. Publish smarter.</h2>
             <p className="mt-1 text-sm text-slate-300 max-w-2xl">AI-assisted product posts, scheduled publishing and recurring promotions from your catalog.</p>
           </div>

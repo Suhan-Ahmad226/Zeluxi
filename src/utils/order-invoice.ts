@@ -44,36 +44,36 @@ export function buildOrderInvoiceHtml(
     customer.division,
     customer.postalCode,
   ].filter(Boolean).join(', ');
-  const storeName = settings.storeName?.trim() || 'Zelux';
+  const storeName = settings.storeName?.trim() || 'Store';
   const logoUrl = typeof settings.logoUrl === 'string' && /^https:\/\//i.test(settings.logoUrl.trim())
     ? settings.logoUrl.trim()
     : '';
 
-  return `<article class="zeluxi-invoice">
+  return `<article class="store-invoice">
     <style>
-      .zeluxi-invoice{font-family:Arial,Helvetica,sans-serif;color:#172033;background:#fff;width:100%;max-width:900px;margin:0 auto;font-size:12px;line-height:1.5}
-      .zeluxi-invoice *{box-sizing:border-box}.zeluxi-invoice .topbar{height:7px;background:#4338ca;border-radius:5px;margin-bottom:22px}
-      .zeluxi-invoice .header{display:flex;justify-content:space-between;gap:24px;border-bottom:1px solid #e2e8f0;padding-bottom:18px}
-      .zeluxi-invoice .brand-lockup{display:flex;align-items:center;gap:10px;min-width:0;margin:0 0 6px}
-      .zeluxi-invoice .brand-logo{width:54px;height:54px;object-fit:contain;flex:none}
-      .zeluxi-invoice .brand{font-size:24px;font-weight:800;letter-spacing:-.6px;margin:0;color:#111827;overflow-wrap:anywhere}
-      .zeluxi-invoice .muted{font-size:10px;color:#64748b;margin-top:3px;overflow-wrap:anywhere}
-      .zeluxi-invoice .invoice-title{font-size:26px;letter-spacing:1.5px;margin:0;color:#4338ca;text-align:right}
-      .zeluxi-invoice .order-meta{text-align:right;color:#475569;margin-top:7px}
-      .zeluxi-invoice .section-title{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#64748b;font-weight:700;margin:0 0 8px}
-      .zeluxi-invoice .details{display:grid;grid-template-columns:1fr 1fr;gap:24px;padding:20px 0}
-      .zeluxi-invoice .details p{margin:3px 0;overflow-wrap:anywhere}.zeluxi-invoice .details strong{font-size:13px}
-      .zeluxi-invoice table{width:100%;border-collapse:collapse;table-layout:fixed;margin-top:4px}
-      .zeluxi-invoice th{background:#f1f5f9;color:#475569;font-size:10px;text-transform:uppercase;letter-spacing:.5px}
-      .zeluxi-invoice th,.zeluxi-invoice td{padding:10px 8px;border-bottom:1px solid #e2e8f0;text-align:left;vertical-align:top;overflow-wrap:anywhere}
-      .zeluxi-invoice th:nth-child(1){width:54%}.zeluxi-invoice th:nth-child(2){width:9%}.zeluxi-invoice th:nth-child(3){width:17%}.zeluxi-invoice th:nth-child(4){width:20%}
-      .zeluxi-invoice .numeric{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
-      .zeluxi-invoice .product-cell{display:flex;align-items:flex-start;gap:10px}.zeluxi-invoice .product-image{width:48px;height:48px;object-fit:contain;border:1px solid #e2e8f0;border-radius:6px;flex:none}
-      .zeluxi-invoice .totals{width:100%;max-width:330px;margin:20px 0 0 auto}.zeluxi-invoice .total-row{display:flex;justify-content:space-between;gap:18px;padding:5px 0;color:#475569}
-      .zeluxi-invoice .grand-total{border-top:2px solid #cbd5e1;margin-top:6px;padding-top:12px;font-size:15px;font-weight:800;color:#111827}
-      .zeluxi-invoice .grand-total strong{color:#4338ca}.zeluxi-invoice .footer{border-top:1px solid #e2e8f0;margin-top:26px;padding-top:14px;color:#64748b;text-align:center;font-size:10px}
-      @media(max-width:600px){.zeluxi-invoice .header{gap:10px}.zeluxi-invoice .brand{font-size:19px}.zeluxi-invoice .brand-logo{width:42px;height:42px}.zeluxi-invoice .invoice-title{font-size:20px}.zeluxi-invoice .details{gap:12px}.zeluxi-invoice th,.zeluxi-invoice td{padding:7px 4px;font-size:10px}.zeluxi-invoice .product-cell{gap:5px}.zeluxi-invoice .product-image{width:34px;height:34px}}
-      @media print{.zeluxi-invoice{max-width:none!important;font-size:10pt!important}.zeluxi-invoice .topbar{background:#4338ca!important;print-color-adjust:exact;-webkit-print-color-adjust:exact}.zeluxi-invoice .header,.zeluxi-invoice .details,.zeluxi-invoice table tr{break-inside:avoid;page-break-inside:avoid}.zeluxi-invoice table thead{display:table-header-group}.zeluxi-invoice .muted{font-size:8pt}}
+      .store-invoice{font-family:Arial,Helvetica,sans-serif;color:#172033;background:#fff;width:100%;max-width:900px;margin:0 auto;font-size:12px;line-height:1.5}
+      .store-invoice *{box-sizing:border-box}.store-invoice .topbar{height:7px;background:#4338ca;border-radius:5px;margin-bottom:22px}
+      .store-invoice .header{display:flex;justify-content:space-between;gap:24px;border-bottom:1px solid #e2e8f0;padding-bottom:18px}
+      .store-invoice .brand-lockup{display:flex;align-items:center;gap:10px;min-width:0;margin:0 0 6px}
+      .store-invoice .brand-logo{width:54px;height:54px;object-fit:contain;flex:none}
+      .store-invoice .brand{font-size:24px;font-weight:800;letter-spacing:-.6px;margin:0;color:#111827;overflow-wrap:anywhere}
+      .store-invoice .muted{font-size:10px;color:#64748b;margin-top:3px;overflow-wrap:anywhere}
+      .store-invoice .invoice-title{font-size:26px;letter-spacing:1.5px;margin:0;color:#4338ca;text-align:right}
+      .store-invoice .order-meta{text-align:right;color:#475569;margin-top:7px}
+      .store-invoice .section-title{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#64748b;font-weight:700;margin:0 0 8px}
+      .store-invoice .details{display:grid;grid-template-columns:1fr 1fr;gap:24px;padding:20px 0}
+      .store-invoice .details p{margin:3px 0;overflow-wrap:anywhere}.store-invoice .details strong{font-size:13px}
+      .store-invoice table{width:100%;border-collapse:collapse;table-layout:fixed;margin-top:4px}
+      .store-invoice th{background:#f1f5f9;color:#475569;font-size:10px;text-transform:uppercase;letter-spacing:.5px}
+      .store-invoice th,.store-invoice td{padding:10px 8px;border-bottom:1px solid #e2e8f0;text-align:left;vertical-align:top;overflow-wrap:anywhere}
+      .store-invoice th:nth-child(1){width:54%}.store-invoice th:nth-child(2){width:9%}.store-invoice th:nth-child(3){width:17%}.store-invoice th:nth-child(4){width:20%}
+      .store-invoice .numeric{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+      .store-invoice .product-cell{display:flex;align-items:flex-start;gap:10px}.store-invoice .product-image{width:48px;height:48px;object-fit:contain;border:1px solid #e2e8f0;border-radius:6px;flex:none}
+      .store-invoice .totals{width:100%;max-width:330px;margin:20px 0 0 auto}.store-invoice .total-row{display:flex;justify-content:space-between;gap:18px;padding:5px 0;color:#475569}
+      .store-invoice .grand-total{border-top:2px solid #cbd5e1;margin-top:6px;padding-top:12px;font-size:15px;font-weight:800;color:#111827}
+      .store-invoice .grand-total strong{color:#4338ca}.store-invoice .footer{border-top:1px solid #e2e8f0;margin-top:26px;padding-top:14px;color:#64748b;text-align:center;font-size:10px}
+      @media(max-width:600px){.store-invoice .header{gap:10px}.store-invoice .brand{font-size:19px}.store-invoice .brand-logo{width:42px;height:42px}.store-invoice .invoice-title{font-size:20px}.store-invoice .details{gap:12px}.store-invoice th,.store-invoice td{padding:7px 4px;font-size:10px}.store-invoice .product-cell{gap:5px}.store-invoice .product-image{width:34px;height:34px}}
+      @media print{.store-invoice{max-width:none!important;font-size:10pt!important}.store-invoice .topbar{background:#4338ca!important;print-color-adjust:exact;-webkit-print-color-adjust:exact}.store-invoice .header,.store-invoice .details,.store-invoice table tr{break-inside:avoid;page-break-inside:avoid}.store-invoice table thead{display:table-header-group}.store-invoice .muted{font-size:8pt}}
     </style>
     <div class="topbar"></div>
     <header class="header">

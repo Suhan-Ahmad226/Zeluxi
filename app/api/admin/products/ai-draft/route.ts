@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
   const { data, error } = await auth.auth.getUser(token);
   if (error || !data.user) return errorResponse('Your session is invalid or expired.', 401);
 
-  // Zeluxi's authoritative role is stored in profiles.role, not necessarily JWT app_metadata.
+  // The authoritative admin role is stored in profiles.role, not necessarily JWT app_metadata.
   const admin = createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false, autoRefreshToken: false } });
   const { data: profile, error: profileError } = await admin
     .from('profiles')
@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
     : 'No variants supplied';
 
   const prompt = [
-    'You are the product research and ecommerce copy agent for Zeluxi, a Bangladesh single-store ecommerce website.',
+    'You are the product research and ecommerce copy agent for a Bangladesh single-store ecommerce website.',
     'First use Google Search to research the exact product name and model. Prefer the manufacturer brand website and trustworthy retailers or technical publications. Search in English and Bangla when useful.',
     'Return only a JSON object matching exactly these keys: name, category, brand, shortDescription, description, tags, seoTitle, seoDescription, seoKeywords, specifications.',
     'Write polished, specific ecommerce content in ' + input.language + '. Keep the user-provided product name intact unless a clear spelling correction is needed.',
