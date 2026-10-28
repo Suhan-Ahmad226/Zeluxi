@@ -269,8 +269,8 @@ export const CheckoutModal: React.FC<{ pageMode?: boolean }> = ({ pageMode = fal
   };
 
   return (
-      <div className={pageMode ? 'min-h-[60vh] bg-slate-50' : 'fixed inset-0 z-[60] overflow-y-auto bg-slate-50 animate-in fade-in duration-150'}>
-      <div className="mx-auto min-h-full w-full max-w-6xl bg-white shadow-xl sm:border-x sm:border-slate-200">
+      <div className={pageMode ? 'w-full bg-slate-50 py-5 sm:py-8 lg:py-10' : 'fixed inset-0 z-[60] overflow-y-auto bg-slate-50 animate-in fade-in duration-150'}>
+      <div className={pageMode ? "mx-auto w-full max-w-7xl bg-transparent" : "mx-auto min-h-full w-full max-w-6xl bg-white shadow-xl sm:border-x sm:border-slate-200"}>
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/70">
           <div className="flex items-center gap-2">
