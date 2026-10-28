@@ -92,12 +92,12 @@ export async function CmsPageContent({ page, fallbackTitle, fallbackContent }: {
   const title = replaceStoreName(page?.title || fallbackTitle, storeName);
   const content = applyStoreNameToHtml(page?.content?.trim() || fallbackContent, storeName);
   return (
-    <main className="min-h-screen bg-white px-4 py-10 text-slate-800 sm:px-6 sm:py-16">
-      <article className="mx-auto max-w-3xl">
+    <main className="min-h-[60vh] min-w-0 bg-white px-4 py-10 text-slate-800 sm:px-6 sm:py-16">
+      <article className="mx-auto w-full max-w-3xl min-w-0 break-words [overflow-wrap:anywhere]">
         <a href="/" className="text-sm font-semibold text-indigo-600 hover:underline">← Back to {storeName}</a>
         <h1 className="mt-6 text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">{title}</h1>
         {page?.lastUpdated && <p className="mt-3 text-sm text-slate-500">Last updated: {page.lastUpdated}</p>}
-        <div className="cms-rich-text mt-6 leading-7" dangerouslySetInnerHTML={{ __html: sanitizeRichTextHtml(content) }} />
+        <div className="cms-rich-content mt-6 text-[15px] leading-7 text-slate-700 sm:text-base" dangerouslySetInnerHTML={{ __html: sanitizeRichTextHtml(content) }} />
       </article>
     </main>
   );
