@@ -88,7 +88,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
   onProductUpdated,
   presentation = 'modal',
 }) => {
-  const { syncProduct, categories, addCategory, language, showToast } = useStore();
+  const { syncProduct, categories, addCategory, language, showToast, settings } = useStore();
 
   // Quick category & subcategory creator state
   const [isQuickAddCategoryOpen, setIsQuickAddCategoryOpen] = useState(false);
