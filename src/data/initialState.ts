@@ -87,7 +87,7 @@ export const INITIAL_STOREFRONT_CMS: StorefrontCMS = {
       id: 'hero-default',
       active: true,
       order: 0,
-      tagline: 'Zelux Atelier',
+      tagline: '',
       headline: 'Thoughtfully made for everyday living.',
       description: '',
       primaryButtonText: 'Shop collection',
