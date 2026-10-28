@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
 const catalogApi = readFileSync(new URL('../../api/products.ts', import.meta.url), 'utf8');
+const pathaoCheckout = readFileSync(new URL('../../src/lib/shipping/pathao-checkout.ts', import.meta.url), 'utf8');
+const ordersHandler = readFileSync(new URL('../../src/server/orders-handler.ts', import.meta.url), 'utf8');
 const catalogMigration = readFileSync(
   new URL('../../supabase/migrations/20261016000200_persistent_catalog.sql', import.meta.url),
   'utf8'
@@ -47,4 +49,10 @@ test('anonymous public catalog responses can be edge-cached while authenticated 
   assert.match(catalogApi, /res\.setHeader\('Cache-Control', 'no-store'\)/);
   assert.match(catalogApi, /if \(!token\) res\.setHeader\('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=120'\)/);
   assert.match(catalogApi, /const token = getHeader\(req, 'authorization'\)/);
+});
+
+test('Pathao COD restrictions block only COD orders, not prepaid checkout', () => {
+  assert.doesNotMatch(pathaoCheckout, /if \(Number\(rate\.cod_enabled\) !== 1\)\s*\{\s*throw new PathaoApiError\('Pathao does not support COD/);
+  assert.match(pathaoCheckout, /codEnabled: Number\(rate\.cod_enabled \|\| 0\) === 1/);
+  assert.match(ordersHandler, /parsed\.data\.paymentMethod === 'COD' && !quote\.codEnabled/);
 });
