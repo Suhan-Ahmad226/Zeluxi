@@ -91,12 +91,15 @@ export const CheckoutModal: React.FC = () => {
       setIsQuoteLoading(true);
       setShippingQuoteError(null);
       try {
-        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+        // Shipping quotes are public so guests can see delivery charges before signing in.
+        // Attach a token when one exists, but never make authentication a quote prerequisite.
+        const { data: sessionData } = await supabase.auth.getSession();
         const token = sessionData.session?.access_token;
-        if (sessionError || !token) throw new Error('Sign in again to calculate Pathao delivery.');
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+        if (token) headers.Authorization = 'Bearer ' + token;
         const response = await fetch('/api/shipping/quote', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+          headers,
           body: JSON.stringify({
             division,
             district,
