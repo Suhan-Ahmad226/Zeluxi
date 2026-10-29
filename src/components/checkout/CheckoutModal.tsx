@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useStore } from '../../context/StoreContext';
 import { useAuth } from '../../context/AuthContext';
-import { supabase } from '../../lib/supabase';
 import { verifyCustomerOrderEligibility } from '../../lib/auth/verifyCustomer';
 import { formatPrice } from '../../utils/formatters';
 import {
@@ -81,33 +80,33 @@ export const CheckoutModal: React.FC = () => {
 
   useEffect(() => {
     let active = true;
-    const requestQuote = async () => {
-      if (!isCheckoutOpen || !district || !upazila || !addressDetails.trim() || cart.length === 0) {
-        setShippingQuote(null);
-        setShippingQuoteError(null);
-        setIsQuoteLoading(false);
-        return;
-      }
+    let controller: AbortController | null = null;
+    if (!isCheckoutOpen || !district || !upazila || cart.length === 0) {
+      setShippingQuote(null);
+      setShippingQuoteError(null);
+      setIsQuoteLoading(false);
+      return () => { active = false; };
+    }
+
+    // Wait for quick successive address/cart edits, then cancel any obsolete quote.
+    const timer = window.setTimeout(async () => {
+      controller = new AbortController();
+      setShippingQuote(null);
       setIsQuoteLoading(true);
       setShippingQuoteError(null);
       try {
-        // Shipping quotes are public so guests can see delivery charges before signing in.
-        // Attach a token when one exists, but never make authentication a quote prerequisite.
-        const { data: sessionData } = await supabase.auth.getSession();
-        const token = sessionData.session?.access_token;
-        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-        if (token) headers.Authorization = 'Bearer ' + token;
+        // This endpoint is public; skipping session lookup removes an unnecessary network round-trip.
         const response = await fetch('/api/shipping/quote', {
           method: 'POST',
-          headers,
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             division,
             district,
             upazila,
-            addressDetails: addressDetails.trim(),
             items: cart.map((item) => ({ productId: item.productId, variantId: item.variantId, quantity: item.quantity })),
           }),
           cache: 'no-store',
+          signal: controller.signal,
         });
         const payload = await response.json().catch(() => ({}));
         if (!response.ok || !payload?.quote) {
@@ -115,17 +114,21 @@ export const CheckoutModal: React.FC = () => {
         }
         if (active) setShippingQuote(payload.quote);
       } catch (error) {
-        if (active) {
+        if (active && !(error instanceof DOMException && error.name === 'AbortError')) {
           setShippingQuote(null);
           setShippingQuoteError(error instanceof Error ? error.message : 'Pathao delivery price could not be calculated.');
         }
       } finally {
         if (active) setIsQuoteLoading(false);
       }
+    }, 250);
+
+    return () => {
+      active = false;
+      window.clearTimeout(timer);
+      controller?.abort();
     };
-    void requestQuote();
-    return () => { active = false; };
-  }, [isCheckoutOpen, division, district, upazila, addressDetails, cart]);
+  }, [isCheckoutOpen, division, district, upazila, cart]);
 
   if (!isCheckoutOpen) return null;
 
