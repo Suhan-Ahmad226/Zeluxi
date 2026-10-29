@@ -19,7 +19,7 @@ const normalizeLocation = (value: string) =>
 
 export async function quotePathaoCheckout(
   db: SupabaseClient,
-  input: { district: string; upazila: string; addressDetails: string; notes?: string; items: CheckoutLine[] },
+  input: { division: string; district: string; upazila: string; addressDetails: string; notes?: string; items: CheckoutLine[] },
 ) {
   const storeId = Number(process.env.PATHAO_STORE_ID || 0);
   if (!Number.isSafeInteger(storeId) || storeId <= 0) {
@@ -91,9 +91,46 @@ export async function quotePathaoCheckout(
   }
   const cities = cityCache.value;
   const city = cities.find((entry) => normalizeLocation(entry.city_name) === normalizeLocation(input.district));
-  if (!city) {
-    throw new PathaoApiError('Pathao does not have an exact city match for this district. Contact support to map this delivery area; no estimated rate was invented.', 422, 'PATHAO_CITY_MAPPING_REQUIRED');
-  }
+
+  // Pathao may not list every Bangladesh district/upazila. In that case use
+  // the store's explicitly configured shipping fee; never guess a Pathao rate.
+  const configuredFallbackQuote = async (reason: 'CITY' | 'ZONE') => {
+    const { data: settingsRow, error: settingsError } = await db.from('store_content')
+      .select('content_value').eq('content_key', 'settings').maybeSingle();
+    if (settingsError) throw new PathaoApiError('Store shipping settings could not be loaded for this address.', 503, 'SHIPPING_SETTINGS_UNAVAILABLE');
+    const settings = settingsRow?.content_value && typeof settingsRow.content_value === 'object'
+      ? settingsRow.content_value as Record<string, unknown> : {};
+    const insideDhaka = normalizeLocation(input.district) === 'dhaka';
+    const rawFee = insideDhaka ? settings.shippingDhaka : settings.shippingOutsideDhaka;
+    const fallbackFee = Number(rawFee);
+    if (rawFee === undefined || rawFee === null || rawFee === '' || !Number.isFinite(fallbackFee) || fallbackFee < 0 || fallbackFee > 2000) {
+      throw new PathaoApiError('Pathao could not match this location and the store has no valid fallback shipping fee configured. Please contact the store.', 422, 'SHIPPING_FALLBACK_NOT_CONFIGURED');
+    }
+    return {
+      subtotal: Math.round(subtotal * 100) / 100,
+      weightKg,
+      totalQuantity,
+      cityId: undefined,
+      cityName: undefined,
+      zoneId: undefined,
+      zoneName: undefined,
+      areaId: undefined,
+      areaName: undefined,
+      areas: [],
+      pathaoFee: Math.round(fallbackFee * 100) / 100,
+      planId: 0,
+      codEnabled: true,
+      codPercentage: 0,
+      additionalCharge: 0,
+      price: fallbackFee,
+      discount: 0,
+      promoDiscount: 0,
+      rateSource: 'STORE_FALLBACK' as const,
+      mappingIssue: reason,
+    };
+  };
+
+  if (!city) return configuredFallbackQuote('CITY');
   const cityId = Number(city.city_id);
   let cachedZones = zoneCache.get(cityId);
   if (!cachedZones || cachedZones.expiresAt <= now) {
@@ -102,9 +139,7 @@ export async function quotePathaoCheckout(
   }
   const zones = cachedZones.value;
   const zone = zones.find((entry) => normalizeLocation(entry.zone_name) === normalizeLocation(input.upazila));
-  if (!zone) {
-    throw new PathaoApiError('Pathao does not have an exact zone match for this thana/upazila. Choose a supported area or ask the store to configure the mapping.', 422, 'PATHAO_ZONE_MAPPING_REQUIRED');
-  }
+  if (!zone) return configuredFallbackQuote('ZONE');
 
   const zoneId = Number(zone.zone_id);
   let cachedAreas = areaCache.get(zoneId);
@@ -163,5 +198,6 @@ export async function quotePathaoCheckout(
     price: Number(rate.price || 0),
     discount: Number(rate.discount || 0),
     promoDiscount: Number(rate.promo_discount || 0),
+    rateSource: 'PATHAO' as const,
   };
 }

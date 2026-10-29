@@ -8,6 +8,7 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 const schema = z.object({
+  division: z.enum(['Dhaka','Chattogram','Rajshahi','Sylhet','Khulna','Barishal','Rangpur','Mymensingh']),
   district: z.string().trim().min(1).max(100),
   upazila: z.string().trim().min(1).max(100),
   addressDetails: z.string().trim().min(1).max(500),

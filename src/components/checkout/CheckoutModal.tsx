@@ -100,6 +100,7 @@ export const CheckoutModal: React.FC = () => {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
           body: JSON.stringify({
+            division,
             district,
             upazila,
             addressDetails: addressDetails.trim(),
@@ -124,7 +125,7 @@ export const CheckoutModal: React.FC = () => {
     };
     void requestQuote();
     return () => { active = false; };
-  }, [isCheckoutOpen, district, upazila, addressDetails, notes, cart]);
+  }, [isCheckoutOpen, division, district, upazila, addressDetails, notes, cart]);
 
   if (!isCheckoutOpen) return null;
 
@@ -176,7 +177,7 @@ export const CheckoutModal: React.FC = () => {
       }
     }
 
-    if (!shippingQuote || !shippingQuote.areaId || isQuoteLoading || shippingQuoteError) {
+    if (!shippingQuote || isQuoteLoading || shippingQuoteError) {
       setFormError(shippingQuoteError || 'Wait for a valid Pathao delivery quote before placing your order.');
       return;
     }
@@ -192,11 +193,11 @@ export const CheckoutModal: React.FC = () => {
       upazila: upazila.trim(),
       addressDetails: addressDetails.trim(),
       notes: notes.trim(),
-      pathaoCityId: Number(shippingQuote.cityId),
+      pathaoCityId: shippingQuote.cityId ? Number(shippingQuote.cityId) : undefined,
       pathaoCityName: String(shippingQuote.cityName || ''),
-      pathaoZoneId: Number(shippingQuote.zoneId),
+      pathaoZoneId: shippingQuote.zoneId ? Number(shippingQuote.zoneId) : undefined,
       pathaoZoneName: String(shippingQuote.zoneName || ''),
-      pathaoAreaId: Number(shippingQuote.areaId),
+      pathaoAreaId: shippingQuote.areaId ? Number(shippingQuote.areaId) : undefined,
       pathaoAreaName: String(shippingQuote.areaName || ''),
     };
 

@@ -393,6 +393,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     // Requote on the server from current catalog prices and the Pathao merchant rate plan.
     // Never accept shipping, COD or discount amounts supplied by the browser.
     const quote = await quotePathaoCheckout(admin, {
+      division: parsed.data.customer.division,
       district: parsed.data.customer.district,
       upazila: parsed.data.customer.upazila || parsed.data.customer.thanaCity || '',
       addressDetails: parsed.data.customer.addressDetails,
@@ -433,6 +434,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
       pathaoZoneName: quote.zoneName,
       pathaoAreaId: quote.areaId,
       pathaoAreaName: quote.areaName,
+      shippingRateSource: quote.rateSource || 'PATHAO',
     };
 
     // Fail closed before creating an order if the public order-number migration is pending.
