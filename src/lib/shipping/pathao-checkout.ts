@@ -71,9 +71,6 @@ export async function quotePathaoCheckout(
   input: { division: string; district: string; upazila: string; addressDetails: string; notes?: string; items: CheckoutLine[] },
 ) {
   const storeId = Number(process.env.PATHAO_STORE_ID || 0);
-  if (!Number.isSafeInteger(storeId) || storeId <= 0) {
-    throw new PathaoApiError('Pathao pickup store is not configured. Checkout shipping cannot be quoted.', 503, 'PATHAO_STORE_NOT_CONFIGURED');
-  }
   if (!input.items.length || input.items.length > 50) {
     throw new PathaoApiError('Your cart is empty or contains too many line items.', 400, 'CART_INVALID');
   }
@@ -89,10 +86,9 @@ export async function quotePathaoCheckout(
   let weightKg = 0;
   let totalQuantity = 0;
   const fallbackWeightRaw = process.env.PATHAO_DEFAULT_ITEM_WEIGHT_KG;
-  const fallbackWeight = fallbackWeightRaw ? Number(fallbackWeightRaw) : null;
-  if (fallbackWeightRaw && (!Number.isFinite(Number(fallbackWeight)) || Number(fallbackWeight) <= 0 || Number(fallbackWeight) > 10)) {
-    throw new PathaoApiError('PATHAO_DEFAULT_ITEM_WEIGHT_KG must be greater than 0 and at most 10 kg.', 503, 'PATHAO_WEIGHT_CONFIG_INVALID');
-  }
+  const parsedFallbackWeight = fallbackWeightRaw ? Number(fallbackWeightRaw) : null;
+  let weightUnavailable = Boolean(fallbackWeightRaw && (!Number.isFinite(Number(parsedFallbackWeight)) || Number(parsedFallbackWeight) <= 0 || Number(parsedFallbackWeight) > 10));
+  const fallbackWeight = weightUnavailable ? null : parsedFallbackWeight;
 
   for (const item of input.items) {
     if (!Number.isInteger(item.quantity) || item.quantity < 1 || item.quantity > 20) {
@@ -120,30 +116,26 @@ export async function quotePathaoCheckout(
     }
     if (!Number.isFinite(price) || price < 0) throw new PathaoApiError('A cart item has an invalid price.', 409, 'PRODUCT_PRICE_INVALID');
     const configuredProductWeight = Number(productData.weightKg || 0);
-    const itemWeight = Number.isFinite(configuredProductWeight) && configuredProductWeight > 0 ? configuredProductWeight : fallbackWeight;
-    if (itemWeight === null || !Number.isFinite(itemWeight) || itemWeight <= 0 || itemWeight > 10) {
-      throw new PathaoApiError('Set an accurate weightKg for this product or configure PATHAO_DEFAULT_ITEM_WEIGHT_KG before checkout.', 422, 'PRODUCT_WEIGHT_REQUIRED');
+    const configuredWeight = Number.isFinite(configuredProductWeight) && configuredProductWeight > 0 && configuredProductWeight <= 10
+      ? configuredProductWeight : fallbackWeight;
+    if (configuredWeight === null || !Number.isFinite(configuredWeight) || configuredWeight <= 0 || configuredWeight > 10) {
+      weightUnavailable = true;
     }
+    // Placeholder weight is only for a store-fee fallback. Pathao pricing is skipped
+    // when the actual parcel weight cannot be established safely.
+    const itemWeight = configuredWeight && !weightUnavailable ? configuredWeight : 0.5;
     subtotal += price * item.quantity;
     weightKg += itemWeight * item.quantity;
     totalQuantity += item.quantity;
   }
 
   weightKg = Math.max(0.5, Math.round(weightKg * 100) / 100);
-  if (weightKg > 10) {
-    throw new PathaoApiError('This parcel exceeds Pathao’s 10 kg limit. Reduce the cart quantity or arrange split shipment.', 422, 'PARCEL_WEIGHT_OUT_OF_RANGE');
-  }
-
+  const parcelTooHeavy = weightKg > 10;
   const now = Date.now();
-  if (!cityCache || cityCache.expiresAt <= now) {
-    cityCache = { expiresAt: now + LOCATION_CACHE_TTL_MS, value: await getPathaoCities() };
-  }
-  const cities = cityCache.value;
-  const city = cities.find((entry) => locationNameMatches(entry.city_name, input.district));
 
-  // Pathao may not list every Bangladesh district/upazila. In that case use
-  // the store's explicitly configured shipping fee; never guess a Pathao rate.
-  const configuredFallbackQuote = async (reason: 'CITY' | 'ZONE') => {
+  // If Pathao config, location mapping, network, or weight data is unavailable,
+  // use only the delivery fee explicitly configured in Store Settings.
+  const configuredFallbackQuote = async (reason: 'CITY' | 'ZONE' | 'PATHAO_UNAVAILABLE' | 'WEIGHT_UNAVAILABLE') => {
     const { data: settingsRow, error: settingsError } = await db.from('store_content')
       .select('content_value').eq('content_key', 'settings').maybeSingle();
     if (settingsError) throw new PathaoApiError('Store shipping settings could not be loaded for this address.', 503, 'SHIPPING_SETTINGS_UNAVAILABLE');
@@ -179,12 +171,28 @@ export async function quotePathaoCheckout(
     };
   };
 
+  if (!Number.isSafeInteger(storeId) || storeId <= 0) return configuredFallbackQuote('PATHAO_UNAVAILABLE');
+  if (weightUnavailable || parcelTooHeavy) return configuredFallbackQuote('WEIGHT_UNAVAILABLE');
+
+  try {
+    if (!cityCache || cityCache.expiresAt <= now) {
+      cityCache = { expiresAt: now + LOCATION_CACHE_TTL_MS, value: await getPathaoCities() };
+    }
+  } catch {
+    return configuredFallbackQuote('PATHAO_UNAVAILABLE');
+  }
+  const cities = cityCache.value;
+  const city = cities.find((entry) => locationNameMatches(entry.city_name, input.district));
   if (!city) return configuredFallbackQuote('CITY');
   const cityId = Number(city.city_id);
   let cachedZones = zoneCache.get(cityId);
   if (!cachedZones || cachedZones.expiresAt <= now) {
-    cachedZones = { expiresAt: now + LOCATION_CACHE_TTL_MS, value: await getPathaoZones(cityId) };
-    zoneCache.set(cityId, cachedZones);
+    try {
+      cachedZones = { expiresAt: now + LOCATION_CACHE_TTL_MS, value: await getPathaoZones(cityId) };
+      zoneCache.set(cityId, cachedZones);
+    } catch {
+      return configuredFallbackQuote('PATHAO_UNAVAILABLE');
+    }
   }
   const zones = cachedZones.value;
   const zone = zones.find((entry) => locationNameMatches(entry.zone_name, input.upazila));
@@ -193,8 +201,12 @@ export async function quotePathaoCheckout(
   const zoneId = Number(zone.zone_id);
   let cachedAreas = areaCache.get(zoneId);
   if (!cachedAreas || cachedAreas.expiresAt <= now) {
-    cachedAreas = { expiresAt: now + LOCATION_CACHE_TTL_MS, value: await getPathaoAreas(zoneId) };
-    areaCache.set(zoneId, cachedAreas);
+    try {
+      cachedAreas = { expiresAt: now + LOCATION_CACHE_TTL_MS, value: await getPathaoAreas(zoneId) };
+      areaCache.set(zoneId, cachedAreas);
+    } catch {
+      return configuredFallbackQuote('PATHAO_UNAVAILABLE');
+    }
   }
   const areas = cachedAreas.value.filter((area) => area.home_delivery_available === true || Number(area.home_delivery_available) === 1);
   const addressText = normalizeLocation([input.addressDetails, input.upazila, input.district, input.notes || ''].join(' '));
@@ -212,14 +224,19 @@ export async function quotePathaoCheckout(
   // We only attach an area ID when the match is unambiguous and home delivery is supported.
   const selectedArea = hasUnambiguousMatch ? bestArea?.area : undefined;
 
-  const rate = await calculatePathaoPrice({
-    storeId,
-    itemType: 2,
-    deliveryType: 48,
-    weightKg,
-    cityId: Number(city.city_id),
-    zoneId: Number(zone.zone_id),
-  });
+  let rate: Awaited<ReturnType<typeof calculatePathaoPrice>>;
+  try {
+    rate = await calculatePathaoPrice({
+      storeId,
+      itemType: 2,
+      deliveryType: 48,
+      weightKg,
+      cityId: Number(city.city_id),
+      zoneId: Number(zone.zone_id),
+    });
+  } catch {
+    return configuredFallbackQuote('PATHAO_UNAVAILABLE');
+  }
   if (Number(rate.cod_enabled) !== 1) {
     throw new PathaoApiError('Pathao does not support COD for this delivery plan. Choose another supported area or contact the store.', 422, 'PATHAO_COD_UNAVAILABLE');
   }
