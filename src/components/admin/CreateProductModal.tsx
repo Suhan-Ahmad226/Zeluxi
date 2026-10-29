@@ -156,7 +156,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
 
   // 4. Shipping & Specs
   const PATHAO_WEIGHT_OPTIONS = Array.from({ length: 20 }, (_, index) => (index + 1) * 0.5);
-  const [weightKg, setWeightKg] = useState<number>(0.5);
+  const [weightKg, setWeightKg] = useState<number>(0);
   const [dimensions, setDimensions] = useState('');
   const [shippingClass, setShippingClass] = useState<'standard' | 'fragile_express' | 'heavy'>('standard');
   const [countryOfOrigin, setCountryOfOrigin] = useState('');
@@ -211,7 +211,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
       setLowStockThreshold(productToEdit.lowStockThreshold || 5);
       setWeightKg(productToEdit.weightKg && Number.isFinite(Number(productToEdit.weightKg))
         ? Math.min(10, Math.max(0.5, Math.round(Number(productToEdit.weightKg) * 2) / 2))
-        : 0.5);
+        : 0);
       setDimensions(productToEdit.dimensions || '48 x 28 x 25 cm');
       setWarrantyPolicy(productToEdit.warrantyPolicy || '');
       setReturnPolicy(productToEdit.returnPolicy || '');
@@ -1925,6 +1925,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
                         aria-invalid={Boolean(formErrors.weightKg)}
                         className={`w-full px-3 py-2 border rounded-lg bg-white ${formErrors.weightKg ? 'border-rose-400' : 'border-slate-300'}`}
                       >
+                        <option value="">Select parcel weight</option>
                         {PATHAO_WEIGHT_OPTIONS.map((weight) => (
                           <option key={weight} value={String(weight)}>{weight.toFixed(1)} kg</option>
                         ))}
