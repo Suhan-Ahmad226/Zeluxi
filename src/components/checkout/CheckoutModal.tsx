@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useStore } from '../../context/StoreContext';
 import { useAuth } from '../../context/AuthContext';
-import { supabase } from '../../lib/supabase';
 import { verifyCustomerOrderEligibility } from '../../lib/auth/verifyCustomer';
 import { formatPrice } from '../../utils/formatters';
 import {
