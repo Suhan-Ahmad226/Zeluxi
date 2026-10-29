@@ -35,11 +35,12 @@ test('Pathao city, zone and area matching stays server-side with no courier cont
   assert.match(orderApi, /pathaoAreaId: quote\.areaId/);
 });
 
-test('shipping quote is calculated from catalog prices and product weights, never browser totals', () => {
+test('shipping quote uses catalog prices and safely falls back when Pathao weight is unavailable', () => {
   assert.match(quoteService, /select\('id,name,price,stock,published,archived,product_data'\)/);
   assert.match(quoteService, /calculatePathaoPrice/);
   assert.match(quoteService, /PATHAO_COD_UNAVAILABLE/);
-  assert.match(quoteService, /PRODUCT_WEIGHT_REQUIRED/);
+  assert.match(quoteService, /weightUnavailable/);
+  assert.match(quoteService, /configuredFallbackQuote\('WEIGHT_UNAVAILABLE'\)/);
   assert.equal(quoteService.includes('PATHAO_DEFAULT_ITEM_WEIGHT_KG || 0.5'), false);
   assert.match(read('src/lib/shipping/pathao-booking.ts'), /PRODUCT_WEIGHT_REQUIRED/);
   assert.match(quoteService, /home_delivery_available/);
