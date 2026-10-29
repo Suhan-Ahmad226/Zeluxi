@@ -11,8 +11,7 @@ const schema = z.object({
   division: z.enum(['Dhaka','Chattogram','Rajshahi','Sylhet','Khulna','Barishal','Rangpur','Mymensingh']),
   district: z.string().trim().min(1).max(100),
   upazila: z.string().trim().min(1).max(100),
-  addressDetails: z.string().trim().min(1).max(500),
-  notes: z.string().trim().max(300).optional(),
+  // Delivery price depends on Pathao city, zone and verified parcel weight, not free-text address.
   items: z.array(z.object({
     productId: z.string().trim().min(1).max(100),
     variantId: z.string().trim().min(1).max(100).optional(),
@@ -48,7 +47,8 @@ export async function POST(request: NextRequest) {
 
   try {
     const db = adminDb();
-    const quote = await quotePathaoCheckout(db, parsed.data);
+    // Short-lived Pathao price cache is for display only; order creation always requests a fresh quote.
+    const quote = await quotePathaoCheckout(db, parsed.data, { cachePrice: true });
     const { data: settingsRow, error: settingsError } = await db.from('store_content')
       .select('content_value').eq('content_key', 'settings').maybeSingle();
     if (settingsError) return NextResponse.json({ error: 'Shipping settings could not be loaded.' }, { status: 503 });
