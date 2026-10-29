@@ -743,6 +743,11 @@ export const CheckoutModal: React.FC = () => {
                 {isQuoteLoading ? 'Calculating…' : shippingQuote ? (shippingInfo.isFree ? 'FREE' : formatPrice(shippingInfo.fee)) : '—'}
               </span>
             </div>
+            {shippingQuoteError && !isQuoteLoading && (
+              <p role="status" className="rounded-lg border border-amber-200 bg-amber-50 p-2 text-[11px] leading-4 text-amber-800">
+                Delivery charge could not be calculated: {shippingQuoteError}
+              </p>
+            )}
             {shippingQuote?.rateSource === 'STORE_FALLBACK' && (
               <p className="text-[11px] leading-4 text-amber-700">
                 Pathao could not match this location exactly. The store's configured delivery fee is being used; courier booking may need admin review.
