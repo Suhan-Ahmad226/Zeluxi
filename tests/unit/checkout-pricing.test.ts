@@ -20,7 +20,15 @@ test('Pathao city, zone and area matching stays server-side with no courier cont
   assert.match(checkout, /addressDetails: addressDetails\.trim\(\)/);
   assert.match(quoteApi, /addressDetails: z\.string\(\)\.trim\(\)/);
   assert.match(quoteService, /const rankedAreas = areas\.map/);
-  assert.match(quoteService, /PATHAO_AREA_MAPPING_REQUIRED/);
+  assert.match(quoteService, /Area is optional for Pathao's price-plan endpoint/);
+  assert.match(quoteService, /configuredFallbackQuote\('CITY'\)/);
+  assert.match(quoteService, /configuredFallbackQuote\('ZONE'\)/);
+  assert.match(quoteService, /settings\.shippingDhaka/);
+  assert.match(quoteService, /settings\.shippingOutsideDhaka/);
+  assert.match(quoteService, /rateSource: 'STORE_FALLBACK'/);
+  assert.match(quoteApi, /division: z\.enum/);
+  assert.match(checkout, /division,\s+district,/);
+  assert.doesNotMatch(checkout, /!shippingQuote\.areaId/);
   assert.match(orderApi, /addressDetails: parsed\.data\.customer\.addressDetails/);
   assert.match(orderApi, /pathaoAreaId: quote\.areaId/);
 });
