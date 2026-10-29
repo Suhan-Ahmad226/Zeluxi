@@ -155,6 +155,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
   const [taxRate, setTaxRate] = useState<number>(5); // 5% default standard VAT
 
   // 4. Shipping & Specs
+  const PATHAO_WEIGHT_OPTIONS = Array.from({ length: 20 }, (_, index) => (index + 1) * 0.5);
   const [weightKg, setWeightKg] = useState<number>(0);
   const [dimensions, setDimensions] = useState('');
   const [shippingClass, setShippingClass] = useState<'standard' | 'fragile_express' | 'heavy'>('standard');
@@ -208,7 +209,9 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
       setCostPrice(productToEdit.costPrice || 0);
       setStock(productToEdit.stock || 0);
       setLowStockThreshold(productToEdit.lowStockThreshold || 5);
-      setWeightKg(productToEdit.weightKg ? Number(productToEdit.weightKg) : 0.85);
+      setWeightKg(productToEdit.weightKg && Number.isFinite(Number(productToEdit.weightKg))
+        ? Math.min(10, Math.max(0.5, Math.round(Number(productToEdit.weightKg) * 2) / 2))
+        : 0);
       setDimensions(productToEdit.dimensions || '48 x 28 x 25 cm');
       setWarrantyPolicy(productToEdit.warrantyPolicy || '');
       setReturnPolicy(productToEdit.returnPolicy || '');
@@ -537,12 +540,15 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
       if (!price || price <= 0) errors.price = 'Selling price must be greater than 0 BDT before publishing.';
       if (images.length === 0) errors.images = 'Add at least one product image before publishing.';
       if (!category.trim()) errors.category = 'Choose a category before publishing.';
+      if (productType === 'physical' && (!PATHAO_WEIGHT_OPTIONS.includes(Number(weightKg)))) {
+        errors.weightKg = 'Select a Pathao-supported product weight from 0.5 kg to 10 kg.';
+      }
     }
 
     setFormErrors(errors);
     if (Object.keys(errors).length > 0) {
       showToast(saveStatus === 'active' ? 'Complete the highlighted fields to publish, or save as a draft.' : 'Add a product name to save this draft.', 'error');
-      if (errors.name || errors.sku || errors.price || errors.category) {
+      if (errors.name || errors.sku || errors.price || errors.category || errors.weightKg) {
         setActiveTab('general');
       } else if (errors.images) {
         setActiveTab('media');
@@ -609,7 +615,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
         specifications,
         tags,
         published: saveStatus === 'active',
-        weightKg: Number(weightKg) || undefined,
+        weightKg: productType === 'physical' ? Number(weightKg) : undefined,
         dimensions: dimensions.trim() || undefined,
         shippingClass,
         taxClass,
@@ -1911,16 +1917,24 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div>
-                      <label className="font-semibold text-slate-700 block mb-1">Parcel Weight (kg)</label>
-                      <input
-                        type="number"
-                        step="0.05"
-                        value={weightKg}
+                      <label className="font-semibold text-slate-700 block mb-1">Product Weight for Pathao <span className="text-rose-500">*</span></label>
+                      <select
+                        value={String(weightKg)}
                         onChange={(e) => setWeightKg(Number(e.target.value))}
-                        placeholder="0.85"
-                        className="w-full px-3 py-2 border border-slate-300 rounded-lg"
-                      />
-                      <p className="text-[10px] text-slate-400 mt-1">Used for Pathao / Steadfast rate tiering</p>
+                        required={productType === 'physical' && status === 'active'}
+                        aria-invalid={Boolean(formErrors.weightKg)}
+                        className={`w-full px-3 py-2 border rounded-lg bg-white ${formErrors.weightKg ? 'border-rose-400' : 'border-slate-300'}`}
+                      >
+                        <option value="">Select parcel weight</option>
+                        {PATHAO_WEIGHT_OPTIONS.map((weight) => (
+                          <option key={weight} value={String(weight)}>{weight.toFixed(1)} kg</option>
+                        ))}
+                      </select>
+                      {formErrors.weightKg ? (
+                        <p className="text-[10px] text-rose-600 mt-1">{formErrors.weightKg}</p>
+                      ) : (
+                        <p className="text-[10px] text-slate-500 mt-1">Choose 0.5–10 kg in 0.5 kg steps. Total parcel weight for an order must not exceed Pathao’s 10 kg limit.</p>
+                      )}
                     </div>
 
                     <div>

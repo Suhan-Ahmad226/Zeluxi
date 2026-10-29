@@ -8,6 +8,7 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 const schema = z.object({
+  division: z.enum(['Dhaka','Chattogram','Rajshahi','Sylhet','Khulna','Barishal','Rangpur','Mymensingh']),
   district: z.string().trim().min(1).max(100),
   upazila: z.string().trim().min(1).max(100),
   addressDetails: z.string().trim().min(1).max(500),
@@ -27,16 +28,20 @@ function adminDb() {
 }
 
 export async function POST(request: NextRequest) {
+  // Guests may request a shipping quote before creating an account or signing in.
+  // If a bearer token is supplied, validate it; an invalid supplied token is not silently ignored.
   const match = (request.headers.get('authorization') || '').match(/^Bearer\s+(.+)$/i);
-  if (!match) return NextResponse.json({ error: 'Sign in is required.' }, { status: 401 });
-  const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anon = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !anon) return NextResponse.json({ error: 'Checkout authentication is not configured.' }, { status: 503 });
-
-  const auth = createClient(url, anon, { auth: { persistSession: false, autoRefreshToken: false } });
-  const { data: authData, error: authError } = await auth.auth.getUser(match[1]);
-  if (authError || !authData.user) return NextResponse.json({ error: 'Your session is invalid. Sign in again.' }, { status: 401 });
-  if (!authData.user.email_confirmed_at) return NextResponse.json({ error: 'A verified account is required.' }, { status: 401 });
+  if (request.headers.has('authorization') && !match) {
+    return NextResponse.json({ error: 'Invalid authorization header.' }, { status: 401 });
+  }
+  if (match) {
+    const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const anon = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    if (!url || !anon) return NextResponse.json({ error: 'Checkout authentication is not configured.' }, { status: 503 });
+    const auth = createClient(url, anon, { auth: { persistSession: false, autoRefreshToken: false } });
+    const { data: authData, error: authError } = await auth.auth.getUser(match[1]);
+    if (authError || !authData.user) return NextResponse.json({ error: 'Your session is invalid. Sign in again.' }, { status: 401 });
+  }
 
   const parsed = schema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: 'Invalid shipping quote request.' }, { status: 400 });

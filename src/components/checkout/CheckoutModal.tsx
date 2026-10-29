@@ -47,7 +47,6 @@ export const CheckoutModal: React.FC = () => {
   const [district, setDistrict] = useState('');
   const [upazila, setUpazila] = useState('');
   const [addressDetails, setAddressDetails] = useState('');
-  const [notes, setNotes] = useState('');
 
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('COD');
   const [bkashNumber, setBkashNumber] = useState('');
@@ -77,7 +76,6 @@ export const CheckoutModal: React.FC = () => {
       if (userProfile.division) setDivision(userProfile.division);
       if (userProfile.district) setDistrict(userProfile.district);
       if (userProfile.upazila || (userProfile as any).thanaCity) setUpazila(userProfile.upazila || (userProfile as any).thanaCity || '');
-      if (typeof userProfile.notes === 'string') setNotes(userProfile.notes);
     }
   }, [userProfile, isCheckoutOpen]);
 
@@ -93,17 +91,20 @@ export const CheckoutModal: React.FC = () => {
       setIsQuoteLoading(true);
       setShippingQuoteError(null);
       try {
-        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+        // Shipping quotes are public so guests can see delivery charges before signing in.
+        // Attach a token when one exists, but never make authentication a quote prerequisite.
+        const { data: sessionData } = await supabase.auth.getSession();
         const token = sessionData.session?.access_token;
-        if (sessionError || !token) throw new Error('Sign in again to calculate Pathao delivery.');
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+        if (token) headers.Authorization = 'Bearer ' + token;
         const response = await fetch('/api/shipping/quote', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+          headers,
           body: JSON.stringify({
+            division,
             district,
             upazila,
             addressDetails: addressDetails.trim(),
-            notes: notes.trim() || undefined,
             items: cart.map((item) => ({ productId: item.productId, variantId: item.variantId, quantity: item.quantity })),
           }),
           cache: 'no-store',
@@ -124,7 +125,7 @@ export const CheckoutModal: React.FC = () => {
     };
     void requestQuote();
     return () => { active = false; };
-  }, [isCheckoutOpen, district, upazila, addressDetails, notes, cart]);
+  }, [isCheckoutOpen, division, district, upazila, addressDetails, cart]);
 
   if (!isCheckoutOpen) return null;
 
@@ -176,7 +177,7 @@ export const CheckoutModal: React.FC = () => {
       }
     }
 
-    if (!shippingQuote || !shippingQuote.areaId || isQuoteLoading || shippingQuoteError) {
+    if (!shippingQuote || isQuoteLoading || shippingQuoteError) {
       setFormError(shippingQuoteError || 'Wait for a valid Pathao delivery quote before placing your order.');
       return;
     }
@@ -191,12 +192,11 @@ export const CheckoutModal: React.FC = () => {
       district: district.trim(),
       upazila: upazila.trim(),
       addressDetails: addressDetails.trim(),
-      notes: notes.trim(),
-      pathaoCityId: Number(shippingQuote.cityId),
+      pathaoCityId: shippingQuote.cityId ? Number(shippingQuote.cityId) : undefined,
       pathaoCityName: String(shippingQuote.cityName || ''),
-      pathaoZoneId: Number(shippingQuote.zoneId),
+      pathaoZoneId: shippingQuote.zoneId ? Number(shippingQuote.zoneId) : undefined,
       pathaoZoneName: String(shippingQuote.zoneName || ''),
-      pathaoAreaId: Number(shippingQuote.areaId),
+      pathaoAreaId: shippingQuote.areaId ? Number(shippingQuote.areaId) : undefined,
       pathaoAreaName: String(shippingQuote.areaName || ''),
     };
 
@@ -240,7 +240,6 @@ export const CheckoutModal: React.FC = () => {
       district: candidateAddress.district,
       upazila: candidateAddress.upazila,
       addressDetails: candidateAddress.addressDetails,
-      notes: candidateAddress.notes,
       pathaoCityId: candidateAddress.pathaoCityId,
       pathaoCityName: candidateAddress.pathaoCityName,
       pathaoZoneId: candidateAddress.pathaoZoneId,
@@ -478,19 +477,6 @@ export const CheckoutModal: React.FC = () => {
                 </div>
               </div>
 
-              <div className="sm:col-span-2">
-                <label className="text-xs font-medium text-slate-500 block mb-1">
-                  Delivery notes (optional)
-                </label>
-                <input
-                  type="text"
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  maxLength={300}
-                  placeholder="e.g. Call before delivery"
-                  className="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:border-indigo-600"
-                />
-              </div>
             </div>
 
           </div>
@@ -752,11 +738,21 @@ export const CheckoutModal: React.FC = () => {
               <span className="font-semibold text-slate-900 tabular-nums">{formatPrice(pricingSubtotal)}</span>
             </div>
             <div className="flex justify-between">
-              <span>Pathao shipping</span>
+              <span>Delivery charge</span>
               <span className="font-semibold text-slate-900 tabular-nums">
                 {isQuoteLoading ? 'Calculating…' : shippingQuote ? (shippingInfo.isFree ? 'FREE' : formatPrice(shippingInfo.fee)) : '—'}
               </span>
             </div>
+            {shippingQuoteError && !isQuoteLoading && (
+              <p role="status" className="rounded-lg border border-amber-200 bg-amber-50 p-2 text-[11px] leading-4 text-amber-800">
+                Delivery charge could not be calculated: {shippingQuoteError}
+              </p>
+            )}
+            {shippingQuote?.rateSource === 'STORE_FALLBACK' && (
+              <p className="text-[11px] leading-4 text-amber-700">
+                Pathao could not match this location exactly. The store's configured delivery fee is being used; courier booking may need admin review.
+              </p>
+            )}
             {discount > 0 && (
               <div className="flex justify-between text-emerald-600 font-semibold">
                 <span>{appliedCoupon ? `Coupon (${appliedCoupon.code})` : 'Discount'}</span>
@@ -851,12 +847,12 @@ export const CheckoutModal: React.FC = () => {
           <div className="sticky bottom-0 z-20 -mx-4 border-t border-slate-200 bg-white/95 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] backdrop-blur sm:-mx-6 sm:px-6 lg:col-span-2 lg:mx-0 lg:rounded-xl lg:border lg:p-4">
             <button
               type="submit"
-              disabled={isProcessing || cart.length === 0 || !shippingQuote || !shippingQuote.areaId || isQuoteLoading}
+              disabled={isProcessing || cart.length === 0 || !shippingQuote || isQuoteLoading}
               className="w-full flex items-center justify-center gap-2 py-3.5 px-4 bg-slate-950 hover:bg-slate-800 text-white text-sm font-semibold rounded-xl shadow-sm transition-colors active:scale-98 disabled:opacity-50"
             >
               <ShieldCheck className="w-4 h-4 text-emerald-400" />
               <span>
-                {isProcessing ? 'Processing order...' : shippingQuote ? `Place order · ${formatPrice(grandTotal)}` : isQuoteLoading ? 'Calculating delivery...' : 'Select delivery area to continue'}
+                {isProcessing ? 'Processing order...' : shippingQuote ? `Place order · ${formatPrice(grandTotal)}` : isQuoteLoading ? 'Calculating delivery...'  : 'Enter delivery address to calculate delivery'}
               </span>
             </button>
             <p className="text-[11px] text-center text-slate-400 mt-2">
