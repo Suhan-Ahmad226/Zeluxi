@@ -206,8 +206,8 @@ export async function quotePathaoCheckout(
   let rate: Awaited<ReturnType<typeof calculatePathaoPrice>>;
   const priceInput = {
     storeId,
-    itemType: 2,
-    deliveryType: 48,
+    itemType: 2 as const,
+    deliveryType: 48 as const,
     weightKg,
     cityId: Number(city.city_id),
     zoneId,
