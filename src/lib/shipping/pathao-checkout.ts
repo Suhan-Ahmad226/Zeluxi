@@ -14,8 +14,57 @@ const zoneCache = new Map<number, { expiresAt: number; value: Awaited<ReturnType
 const areaCache = new Map<number, { expiresAt: number; value: Awaited<ReturnType<typeof getPathaoAreas>> }>();
 const LOCATION_CACHE_TTL_MS = 5 * 60 * 1000;
 
+/**
+ * Match customer-entered location names against Pathao's canonical list.
+ * Case, whitespace, punctuation and common spelling variants are normalized.
+ * Fuzzy matching is deliberately conservative to avoid selecting the wrong city/zone.
+ */
 const normalizeLocation = (value: string) =>
-  value.normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  value.normalize('NFKD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase().replace(/&/g, 'and').replace(/[^a-z0-9]/g, '');
+
+const LOCATION_ALIASES: Record<string, string[]> = {
+  dhaka: ['dacca'],
+  chattogram: ['chittagong', 'chatogram', 'chattagram'],
+  cumilla: ['comilla', 'kumilla'],
+  jashore: ['jessore', 'jashor'],
+  barishal: ['barisal'],
+  bogura: ['bogra'],
+  brahmanbaria: ['brahman bariya', 'brahmonbaria'],
+  chapainawabganj: ['nawabganj', 'chapai nawabganj', 'chapai nawab gonj'],
+  sirajganj: ['sirajgonj'],
+  coxsbazar: ["cox's bazar", 'coxs bazar', 'cox bazar'],
+  naogaon: ['nowgaon'],
+  narsingdi: ['narshingdi', 'narsindi'],
+  netrokona: ['netrakona'],
+  satkhira: ['shatkhira'],
+  thakurgaon: ['thakur gaon'],
+};
+
+function editDistance(a: string, b: string): number {
+  const previous = Array.from({ length: b.length + 1 }, (_, index) => index);
+  for (let i = 1; i <= a.length; i += 1) {
+    let diagonal = previous[0];
+    previous[0] = i;
+    for (let j = 1; j <= b.length; j += 1) {
+      const above = previous[j];
+      previous[j] = Math.min(previous[j] + 1, previous[j - 1] + 1, diagonal + (a[i - 1] === b[j - 1] ? 0 : 1));
+      diagonal = above;
+    }
+  }
+  return previous[b.length];
+}
+
+function locationNameMatches(pathaoName: string, customerName: string): boolean {
+  const candidate = normalizeLocation(customerName);
+  const canonical = normalizeLocation(pathaoName);
+  if (!candidate || !canonical) return false;
+  if (candidate === canonical) return true;
+  if ((LOCATION_ALIASES[canonical] || []).some((alias) => normalizeLocation(alias) === candidate)) return true;
+
+  const maxDistance = Math.max(candidate.length, canonical.length) >= 10 ? 2 : 1;
+  if (Math.min(candidate.length, canonical.length) < 6 || Math.abs(candidate.length - canonical.length) > maxDistance) return false;
+  return editDistance(candidate, canonical) <= maxDistance;
+}
 
 export async function quotePathaoCheckout(
   db: SupabaseClient,
@@ -90,7 +139,7 @@ export async function quotePathaoCheckout(
     cityCache = { expiresAt: now + LOCATION_CACHE_TTL_MS, value: await getPathaoCities() };
   }
   const cities = cityCache.value;
-  const city = cities.find((entry) => normalizeLocation(entry.city_name) === normalizeLocation(input.district));
+  const city = cities.find((entry) => locationNameMatches(entry.city_name, input.district));
 
   // Pathao may not list every Bangladesh district/upazila. In that case use
   // the store's explicitly configured shipping fee; never guess a Pathao rate.
@@ -138,7 +187,7 @@ export async function quotePathaoCheckout(
     zoneCache.set(cityId, cachedZones);
   }
   const zones = cachedZones.value;
-  const zone = zones.find((entry) => normalizeLocation(entry.zone_name) === normalizeLocation(input.upazila));
+  const zone = zones.find((entry) => locationNameMatches(entry.zone_name, input.upazila));
   if (!zone) return configuredFallbackQuote('ZONE');
 
   const zoneId = Number(zone.zone_id);
