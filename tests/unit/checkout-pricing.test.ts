@@ -17,10 +17,14 @@ test('Pathao city, zone and area matching stays server-side with no courier cont
   assert.doesNotMatch(checkout, /Save this address for next time/);
   assert.doesNotMatch(checkout, /Saved addresses are not available/);
   assert.doesNotMatch(checkout, /Pathao Express Logistics/);
-  assert.match(checkout, /addressDetails: addressDetails\.trim\(\)/);
-  assert.match(quoteApi, /addressDetails: z\.string\(\)\.trim\(\)/);
-  assert.match(quoteService, /const rankedAreas = areas\.map/);
-  assert.match(quoteService, /Area is optional for Pathao's price-plan endpoint/);
+  // The quote only needs destination city/zone and parcel weight; free-text address is for dispatch.
+  assert.doesNotMatch(checkout, /addressDetails: addressDetails\.trim\(\)/);
+  assert.doesNotMatch(quoteApi, /addressDetails: z\.string\(\)\.trim\(\)/);
+  assert.doesNotMatch(quoteService, /getPathaoAreas|const rankedAreas = areas\.map/);
+  assert.match(checkout, /window\.setTimeout\(async \(\) =>/);
+  assert.match(checkout, /controller\?\.abort\(\)/);
+  assert.match(quoteService, /PRICE_CACHE_TTL_MS = 15 \* 1000/);
+  assert.match(quoteApi, /cachePrice: true/);
   assert.match(quoteService, /configuredFallbackQuote\('CITY'\)/);
   assert.match(quoteService, /configuredFallbackQuote\('ZONE'\)/);
   assert.match(quoteService, /settings\.shippingDhaka/);
@@ -43,7 +47,7 @@ test('shipping quote uses catalog prices and safely falls back when Pathao weigh
   assert.match(quoteService, /configuredFallbackQuote\('WEIGHT_UNAVAILABLE'\)/);
   assert.equal(quoteService.includes('PATHAO_DEFAULT_ITEM_WEIGHT_KG || 0.5'), false);
   assert.match(read('src/lib/shipping/pathao-booking.ts'), /PRODUCT_WEIGHT_REQUIRED/);
-  assert.match(quoteService, /home_delivery_available/);
+  assert.match(quoteService, /if \(!options\.cachePrice\)/);
   assert.match(orderApi, /quotePathaoCheckout\(admin/);
   assert.match(orderApi, /p_expected_subtotal:\s*quote\.subtotal/);
 });
