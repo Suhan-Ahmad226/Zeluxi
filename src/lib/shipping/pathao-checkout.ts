@@ -123,13 +123,10 @@ export async function quotePathaoCheckout(
   }).sort((a, b) => b.score - a.score || String(a.area.area_name).localeCompare(String(b.area.area_name)));
   const bestArea = rankedAreas[0];
   const hasUnambiguousMatch = rankedAreas.length === 1 || (bestArea && bestArea.score > 0 && (rankedAreas[1]?.score ?? -1) < bestArea.score);
+  // Area is optional for Pathao's price-plan endpoint. Never block checkout just
+  // because the free-text address cannot be mapped confidently to a Pathao area.
+  // We only attach an area ID when the match is unambiguous and home delivery is supported.
   const selectedArea = hasUnambiguousMatch ? bestArea?.area : undefined;
-  if (!selectedArea) {
-    throw new PathaoApiError('We could not confidently match this address to a Pathao delivery area. Please add a nearby landmark or contact the store.', 422, 'PATHAO_AREA_MAPPING_REQUIRED');
-  }
-  if (areas.length === 0) {
-    throw new PathaoApiError('Pathao reports no home-delivery areas for this zone.', 422, 'PATHAO_AREA_UNAVAILABLE');
-  }
 
   const rate = await calculatePathaoPrice({
     storeId,
