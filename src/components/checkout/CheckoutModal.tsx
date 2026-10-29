@@ -47,7 +47,6 @@ export const CheckoutModal: React.FC = () => {
   const [district, setDistrict] = useState('');
   const [upazila, setUpazila] = useState('');
   const [addressDetails, setAddressDetails] = useState('');
-  const [notes, setNotes] = useState('');
 
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('COD');
   const [bkashNumber, setBkashNumber] = useState('');
@@ -77,7 +76,6 @@ export const CheckoutModal: React.FC = () => {
       if (userProfile.division) setDivision(userProfile.division);
       if (userProfile.district) setDistrict(userProfile.district);
       if (userProfile.upazila || (userProfile as any).thanaCity) setUpazila(userProfile.upazila || (userProfile as any).thanaCity || '');
-      if (typeof userProfile.notes === 'string') setNotes(userProfile.notes);
     }
   }, [userProfile, isCheckoutOpen]);
 
@@ -104,7 +102,6 @@ export const CheckoutModal: React.FC = () => {
             district,
             upazila,
             addressDetails: addressDetails.trim(),
-            notes: notes.trim() || undefined,
             items: cart.map((item) => ({ productId: item.productId, variantId: item.variantId, quantity: item.quantity })),
           }),
           cache: 'no-store',
@@ -125,7 +122,7 @@ export const CheckoutModal: React.FC = () => {
     };
     void requestQuote();
     return () => { active = false; };
-  }, [isCheckoutOpen, division, district, upazila, addressDetails, notes, cart]);
+  }, [isCheckoutOpen, division, district, upazila, addressDetails, cart]);
 
   if (!isCheckoutOpen) return null;
 
@@ -192,7 +189,6 @@ export const CheckoutModal: React.FC = () => {
       district: district.trim(),
       upazila: upazila.trim(),
       addressDetails: addressDetails.trim(),
-      notes: notes.trim(),
       pathaoCityId: shippingQuote.cityId ? Number(shippingQuote.cityId) : undefined,
       pathaoCityName: String(shippingQuote.cityName || ''),
       pathaoZoneId: shippingQuote.zoneId ? Number(shippingQuote.zoneId) : undefined,
@@ -479,19 +475,6 @@ export const CheckoutModal: React.FC = () => {
                 </div>
               </div>
 
-              <div className="sm:col-span-2">
-                <label className="text-xs font-medium text-slate-500 block mb-1">
-                  Delivery notes (optional)
-                </label>
-                <input
-                  type="text"
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  maxLength={300}
-                  placeholder="e.g. Call before delivery"
-                  className="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:border-indigo-600"
-                />
-              </div>
             </div>
 
           </div>
