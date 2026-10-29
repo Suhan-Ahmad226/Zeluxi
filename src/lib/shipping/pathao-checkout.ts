@@ -1,7 +1,7 @@
 import 'server-only';
 
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { calculatePathaoPrice, getPathaoCities, getPathaoZones, getPathaoAreas, PathaoApiError } from './pathao-server';
+import { calculatePathaoPrice, getPathaoCities, getPathaoZones, PathaoApiError } from './pathao-server';
 
 export interface CheckoutLine {
   productId: string;
@@ -11,8 +11,10 @@ export interface CheckoutLine {
 
 let cityCache: { expiresAt: number; value: Awaited<ReturnType<typeof getPathaoCities>> } | null = null;
 const zoneCache = new Map<number, { expiresAt: number; value: Awaited<ReturnType<typeof getPathaoZones>> }>();
-const areaCache = new Map<number, { expiresAt: number; value: Awaited<ReturnType<typeof getPathaoAreas>> }>();
 const LOCATION_CACHE_TTL_MS = 5 * 60 * 1000;
+const PRICE_CACHE_TTL_MS = 15 * 1000;
+const priceCache = new Map<string, { expiresAt: number; value: Awaited<ReturnType<typeof calculatePathaoPrice>> }>();
+const priceInFlight = new Map<string, Promise<Awaited<ReturnType<typeof calculatePathaoPrice>>>>();
 
 /**
  * Match customer-entered location names against Pathao's canonical list.
@@ -68,7 +70,8 @@ function locationNameMatches(pathaoName: string, customerName: string): boolean 
 
 export async function quotePathaoCheckout(
   db: SupabaseClient,
-  input: { division: string; district: string; upazila: string; addressDetails: string; notes?: string; items: CheckoutLine[] },
+  input: { division: string; district: string; upazila: string; addressDetails?: string; notes?: string; items: CheckoutLine[] },
+  options: { cachePrice?: boolean } = {},
 ) {
   const storeId = Number(process.env.PATHAO_STORE_ID || 0);
   if (!input.items.length || input.items.length > 50) {
@@ -199,41 +202,42 @@ export async function quotePathaoCheckout(
   if (!zone) return configuredFallbackQuote('ZONE');
 
   const zoneId = Number(zone.zone_id);
-  let cachedAreas = areaCache.get(zoneId);
-  if (!cachedAreas || cachedAreas.expiresAt <= now) {
-    try {
-      cachedAreas = { expiresAt: now + LOCATION_CACHE_TTL_MS, value: await getPathaoAreas(zoneId) };
-      areaCache.set(zoneId, cachedAreas);
-    } catch {
-      return configuredFallbackQuote('PATHAO_UNAVAILABLE');
-    }
-  }
-  const areas = cachedAreas.value.filter((area) => area.home_delivery_available === true || Number(area.home_delivery_available) === 1);
-  const addressText = normalizeLocation([input.addressDetails, input.upazila, input.district, input.notes || ''].join(' '));
-  const rankedAreas = areas.map((area) => {
-    const name = normalizeLocation(area.area_name);
-    const exact = name.length > 0 && addressText.includes(name) ? 1000 + name.length : 0;
-    const tokens = String(area.area_name || '').toLowerCase().split(/[^a-z0-9]+/).filter((token) => token.length >= 3);
-    const overlap = tokens.filter((token) => addressText.includes(token)).length;
-    return { area, score: exact + overlap };
-  }).sort((a, b) => b.score - a.score || String(a.area.area_name).localeCompare(String(b.area.area_name)));
-  const bestArea = rankedAreas[0];
-  const hasUnambiguousMatch = rankedAreas.length === 1 || (bestArea && bestArea.score > 0 && (rankedAreas[1]?.score ?? -1) < bestArea.score);
-  // Area is optional for Pathao's price-plan endpoint. Never block checkout just
-  // because the free-text address cannot be mapped confidently to a Pathao area.
-  // We only attach an area ID when the match is unambiguous and home delivery is supported.
-  const selectedArea = hasUnambiguousMatch ? bestArea?.area : undefined;
 
   let rate: Awaited<ReturnType<typeof calculatePathaoPrice>>;
+  const priceInput = {
+    storeId,
+    itemType: 2,
+    deliveryType: 48,
+    weightKg,
+    cityId: Number(city.city_id),
+    zoneId,
+  };
   try {
-    rate = await calculatePathaoPrice({
-      storeId,
-      itemType: 2,
-      deliveryType: 48,
-      weightKg,
-      cityId: Number(city.city_id),
-      zoneId: Number(zone.zone_id),
-    });
+    if (!options.cachePrice) {
+      rate = await calculatePathaoPrice(priceInput);
+    } else {
+      const priceKey = [storeId, priceInput.itemType, priceInput.deliveryType, weightKg, priceInput.cityId, zoneId].join(':');
+      const cached = priceCache.get(priceKey);
+      if (cached && cached.expiresAt > Date.now()) {
+        rate = cached.value;
+      } else {
+        let pending = priceInFlight.get(priceKey);
+        if (!pending) {
+          pending = calculatePathaoPrice(priceInput);
+          priceInFlight.set(priceKey, pending);
+        }
+        try {
+          rate = await pending;
+          priceCache.set(priceKey, { expiresAt: Date.now() + PRICE_CACHE_TTL_MS, value: rate });
+          if (priceCache.size > 100) {
+            for (const [key, value] of priceCache) if (value.expiresAt <= Date.now()) priceCache.delete(key);
+            while (priceCache.size > 100) priceCache.delete(priceCache.keys().next().value!);
+          }
+        } finally {
+          if (priceInFlight.get(priceKey) === pending) priceInFlight.delete(priceKey);
+        }
+      }
+    }
   } catch {
     return configuredFallbackQuote('PATHAO_UNAVAILABLE');
   }
@@ -253,9 +257,9 @@ export async function quotePathaoCheckout(
     cityName: city.city_name,
     zoneId: Number(zone.zone_id),
     zoneName: zone.zone_name,
-    areaId: selectedArea ? Number(selectedArea.area_id) : undefined,
-    areaName: selectedArea?.area_name,
-    areas: areas.map((area) => ({ areaId: Number(area.area_id), areaName: area.area_name, pickupAvailable: Boolean(area.pickup_available) })),
+    areaId: undefined,
+    areaName: undefined,
+    areas: [],
     pathaoFee: Math.round(pathaoFee * 100) / 100,
     planId: Number(rate.plan_id || 0),
     codEnabled: Number(rate.cod_enabled || 0) === 1,
