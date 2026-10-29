@@ -29,6 +29,8 @@ test('Pathao city, zone and area matching stays server-side with no courier cont
   assert.match(quoteApi, /division: z\.enum/);
   assert.match(checkout, /division,\s+district,/);
   assert.doesNotMatch(checkout, /!shippingQuote\.areaId/);
+  assert.match(checkout, /shippingQuote\?\.rateSource === 'STORE_FALLBACK'/);
+  assert.match(checkout, /disabled=\{isProcessing \|\| cart\.length === 0 \|\| !shippingQuote \|\| isQuoteLoading\}/);
   assert.match(orderApi, /addressDetails: parsed\.data\.customer\.addressDetails/);
   assert.match(orderApi, /pathaoAreaId: quote\.areaId/);
 });
