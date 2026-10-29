@@ -17,8 +17,10 @@ test('Pathao city, zone and area matching stays server-side with no courier cont
   assert.doesNotMatch(checkout, /Save this address for next time/);
   assert.doesNotMatch(checkout, /Saved addresses are not available/);
   assert.doesNotMatch(checkout, /Pathao Express Logistics/);
-  // The quote only needs destination city/zone and parcel weight; free-text address is for dispatch.
-  assert.doesNotMatch(checkout, /addressDetails: addressDetails\.trim\(\)/);
+  // Free-text address is for dispatch only, not the debounced price-quote request.
+  const quoteRequest = checkout.match(/fetch\('\/api\/shipping\/quote',[\s\S]*?body: JSON\.stringify\(\{([\s\S]*?)\}\),[\s\S]*?cache: 'no-store'/)?.[1] || '';
+  assert.ok(quoteRequest, 'checkout should build a shipping quote request');
+  assert.doesNotMatch(quoteRequest, /addressDetails/);
   assert.doesNotMatch(quoteApi, /addressDetails: z\.string\(\)\.trim\(\)/);
   assert.doesNotMatch(quoteService, /getPathaoAreas|const rankedAreas = areas\.map/);
   assert.match(checkout, /window\.setTimeout\(async \(\) =>/);
