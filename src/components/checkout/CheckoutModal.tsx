@@ -237,7 +237,6 @@ export const CheckoutModal: React.FC = () => {
       district: candidateAddress.district,
       upazila: candidateAddress.upazila,
       addressDetails: candidateAddress.addressDetails,
-      notes: candidateAddress.notes,
       pathaoCityId: candidateAddress.pathaoCityId,
       pathaoCityName: candidateAddress.pathaoCityName,
       pathaoZoneId: candidateAddress.pathaoZoneId,
