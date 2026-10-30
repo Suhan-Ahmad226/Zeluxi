@@ -1,4 +1,4 @@
-# Zeluxi Social Media Studio setup
+# PeloMart Social Media Studio setup
 
 The Social Studio enhancement is being developed on `feat/ai-social-marketing-system`. Keep it in Preview until database, Meta permissions, scheduler and real Page acceptance checks pass. It is not enabled in production until the migration, server environment variables, Meta app and scheduler have been configured and tested.
 
@@ -18,7 +18,7 @@ Add these to the server-side Vercel project environment (Preview first; Producti
 
 - `SOCIAL_META_APP_ID`: Meta App ID.
 - `SOCIAL_META_APP_SECRET`: Meta App Secret. Server-only.
-- `SOCIAL_META_REDIRECT_URI`: exact callback URL, e.g. `https://zeluxi.vercel.app/api/admin/social/oauth/callback`.
+- `SOCIAL_META_REDIRECT_URI`: exact callback URL, e.g. `https://pelomart.com/api/admin/social/oauth/callback`.
 - `SOCIAL_TOKEN_ENCRYPTION_KEY`: 32 random bytes encoded as 64 hexadecimal characters. Keep it stable and back it up securely; rotating it without re-encrypting stored tokens makes saved tokens unreadable.
 - `CRON_SECRET`: a long random secret for the internal dispatch route.
 - `GEMINI_API_KEY`: server-side Gemini API key for caption generation.
@@ -60,17 +60,17 @@ Recommended: use Supabase Cron with the HTTP extension and Vault to call the pro
 
 ```sql
 select cron.schedule(
-  'zeluxi-social-dispatch',
+  'pelomart-social-dispatch',
   '*/5 * * * *',
   $$
   select net.http_post(
-    url := 'https://zeluxi.vercel.app/api/internal/social/dispatch',
+    url := 'https://pelomart.com/api/internal/social/dispatch',
     headers := jsonb_build_object(
       'Content-Type', 'application/json',
       'Authorization', 'Bearer ' || (
         select decrypted_secret
         from vault.decrypted_secrets
-        where name = 'zeluxi_cron_secret'
+        where name = 'pelomart_cron_secret'
         limit 1
       )
     ),
@@ -80,7 +80,7 @@ select cron.schedule(
 );
 ```
 
-Before scheduling, ensure the `pg_cron`, `pg_net`, and Vault features are available and enabled in the target Supabase project. Store the exact same value as `CRON_SECRET` in Vault under `zeluxi_cron_secret`. Test the endpoint manually in Preview using an authenticated server-side request. Check Cron run history and application logs. Do not schedule production until a real Page test succeeds.
+Before scheduling, ensure the `pg_cron`, `pg_net`, and Vault features are available and enabled in the target Supabase project. Store the exact same value as `CRON_SECRET` in Vault under `pelomart_cron_secret`. Test the endpoint manually in Preview using an authenticated server-side request. Check Cron run history and application logs. Do not schedule production until a real Page test succeeds.
 
 ## Operational behavior
 
