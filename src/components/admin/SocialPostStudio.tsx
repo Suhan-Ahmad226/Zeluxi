@@ -41,6 +41,8 @@ export const SocialPostStudio: React.FC<Props> = ({ products, initialProduct, on
   const [promotions, setPromotions] = useState<Promotion[]>([]);
   const [productId, setProductId] = useState(initialProduct?.id || '');
   const [accountId, setAccountId] = useState('');
+  const [accountIds, setAccountIds] = useState<string[]>([]);
+  const [selectedMediaUrls, setSelectedMediaUrls] = useState<string[]>([]);
   const [caption, setCaption] = useState('');
   const [language, setLanguage] = useState<'bn' | 'en' | 'mix'>('bn');
   const [contentGoal, setContentGoal] = useState<Goal>('PRODUCT_SHOWCASE');
@@ -95,7 +97,7 @@ export const SocialPostStudio: React.FC<Props> = ({ products, initialProduct, on
       setAccounts(a.accounts || []);
       setPosts(p.posts || []);
       setPromotions(promos.promotions || []);
-      if (!accountId && a.accounts?.length) setAccountId(a.accounts.find((item: Account) => item.status === 'CONNECTED')?.id || a.accounts[0].id);
+      if (!accountId && a.accounts?.length) { const first = a.accounts.find((item: Account) => item.status === 'CONNECTED')?.id || a.accounts[0].id; setAccountId(first); setAccountIds([first]); }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not load Social Studio.');
     }
@@ -146,7 +148,7 @@ export const SocialPostStudio: React.FC<Props> = ({ products, initialProduct, on
 
   const draftPayload = () => ({
     action: 'create_draft', productId: product?.id, accountId, caption: caption.trim(),
-    mediaUrls: currentMedia ? [currentMedia] : [], language, contentGoal,
+    mediaUrls: selectedMediaUrls.length ? selectedMediaUrls : currentMedia ? [currentMedia] : [], language, contentGoal, accountIds: accountIds.length ? accountIds : [accountId],
   });
 
   const saveDraft = () => run(async () => {
@@ -154,7 +156,7 @@ export const SocialPostStudio: React.FC<Props> = ({ products, initialProduct, on
     if (draftId) {
       await api('/api/admin/social', { method: 'POST', body: JSON.stringify({
         action: 'update_post', postId: draftId, caption: caption.trim(), contentGoal,
-        mediaUrls: currentMedia ? [currentMedia] : [], refreshProductSnapshot,
+        mediaUrls: selectedMediaUrls.length ? selectedMediaUrls : currentMedia ? [currentMedia] : [], refreshProductSnapshot,
       }) });
       setRefreshProductSnapshot(false);
       setNotice('Draft updated.');
@@ -331,15 +333,15 @@ export const SocialPostStudio: React.FC<Props> = ({ products, initialProduct, on
         <div className="space-y-4 rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
           <div className="flex items-start justify-between gap-3"><div><h3 className="text-lg font-bold text-slate-900">{draftId ? 'Edit your post' : 'Create a product post'}</h3><p className="mt-1 text-xs text-slate-500">Choose the goal first. AI will shape the message around it.</p></div>{draftId && <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-bold text-amber-800">Editing draft</span>}</div>
           <div className="grid gap-3 sm:grid-cols-2">
-            <label className="text-sm font-semibold text-slate-700">Choose product<select value={productId} onChange={(e) => { setProductId(e.target.value); setCaption(''); setDraftId(''); setMediaIndex(0); }} className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm font-normal outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"><option value="">Select from catalog</option>{publishedProducts.map((p) => <option key={p.id} value={p.id}>{p.name} · {formatPrice(p.price)}</option>)}</select></label>
-            <label className="text-sm font-semibold text-slate-700">Publish to<select value={accountId} onChange={(e) => setAccountId(e.target.value)} className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm font-normal outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"><option value="">Select connected Facebook Page</option>{connectedAccounts.map((a) => <option key={a.id} value={a.id}>{a.account_name}</option>)}</select></label>
+            <label className="text-sm font-semibold text-slate-700">Choose product<select value={productId} onChange={(e) => { setProductId(e.target.value); setCaption(''); setDraftId(''); setMediaIndex(0); setSelectedMediaUrls([]); }} className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm font-normal outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"><option value="">Select from catalog</option>{publishedProducts.map((p) => <option key={p.id} value={p.id}>{p.name} · {formatPrice(p.price)}</option>)}</select></label>
+            <div className="text-sm font-semibold text-slate-700">Publish to Pages <div className="mt-1.5 max-h-36 space-y-2 overflow-y-auto rounded-xl border border-slate-300 bg-white p-3">{connectedAccounts.map((a) => <label key={a.id} className="flex items-center gap-2 text-sm font-normal"><input type="checkbox" checked={accountIds.includes(a.id)} onChange={(e) => { const next = e.target.checked ? [...accountIds, a.id] : accountIds.filter((id) => id !== a.id); setAccountIds(next); setAccountId(next[0] || ''); }} className="h-4 w-4 rounded border-slate-300" /><span>{a.account_name}</span></label>)}{!connectedAccounts.length && <span className="text-xs text-slate-500">Connect a Facebook Page first.</span>}</div><p className="mt-1 text-[11px] font-normal text-slate-500">One matching post will be created for each selected Page.</p></div>
           </div>
           {product && <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-3"><StoreImage src={product.images?.[0]} alt={product.name} className="h-20 w-20 rounded-xl bg-white object-cover" loading="lazy" decoding="async" /><div className="min-w-0 flex-1"><p className="truncate text-sm font-bold text-slate-900">{product.name}</p><p className="mt-1 text-sm font-semibold text-slate-700">{formatPrice(product.price)} <span className="font-normal text-slate-500">· Stock {product.stock}</span></p><p className="mt-1 line-clamp-2 text-xs text-slate-500">{product.shortDescription || product.description || 'No short description supplied.'}</p></div><span className={`rounded-full px-2 py-1 text-[10px] font-bold ${product.stock > 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>{product.stock > 0 ? 'In stock' : 'Out of stock'}</span></div>}
           <div><div className="mb-2 flex items-center justify-between"><label className="text-sm font-bold text-slate-800">What should this post achieve?</label><span className="text-[11px] text-slate-400">Select one goal</span></div><div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">{GOALS.map(({id,label,description,icon:Icon}) => <button type="button" key={id} onClick={() => setContentGoal(id)} className={`rounded-xl border p-3 text-left transition ${contentGoal === id ? 'border-indigo-500 bg-indigo-50 ring-2 ring-indigo-100' : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'}`}><div className="flex items-center gap-2"><Icon className={`h-4 w-4 ${contentGoal === id ? 'text-indigo-600' : 'text-slate-400'}`} /><span className="text-xs font-bold text-slate-900">{label}</span></div><p className="mt-1.5 text-[11px] leading-4 text-slate-500">{description}</p></button>)}</div></div>
           <div className="grid gap-3 sm:grid-cols-3">
             <label className="text-xs font-semibold text-slate-600">Caption language<select value={language} onChange={(e) => setLanguage(e.target.value as 'bn'|'en'|'mix')} className="mt-1.5 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm font-normal"><option value="bn">বাংলা</option><option value="en">English</option><option value="mix">বাংলা + English</option></select></label>
             <label className="text-xs font-semibold text-slate-600">Writing style<select value={tone} onChange={(e) => setTone(e.target.value as typeof tone)} className="mt-1.5 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm font-normal"><option value="friendly">Friendly</option><option value="premium">Premium</option><option value="minimal">Minimal</option><option value="energetic">Energetic</option><option value="informative">Informative</option></select></label>
-            <label className="text-xs font-semibold text-slate-600">Product media<select value={mediaIndex} onChange={(e) => setMediaIndex(Number(e.target.value))} className="mt-1.5 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm font-normal"><option value={0}>Default media</option>{mediaOptions.map((url,index) => <option key={url} value={index}>{url === product?.videoUrl ? 'Product video' : `Product image ${index+1}`}</option>)}</select></label>
+            <div className="text-xs font-semibold text-slate-600">Choose media <div className="mt-1.5 max-h-36 space-y-2 overflow-y-auto rounded-lg border border-slate-300 bg-white p-3">{mediaOptions.map((url,index) => <label key={url} className="flex items-center gap-2 text-sm font-normal"><input type="checkbox" checked={selectedMediaUrls.includes(url)} onChange={(e) => { if (url === product?.videoUrl) setSelectedMediaUrls(e.target.checked ? [url] : []); else setSelectedMediaUrls(e.target.checked ? [...selectedMediaUrls.filter((item) => item !== product?.videoUrl), url] : selectedMediaUrls.filter((item) => item !== url)); setMediaIndex(index); }} className="h-4 w-4 rounded border-slate-300" /><span>{url === product?.videoUrl ? 'Product video (single)' : ('Product image ' + (index+1))}</span></label>)}</div><p className="mt-1 font-normal text-slate-500">Select multiple images for one Facebook album, or one video.</p></div>
           </div>
           <button onClick={() => void generate()} disabled={busy || !product || !accountId || product.stock <= 0} className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-indigo-600/15 transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"><Sparkles className="h-4 w-4" />{busy ? 'Generating…' : 'Generate with AI'}</button>
           <label className="block text-sm font-bold text-slate-800">Your caption <span className="font-normal text-slate-400">· editable</span><textarea value={caption} onChange={(e) => setCaption(e.target.value)} maxLength={5000} rows={9} placeholder="Generate a caption or write your own. Keep it clear, useful and honest." className="mt-2 w-full resize-y rounded-xl border border-slate-300 p-3 text-sm leading-6 outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100" /></label>
