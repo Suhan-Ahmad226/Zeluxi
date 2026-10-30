@@ -1,11 +1,12 @@
 # Zeluxi Social Media Studio setup
 
-This feature is implemented on the `feat/ai-social-product-boost` branch. It is not enabled in production until the migration, server environment variables, Meta app and scheduler have been configured and tested.
+The Social Studio enhancement is being developed on `feat/ai-social-marketing-system`. Keep it in Preview until database, Meta permissions, scheduler and real Page acceptance checks pass. It is not enabled in production until the migration, server environment variables, Meta app and scheduler have been configured and tested.
 
 ## What it includes
 
 - Product Boost button in Admin > Products > All Products.
-- AI caption generation from the server-side product catalog and previous published captions.
+- AI caption generation from the server-side product catalog and previous published captions, with six marketing goals: product showcase, education, new arrival, offer campaign, customer trust and engagement.
+- Editable marketing goal, language and writing tone; responsive dashboard, content calendar, post history, recurring campaign controls and internal publishing-status overview.
 - Editable drafts, product media preview, direct product URL, Post Now and one-time scheduling.
 - Facebook Page OAuth connection and encrypted Page access-token storage.
 - Recurring product promotion rules, configurable day interval, approval-first default, pause/resume, publishing history and error logs.
@@ -30,9 +31,15 @@ Generate secrets locally, do not commit them:
 
 Never use `NEXT_PUBLIC_` for Meta App Secret, service-role key, Gemini API key, encryption key, or cron secret.
 
-## Supabase migration
+## Supabase migrations
 
-Review and apply `supabase/migrations/20261023000000_social_product_boost.sql` to the intended Supabase project using the normal migration workflow. The migration is additive and creates the social-only tables with RLS enabled and direct client grants revoked. Do not apply to production until the branch and SQL have been reviewed and backed up.
+Review and apply these additive migrations to the intended Preview Supabase project using the normal migration workflow:
+
+- `20261023000000_social_product_boost.sql`
+- `20261024160000_social_oauth_one_time_state.sql`
+- `20261031100000_social_content_goals.sql`
+
+The new content-goal migration adds a constrained `content_goal` column and index to existing social posts. The social tables keep RLS enabled and direct client grants revoked. Do not apply to production until the branch and SQL have been reviewed and backed up.
 
 The server APIs expect the existing `store_products.product_data` JSON column and dedicated `published`, `archived`, `price`, and `stock` columns.
 
@@ -83,7 +90,8 @@ Before scheduling, ensure the `pg_cron`, `pg_net`, and Vault features are availa
 - Unpublished, archived, out-of-stock products or disconnected accounts cause recurring promotions to pause.
 - Posts are marked Published only after a successful Graph API response with a provider post identifier.
 - If Meta's response is uncertain, investigate the Page and publishing-attempt log before retrying; retrying blindly can duplicate a post.
-- Current media publishing supports a single selected public HTTPS image or video URL per post. Multi-image carousels, Instagram, ad spend/paid boosting, analytics insights and personal-profile publishing are not included in this first iteration.
+- Current media publishing supports a single selected public HTTPS image or video URL per post. Multi-image carousels, Instagram publishing, paid ads/boosting, Meta Insights metrics and personal-profile publishing are not included in this iteration. The UI labels Instagram and platform analytics as unavailable until their integrations are implemented and tested.
+- The Analytics view currently reports internal publishing counts only. It does not claim to show Reach, Impressions, Engagement, Watch Time, Clicks or attributed Orders until the relevant Meta Insights and store-attribution integrations are completed.
 - Post links are appended to the caption when not already present. Confirm product URLs, media access, Open Graph rendering, and post format with a real Page before release.
 
 ## Acceptance checklist
@@ -100,3 +108,26 @@ Before scheduling, ensure the `pg_cron`, `pg_net`, and Vault features are availa
 - [ ] Duplicate and uncertain API-response cases have been exercised.
 - [ ] Checkout, product editing, customer/admin orders and storefront regression checks pass.
 - [ ] Only after all checks pass, open a PR and deploy to production.
+
+
+## Marketing content goals
+
+The composer stores one of these validated goals on each post:
+- `PRODUCT_SHOWCASE`
+- `PRODUCT_EDUCATION`
+- `NEW_ARRIVAL`
+- `OFFER_CAMPAIGN`
+- `CUSTOMER_TRUST`
+- `ENGAGEMENT`
+
+The AI prompt must use only catalog facts. Customer-trust content must not fabricate reviews or testimonials. A discount may be mentioned only when the current product data contains a verified discount. The admin must review the generated copy before publishing.
+
+## Current UI scope
+
+- Responsive overview with connected Page and post-status counts.
+- Product composer with goal, language, tone, product media and Facebook preview.
+- Content calendar list for scheduled and approval-pending posts.
+- Publishing history with status filtering and safe retry warning for uncertain outcomes.
+- Recurring campaign pause/resume.
+- Analytics page with internal status counts and explicit notice that Meta platform metrics are not connected yet.
+- Instagram is shown as unavailable, not as a working publishing destination.
