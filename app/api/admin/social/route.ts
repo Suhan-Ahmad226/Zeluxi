@@ -15,6 +15,8 @@ const postSchema = z.object({
   caption: z.string().max(5000).optional(),
   mediaUrls: z.array(z.string().url().max(2048).refine((value) => value.startsWith('https://'), 'Media URLs must use HTTPS.')).max(10).optional(),
   language: z.enum(['bn','en','mix']).optional(),
+  contentGoal: z.enum(['PRODUCT_SHOWCASE','PRODUCT_EDUCATION','NEW_ARRIVAL','OFFER_CAMPAIGN','CUSTOMER_TRUST','ENGAGEMENT']).optional(),
+  tone: z.enum(['friendly','premium','minimal','energetic','informative']).optional(),
   scheduledAt: z.string().datetime().optional(),
   intervalDays: z.number().int().min(1).max(90).optional(),
   approvalRequired: z.boolean().optional(),
@@ -96,11 +98,12 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ promotion: data }, { headers: noStoreHeaders });
       }
       const { data: prior } = await admin.from('social_posts').select('caption').eq('product_id', body.productId).eq('status','PUBLISHED').order('published_at',{ascending:false}).limit(8);
-      const caption = body.caption?.trim() || await generateProductCaption(product, (prior || []).map((p: {caption:string})=>p.caption), body.language || 'bn');
+      const contentGoal = body.contentGoal || 'PRODUCT_SHOWCASE';
+      const caption = body.caption?.trim() || await generateProductCaption(product, (prior || []).map((p: {caption:string})=>p.caption), body.language || 'bn', contentGoal, body.tone || 'friendly');
       if (body.action === 'generate_caption') return NextResponse.json({ caption }, { headers: noStoreHeaders });
       const mediaUrls = body.mediaUrls || (product.images as string[]).slice(0, 1);
       const { data, error } = await admin.from('social_posts').insert({
-        product_id: body.productId, product_price_snapshot: product.price, product_stock_snapshot: product.stock, account_id: body.accountId, caption, media_urls: mediaUrls,
+        product_id: body.productId, product_price_snapshot: product.price, product_stock_snapshot: product.stock, account_id: body.accountId, caption, media_urls: mediaUrls, content_goal: contentGoal,
         product_url: product.productUrl, post_kind: product.videoUrl && mediaUrls.includes(product.videoUrl) ? 'VIDEO' : 'FEED',
         status: 'DRAFT', created_by: access.userId, idempotency_key: crypto.randomUUID(),
       }).select('id,product_id,account_id,caption,media_urls,product_url,status,created_at').single();
