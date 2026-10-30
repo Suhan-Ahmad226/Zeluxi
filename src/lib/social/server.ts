@@ -53,7 +53,7 @@ export function decryptSocialToken(payload: string): string {
 }
 
 export function productUrl(slug: unknown, id: string): string {
-  const origin = (process.env.NEXT_PUBLIC_SITE_URL || 'https://pelomart.com').replace(/\/$/, '');
+  const origin = 'https://www.pelomart.com';
   const safeSlug = typeof slug === 'string' && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug) ? slug : '';
   return `${origin}/products/${encodeURIComponent(safeSlug || id)}`;
 }
@@ -75,15 +75,34 @@ export async function generateProductCaption(product: Record<string, unknown>, p
     `Previous captions to avoid repeating: ${JSON.stringify(priorCaptions.slice(-8))}`,
     `Product data: ${JSON.stringify(product)}`,
   ].join('\n\n');
-  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent`, {
+  const model = (process.env.GEMINI_MODEL || 'gemini-2.5-flash').replace(/^models\//, '');
+  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
     body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: prompt }] }], generationConfig: { temperature: 0.85, maxOutputTokens: 700 } }),
     signal: AbortSignal.timeout(20000),
   });
-  if (!response.ok) throw new Error(`AI caption service returned HTTP ${response.status}.`);
+  if (!response.ok) {
+    const failure = await response.json().catch(() => ({})) as { error?: { message?: string; status?: string } };
+    const detail = failure.error?.message || failure.error?.status || response.statusText || 'Unknown Gemini API error';
+    throw new Error(`Gemini caption request failed (${response.status}): ${detail.slice(0, 420)}. Check GEMINI_API_KEY and GEMINI_MODEL in the server environment.`);
+  }
   const payload = await response.json() as { candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }> };
   const caption = payload.candidates?.[0]?.content?.parts?.map((part) => part.text || '').join('').trim();
   if (!caption || caption.length > 5000) throw new Error('AI did not return a usable caption.');
-  return caption;
+  const price = Number(product.price || 0);
+  const compareAtPrice = Number(product.compareAtPrice || 0);
+  const discount = compareAtPrice > price && compareAtPrice > 0 ? Math.round((1 - price / compareAtPrice) * 100) : 0;
+  const productName = String(product.name || 'Product');
+  const url = String(product.productUrl || 'https://www.pelomart.com');
+  const facts = [
+    `🛍️ ${productName}`,
+    `দাম: ৳${price.toLocaleString('en-US')}`,
+    ...(discount ? [`আগের দাম: ৳${compareAtPrice.toLocaleString('en-US')}`, `ছাড়: ${discount}%`] : []),
+    `স্টক: ${Number(product.stock || 0) > 0 ? 'In stock' : 'Out of stock'}`,
+    `অর্ডার করুন: ${url}`,
+  ].join('\n');
+  const cleaned = caption.replace(new RegExp(url.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\  if (!caption || caption.length > 5000) throw new Error('AI did not return a usable caption.');
+  return caption;'), 'g'), '').trim();
+  return `${cleaned}\n\n${facts}`.slice(0, 5000);
 }
