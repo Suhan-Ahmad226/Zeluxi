@@ -26,7 +26,7 @@ test('AI marketing prompt prohibits fabricated reviews, discounts and delivery p
   assert.match(server, /Never invent discounts/);
   assert.match(server, /reviews/);
   assert.match(server, /delivery promises/);
-  assert.match(server, /verified customer-provided feedback/);
+  assert.match(server, /verified review text is explicitly supplied/);
 });
 
 test('Social Studio exposes responsive workflow views without claiming unavailable integrations', () => {
