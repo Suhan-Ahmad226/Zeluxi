@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import type { ReactNode } from 'react';
 import { headers } from 'next/headers';
+import { Analytics } from '@vercel/analytics/next';
 import './site.css';
 import { PwaRegister } from './PwaRegister';
 
@@ -75,6 +76,7 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
       <body className="bg-[#FAFAFA] text-[#0F172A] antialiased selection:bg-indigo-500 selection:text-white">
         {children}
         <PwaRegister />
+        <Analytics />
       </body>
     </html>
   );
