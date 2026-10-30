@@ -102,7 +102,5 @@ export async function generateProductCaption(product: Record<string, unknown>, p
     `স্টক: ${Number(product.stock || 0) > 0 ? 'In stock' : 'Out of stock'}`,
     `অর্ডার করুন: ${url}`,
   ].join('\n');
-  const cleaned = caption.replace(new RegExp(url.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\  if (!caption || caption.length > 5000) throw new Error('AI did not return a usable caption.');
-  return caption;'), 'g'), '').trim();
-  return `${cleaned}\n\n${facts}`.slice(0, 5000);
+  return `${caption.trim()}\n\n${facts}`.slice(0, 5000);
 }
