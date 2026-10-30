@@ -348,6 +348,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
           if (Array.isArray(content.categories)) setCategories(content.categories as Category[]);
           if (Array.isArray(content.pages)) setPages(content.pages as StaticPageContent[]);
           if (content.settings && typeof content.settings === 'object') setSettings(content.settings as StoreSettings);
+          if (Array.isArray(content.coupons)) setCoupons(content.coupons as Coupon[]);
         }
       }
 
@@ -355,23 +356,24 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
 
       const catalogHeaders = { Authorization: `Bearer ${token}` };
       const isAdmin = String(sessionData.session?.user?.app_metadata?.role || '').toUpperCase() === 'ADMIN';
-      const authenticatedRequests: Promise<Response>[] = [
-        fetch('/api/content', { headers: catalogHeaders, cache: 'no-store' }),
+      // Public content already includes the sanitized coupon rules for customers.
+      // Only admins need a second authenticated content request for private CMS data.
+      const authenticatedContentRequest = isAdmin
+        ? fetch('/api/content', { headers: catalogHeaders, cache: 'no-store' })
+        : Promise.resolve(null);
+      const [authenticatedContentResponse, orderResponse, adminProductsResponse] = await Promise.all([
+        authenticatedContentRequest,
         fetch(isAdmin ? '/api/orders' : '/api/orders?scope=mine', {
           headers: catalogHeaders,
           cache: 'no-store',
         }),
-      ];
-      if (isAdmin) {
-        authenticatedRequests.push(
-          fetch('/api/products?limit=12&offset=0', { headers: catalogHeaders, cache: 'no-store' })
-        );
-      }
-
-      const [authenticatedContentResponse, orderResponse, adminProductsResponse] = await Promise.all(authenticatedRequests);
+        isAdmin
+          ? fetch('/api/products?limit=12&offset=0', { headers: catalogHeaders, cache: 'no-store' })
+          : Promise.resolve(null),
+      ]);
       if (cancelled) return;
 
-      if (authenticatedContentResponse.ok) {
+      if (authenticatedContentResponse?.ok) {
         const contentPayload = await authenticatedContentResponse.json().catch(() => null);
         const content = contentPayload?.content;
         if (content && typeof content === 'object') {
