@@ -17,5 +17,5 @@ test('social product URLs use the canonical site origin and safe product slug', 
   process.env.NEXT_PUBLIC_SITE_URL = 'https://shop.example/';
   const { productUrl } = await import('../../src/lib/social/server');
   assert.equal(productUrl('leather-wallet', 'prod_123'), 'https://www.pelomart.com/products/leather-wallet');
-  assert.equal(productUrl('../unsafe', 'prod_123'), 'https://shop.example/products/prod_123');
+  assert.equal(productUrl('../unsafe', 'prod_123'), 'https://www.pelomart.com/products/prod_123');
 });
