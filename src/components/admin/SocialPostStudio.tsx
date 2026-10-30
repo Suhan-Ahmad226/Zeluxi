@@ -170,19 +170,18 @@ export const SocialPostStudio: React.FC<Props> = ({ products, initialProduct, on
 
   const publishNow = () => run(async () => {
     if (!product || !accountId || !caption.trim()) throw new Error('Select a product, Page and prepare a caption first.');
-    let id = draftId;
-    if (!id) {
+    let ids = draftId ? [draftId] : [];
+    if (!draftId) {
       const result = await api('/api/admin/social', { method: 'POST', body: JSON.stringify(draftPayload()) });
-      id = result.post.id;
-      setDraftId(id);
+      ids = (result.posts || [result.post]).filter(Boolean).map((post: { id: string }) => post.id);
     } else {
       await api('/api/admin/social', { method: 'POST', body: JSON.stringify({
-        action: 'update_post', postId: id, caption: caption.trim(), contentGoal,
+        action: 'update_post', postId: draftId, caption: caption.trim(), contentGoal,
         mediaUrls: currentMedia ? [currentMedia] : [], refreshProductSnapshot,
       }) });
     }
-    await api('/api/admin/social', { method: 'POST', body: JSON.stringify({ action: 'publish_now', postId: id }) });
-    setNotice('Facebook accepted the publishing request. Check the publishing history for its final status.');
+    for (const id of ids) await api('/api/admin/social', { method: 'POST', body: JSON.stringify({ action: 'publish_now', postId: id }) });
+    setNotice(ids.length > 1 ? 'Publishing requests sent to all selected Facebook Pages.' : 'Facebook accepted the publishing request. Check the publishing history for its final status.');
     await refresh();
     setDraftId('');
   });
