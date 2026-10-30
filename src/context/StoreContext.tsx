@@ -356,9 +356,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode; initialView?: 
 
       const catalogHeaders = { Authorization: `Bearer ${token}` };
       const isAdmin = String(sessionData.session?.user?.app_metadata?.role || '').toUpperCase() === 'ADMIN';
-      // Public content already includes the sanitized coupon rules for customers.
-      // Only admins need a second authenticated content request for private CMS data.
-      const authenticatedContentRequest = isAdmin
+      // Public content already includes sanitized coupon rules for customers.
+      // Fetch authenticated content for admins, or retry if the public request failed.
+      const authenticatedContentRequest = isAdmin || !publicContentResponse.ok
         ? fetch('/api/content', { headers: catalogHeaders, cache: 'no-store' })
         : Promise.resolve(null);
       const [authenticatedContentResponse, orderResponse, adminProductsResponse] = await Promise.all([
