@@ -153,7 +153,7 @@ export const SocialPostStudio: React.FC<Props> = ({ products, initialProduct, on
     if (!product || !accountId || !caption.trim()) throw new Error('Select a product, Page and non-empty caption.');
     if (draftId) {
       await api('/api/admin/social', { method: 'POST', body: JSON.stringify({
-        action: 'update_post', postId: draftId, caption: caption.trim(),
+        action: 'update_post', postId: draftId, caption: caption.trim(), contentGoal,
         mediaUrls: currentMedia ? [currentMedia] : [], refreshProductSnapshot,
       }) });
       setRefreshProductSnapshot(false);
@@ -175,7 +175,7 @@ export const SocialPostStudio: React.FC<Props> = ({ products, initialProduct, on
       setDraftId(id);
     } else {
       await api('/api/admin/social', { method: 'POST', body: JSON.stringify({
-        action: 'update_post', postId: id, caption: caption.trim(),
+        action: 'update_post', postId: id, caption: caption.trim(), contentGoal,
         mediaUrls: currentMedia ? [currentMedia] : [], refreshProductSnapshot,
       }) });
     }
