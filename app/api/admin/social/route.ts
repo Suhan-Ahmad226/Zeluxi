@@ -12,6 +12,7 @@ const postSchema = z.object({
   promotionId: z.string().uuid().optional(),
   productId: z.string().min(1).max(100).optional(),
   accountId: z.string().uuid().optional(),
+  accountIds: z.array(z.string().uuid()).max(20).optional(),
   caption: z.string().max(5000).optional(),
   mediaUrls: z.array(z.string().url().max(2048).refine((value) => value.startsWith('https://'), 'Media URLs must use HTTPS.')).max(10).optional(),
   language: z.enum(['bn','en','mix']).optional(),
@@ -82,13 +83,15 @@ export async function POST(request: NextRequest) {
     const body = parsed.data;
     const admin = access.admin;
     if (body.action === 'generate_caption' || body.action === 'create_draft' || body.action === 'create_promotion') {
-      if (!body.productId || !body.accountId) return socialError('Product and Facebook Page are required.', 400);
+      const selectedAccountIds = [...new Set(body.accountIds?.length ? body.accountIds : body.accountId ? [body.accountId] : [])];
+      if (!body.productId || !selectedAccountIds.length) return socialError('Select a product and at least one connected Facebook Page.', 400);
       const { product } = await loadProduct(admin, body.productId);
-      const { data: account, error: accountError } = await admin.from('social_accounts').select('id,status').eq('id', body.accountId).eq('status','CONNECTED').maybeSingle();
-      if (accountError || !account) return socialError('Connect a Facebook Page before creating a post.', 400);
+      const { data: validAccounts, error: accountError } = await admin.from('social_accounts').select('id,status').in('id', selectedAccountIds).eq('status','CONNECTED');
+      if (accountError || !validAccounts || validAccounts.length !== selectedAccountIds.length) return socialError('One or more selected Facebook Pages are disconnected. Refresh the Page list.', 400);
+      const primaryAccountId = selectedAccountIds[0];
       if (body.action === 'create_promotion') {
         const { data, error } = await admin.from('social_promotions').insert({
-          product_id: body.productId, product_name_snapshot: product.name, account_id: body.accountId,
+          product_id: body.productId, product_name_snapshot: product.name, account_id: primaryAccountId,
           status: 'ACTIVE', interval_days: body.intervalDays || 3, approval_required: body.approvalRequired !== false,
           auto_publish: body.autoPublish === true && body.approvalRequired === false, max_posts: body.maxPosts ?? null,
           next_run_at: new Date(Date.now() + (body.intervalDays || 3) * 86400000).toISOString(), created_by: access.userId,
@@ -102,13 +105,15 @@ export async function POST(request: NextRequest) {
       const caption = body.caption?.trim() || await generateProductCaption(product, (prior || []).map((p: {caption:string})=>p.caption), body.language || 'bn', contentGoal, body.tone || 'friendly');
       if (body.action === 'generate_caption') return NextResponse.json({ caption }, { headers: noStoreHeaders });
       const mediaUrls = body.mediaUrls || (product.images as string[]).slice(0, 1);
-      const { data, error } = await admin.from('social_posts').insert({
-        product_id: body.productId, product_price_snapshot: product.price, product_stock_snapshot: product.stock, account_id: body.accountId, caption, media_urls: mediaUrls, content_goal: contentGoal,
+      if (product.videoUrl && mediaUrls.includes(product.videoUrl) && mediaUrls.length !== 1) return socialError('A Facebook video post can contain one video at a time.', 400);
+      const rows = selectedAccountIds.map((accountId) => ({
+        product_id: body.productId, product_price_snapshot: product.price, product_stock_snapshot: product.stock, account_id: accountId, caption, media_urls: mediaUrls, content_goal: contentGoal,
         product_url: product.productUrl, post_kind: product.videoUrl && mediaUrls.includes(product.videoUrl) ? 'VIDEO' : 'FEED',
         status: 'DRAFT', created_by: access.userId, idempotency_key: crypto.randomUUID(),
-      }).select('id,product_id,account_id,caption,media_urls,product_url,status,created_at').single();
-      if (error) return socialError('Draft could not be saved.', 503);
-      return NextResponse.json({ post: data }, { headers: noStoreHeaders });
+      }));
+      const { data, error } = await admin.from('social_posts').insert(rows).select('id,product_id,account_id,caption,media_urls,product_url,status,created_at');
+      if (error || !data?.length) return socialError('Drafts could not be saved for every selected Page.', 503);
+      return NextResponse.json({ post: data[0], posts: data }, { headers: noStoreHeaders });
     }
 
     if (body.action === 'update_post' || body.action === 'schedule_post' || body.action === 'approve_post' || body.action === 'cancel_post' || body.action === 'publish_now') {
