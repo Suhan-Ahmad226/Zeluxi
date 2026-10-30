@@ -132,6 +132,7 @@ export async function POST(request: NextRequest) {
       }
       if (body.action === 'update_post') {
         const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
+        if (body.contentGoal !== undefined) patch.content_goal = body.contentGoal;
         if (body.caption !== undefined) patch.caption = body.caption.trim();
         if (body.mediaUrls !== undefined) patch.media_urls = body.mediaUrls;
         if (body.caption !== undefined && !body.caption.trim()) return socialError('Caption cannot be empty.', 400);
