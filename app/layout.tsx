@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import type { ReactNode } from 'react';
 import { headers } from 'next/headers';
 import { Analytics } from '@vercel/analytics/next';
+import { SpeedInsights } from '@vercel/speed-insights/next';
 import './site.css';
 import { PwaRegister } from './PwaRegister';
 
@@ -77,6 +78,7 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
         {children}
         <PwaRegister />
         <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );
