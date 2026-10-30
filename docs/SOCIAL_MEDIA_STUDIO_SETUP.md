@@ -22,6 +22,7 @@ Add these to the server-side Vercel project environment (Preview first; Producti
 - `SOCIAL_TOKEN_ENCRYPTION_KEY`: 32 random bytes encoded as 64 hexadecimal characters. Keep it stable and back it up securely; rotating it without re-encrypting stored tokens makes saved tokens unreadable.
 - `CRON_SECRET`: a long random secret for the internal dispatch route.
 - `GEMINI_API_KEY`: server-side Gemini API key for caption generation.
+- `GEMINI_MODEL`: optional Gemini model override; default is `gemini-3.8-flash`. Do not use `gemini-2.5-flash` for new projects because Google currently limits that model to projects that actively used it previously.
 - Existing Supabase server values: `SUPABASE_URL` or `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_ANON_KEY` or `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY`.
 - `NEXT_PUBLIC_SITE_URL`: canonical public storefront origin.
 
