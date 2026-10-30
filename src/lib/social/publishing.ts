@@ -53,19 +53,42 @@ export async function publishPost(admin: any, postId: string) {
     const captionWithLink = caption.includes(post.product_url) ? caption : `${caption}\n\nShop now: ${post.product_url}`;
     let endpoint = `${base}/feed`;
     const body: Record<string, string> = { message: captionWithLink, access_token: token };
-    if (post.post_kind === 'VIDEO' && mediaUrls.length) {
+    let response: Response;
+    let result: { id?: string; post_id?: string; error?: { message?: string; code?: number } };
+    const isVideo = post.post_kind === 'VIDEO';
+    if (isVideo && mediaUrls.length) {
       endpoint = `${base}/videos`;
       body.file_url = mediaUrls[0];
       body.description = captionWithLink;
       delete body.message;
-    } else if (mediaUrls.length) {
+      response = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(body), signal: AbortSignal.timeout(60000) });
+      result = await response.json() as typeof result;
+    } else if (mediaUrls.length > 1) {
+      // Facebook multi-photo Page posts require each photo to be uploaded unpublished,
+      // then attached to one /feed request. Publishing each photo separately is incorrect.
+      const uploaded: string[] = [];
+      for (const mediaUrl of mediaUrls) {
+        const photo = await fetch(`${base}/photos`, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ url: mediaUrl, published: 'false', access_token: token }), signal: AbortSignal.timeout(30000) });
+        const photoResult = await photo.json() as { id?: string; error?: { message?: string; code?: number } };
+        if (!photo.ok || !photoResult.id) throw new Error(photoResult.error?.message || `Facebook could not prepare an album photo (HTTP ${photo.status}).`);
+        uploaded.push(photoResult.id);
+      }
+      endpoint = `${base}/feed`;
+      const albumBody = new URLSearchParams({ message: captionWithLink, access_token: token });
+      uploaded.forEach((mediaId, index) => albumBody.set(`attached_media[${index}]`, JSON.stringify({ media_fbid: mediaId })));
+      response = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: albumBody, signal: AbortSignal.timeout(30000) });
+      result = await response.json() as typeof result;
+    } else if (mediaUrls.length === 1) {
       endpoint = `${base}/photos`;
       body.url = mediaUrls[0];
       body.caption = captionWithLink;
       delete body.message;
+      response = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(body), signal: AbortSignal.timeout(30000) });
+      result = await response.json() as typeof result;
+    } else {
+      response = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(body), signal: AbortSignal.timeout(25000) });
+      result = await response.json() as typeof result;
     }
-    const response = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(body), signal: AbortSignal.timeout(25000) });
-    const result = await response.json() as { id?: string; post_id?: string; error?: { message?: string; code?: number } };
     if (!response.ok || !(result.id || result.post_id)) {
       const message = result.error?.message || (response.ok ? 'Meta accepted the request but returned no post ID; the result is uncertain. Check the Facebook Page before retrying.' : `Meta publishing returned HTTP ${response.status}.`);
       await admin.from('social_publish_attempts').update({ status: response.ok ? 'UNCERTAIN' : 'FAILED', error_code: String(result.error?.code || response.status), error_message: message.slice(0, 1000), finished_at: new Date().toISOString() }).eq('id', attempt.id);
