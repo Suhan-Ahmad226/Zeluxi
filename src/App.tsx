@@ -46,6 +46,7 @@ const MainStoreContent: React.FC<{ productSlug?: string }> = ({ productSlug }) =
   const [orderSuccessLoaded, setOrderSuccessLoaded] = React.useState(false);
   const [sizeGuideLoaded, setSizeGuideLoaded] = React.useState(false);
   const [compareModalLoaded, setCompareModalLoaded] = React.useState(false);
+  const [whatsAppConciergeLoaded, setWhatsAppConciergeLoaded] = React.useState(false);
 
   React.useEffect(() => { if (isAuthModalOpen) setAuthModalLoaded(true); }, [isAuthModalOpen]);
   React.useEffect(() => { if (selectedProduct) setProductModalLoaded(true); }, [selectedProduct]);
@@ -54,6 +55,12 @@ const MainStoreContent: React.FC<{ productSlug?: string }> = ({ productSlug }) =
   React.useEffect(() => { if (lastCreatedOrder) setOrderSuccessLoaded(true); }, [lastCreatedOrder]);
   React.useEffect(() => { if (isSizeGuideOpen) setSizeGuideLoaded(true); }, [isSizeGuideOpen]);
   React.useEffect(() => { if (isCompareOpen) setCompareModalLoaded(true); }, [isCompareOpen]);
+
+  // Defer the floating concierge bundle until the initial storefront has settled.
+  React.useEffect(() => {
+    const timer = window.setTimeout(() => setWhatsAppConciergeLoaded(true), 1200);
+    return () => window.clearTimeout(timer);
+  }, []);
 
   // Admin Dashboard has its own dedicated sidebar and compact top header
   if (activeView === 'admin') {
@@ -142,7 +149,7 @@ const MainStoreContent: React.FC<{ productSlug?: string }> = ({ productSlug }) =
         {orderSuccessLoaded && <OrderSuccessModal />}
         {sizeGuideLoaded && <SizeGuideModal />}
         {compareModalLoaded && <ProductCompareModal />}
-        <WhatsAppConcierge />
+        {whatsAppConciergeLoaded && <WhatsAppConcierge />}
       </React.Suspense>
       <NotificationToast />
       <OfflineIndicator />
