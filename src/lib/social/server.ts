@@ -58,13 +58,17 @@ export function productUrl(slug: unknown, id: string): string {
   return `${origin}/products/${encodeURIComponent(safeSlug || id)}`;
 }
 
-export async function generateProductCaption(product: Record<string, unknown>, priorCaptions: string[] = [], language = 'bn'): Promise<string> {
+export type SocialContentGoal = 'PRODUCT_SHOWCASE' | 'PRODUCT_EDUCATION' | 'NEW_ARRIVAL' | 'OFFER_CAMPAIGN' | 'CUSTOMER_TRUST' | 'ENGAGEMENT';
+
+export async function generateProductCaption(product: Record<string, unknown>, priorCaptions: string[] = [], language = 'bn', contentGoal: SocialContentGoal = 'PRODUCT_SHOWCASE', tone = 'friendly'): Promise<string> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) throw new Error('GEMINI_API_KEY is not configured. Add it to server environment to generate AI captions.');
   const prompt = [
     'Write one high-quality social media caption for the following ecommerce product.',
-    'Use only facts present in the supplied JSON. Never invent discounts, scarcity, warranty, reviews, certifications, or delivery promises.',
-    'Keep it natural, specific, helpful and conversion-focused. Add a clear CTA and 3-6 relevant hashtags.',
+    `Marketing objective: ${({ PRODUCT_SHOWCASE: 'Product showcase and direct sales', PRODUCT_EDUCATION: 'Helpful educational tips based only on known product facts', NEW_ARRIVAL: 'New arrival announcement without inventing launch dates or scarcity', OFFER_CAMPAIGN: 'Offer campaign using only a verified active discount in product data', CUSTOMER_TRUST: 'Customer trust content; use customer reviews only if verified review text is explicitly supplied, otherwise focus on transparent product facts and store confidence without fabricating testimonials', ENGAGEMENT: 'A useful question or conversation starter relevant to this product' } as Record<SocialContentGoal, string>)[contentGoal]}.`,
+    'Use only facts present in the supplied JSON. Never invent discounts, scarcity, warranty, reviews, certifications, stock urgency, fabric, sizing, delivery promises, return promises, or payment promises.',
+    'Keep it natural, specific, helpful and conversion-aware. Add a clear CTA and 3-5 relevant hashtags. Do not use generic hype or excessive emojis.',
+    `Tone: ${tone}.`,
     'Use the provided product URL verbatim in the caption. Do not change or omit it.',
     `Language: ${language === 'en' ? 'English' : language === 'mix' ? 'Bangla with light English' : 'Bangla'}.`,
     'Avoid copying the previous captions or their opening line.',
