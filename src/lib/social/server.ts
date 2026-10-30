@@ -97,6 +97,9 @@ export async function generateProductCaption(product: Record<string, unknown>, p
   const url = String(product.productUrl || 'https://www.pelomart.com');
   const facts = [
     `🛍️ ${productName}`,
+    ...(product.brand ? [`ব্র্যান্ড: ${String(product.brand)}`] : []),
+    ...(product.category ? [`ক্যাটাগরি: ${String(product.category)}`] : []),
+    ...(product.sku ? [`SKU: ${String(product.sku)}`] : []),
     `দাম: ৳${price.toLocaleString('en-US')}`,
     ...(discount ? [`আগের দাম: ৳${compareAtPrice.toLocaleString('en-US')}`, `ছাড়: ${discount}%`] : []),
     `স্টক: ${Number(product.stock || 0) > 0 ? 'In stock' : 'Out of stock'}`,
