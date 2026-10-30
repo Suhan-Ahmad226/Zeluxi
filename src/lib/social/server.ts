@@ -75,7 +75,7 @@ export async function generateProductCaption(product: Record<string, unknown>, p
     `Previous captions to avoid repeating: ${JSON.stringify(priorCaptions.slice(-8))}`,
     `Product data: ${JSON.stringify(product)}`,
   ].join('\n\n');
-  const model = (process.env.GEMINI_MODEL || 'gemini-2.5-flash').replace(/^models\//, '');
+  const model = (process.env.GEMINI_MODEL || 'gemini-3.8-flash').replace(/^models\//, '');
   const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
