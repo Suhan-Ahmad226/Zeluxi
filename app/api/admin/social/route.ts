@@ -42,7 +42,7 @@ async function loadProduct(admin: any, productId: string) {
       id: data.id, name: data.name, sku: data.sku || stored.sku || '',
       price: Number(data.price), stock: Number(data.stock), description: String(stored.shortDescription || stored.description || ''),
       category: String(stored.category || ''), brand: String(stored.brand || ''),
-      compareAtPrice: typeof stored.compareAtPrice === 'number' ? stored.compareAtPrice : undefined,
+      compareAtPrice: Number(stored.compareAtPrice || 0) > Number(data.price) ? Number(stored.compareAtPrice) : undefined,
       images: images.length ? images : imageUrl ? [imageUrl] : [], videoUrl,
       slug: stored.slug, productUrl: productUrl(stored.slug, data.id),
     },
