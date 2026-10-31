@@ -58,6 +58,15 @@ export function productUrl(slug: unknown, id: string): string {
   return `${origin}/products/${encodeURIComponent(safeSlug || id)}`;
 }
 
+export function cleanSocialText(value: string): string {
+  return value
+    .normalize('NFC')
+    .replace(/[\u00AD\u034F\u061C\u115F-\u1160\u17B4-\u17B5\u180B-\u180F\u200B-\u200F\u202A-\u202E\u2060-\u206F\uFE00-\uFE0F\uFEFF]/g, '')
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '')
+    .replace(/[ \t]+\n/g, '\n')
+    .trim();
+}
+
 export type SocialContentGoal = 'PRODUCT_SHOWCASE' | 'PRODUCT_EDUCATION' | 'NEW_ARRIVAL' | 'OFFER_CAMPAIGN' | 'CUSTOMER_TRUST' | 'ENGAGEMENT';
 
 export async function generateProductCaption(product: Record<string, unknown>, priorCaptions: string[] = [], language = 'bn', contentGoal: SocialContentGoal = 'PRODUCT_SHOWCASE', tone = 'friendly'): Promise<string> {
@@ -80,7 +89,7 @@ export async function generateProductCaption(product: Record<string, unknown>, p
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
     body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: prompt }] }], generationConfig: { temperature: 0.85, maxOutputTokens: 700 } }),
-    signal: AbortSignal.timeout(20000),
+    signal: AbortSignal.timeout(45000),
   });
   if (!response.ok) {
     const failure = await response.json().catch(() => ({})) as { error?: { message?: string; status?: string } };
@@ -90,20 +99,5 @@ export async function generateProductCaption(product: Record<string, unknown>, p
   const payload = await response.json() as { candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }> };
   const caption = payload.candidates?.[0]?.content?.parts?.map((part) => part.text || '').join('').trim();
   if (!caption || caption.length > 5000) throw new Error('AI did not return a usable caption.');
-  const price = Number(product.price || 0);
-  const compareAtPrice = Number(product.compareAtPrice || 0);
-  const discount = compareAtPrice > price && compareAtPrice > 0 ? Math.round((1 - price / compareAtPrice) * 100) : 0;
-  const productName = String(product.name || 'Product');
-  const url = String(product.productUrl || 'https://www.pelomart.com');
-  const facts = [
-    `🛍️ ${productName}`,
-    ...(product.brand ? [`ব্র্যান্ড: ${String(product.brand)}`] : []),
-    ...(product.category ? [`ক্যাটাগরি: ${String(product.category)}`] : []),
-    ...(product.sku ? [`SKU: ${String(product.sku)}`] : []),
-    `দাম: ৳${price.toLocaleString('en-US')}`,
-    ...(discount ? [`আগের দাম: ৳${compareAtPrice.toLocaleString('en-US')}`, `ছাড়: ${discount}%`] : []),
-    `স্টক: ${Number(product.stock || 0) > 0 ? 'In stock' : 'Out of stock'}`,
-    `অর্ডার করুন: ${url}`,
-  ].join('\n');
-  return `${caption.trim()}\n\n${facts}`.slice(0, 5000);
+  return cleanSocialText(caption);
 }

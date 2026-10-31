@@ -66,8 +66,20 @@ export const SocialPostStudio: React.FC<Props> = ({ products, initialProduct, on
   const mediaOptions = useMemo(() => product ? [...(product.images || []), ...(product.videoUrl ? [product.videoUrl] : [])].filter((url) => /^https:\/\//.test(url)) : [], [product]);
   const currentMedia = mediaOptions[mediaIndex] || '';
   const previewProductUrl = product ? `https://www.pelomart.com/products/${encodeURIComponent(product.slug || product.id)}` : '';
-  const previewCaption = caption.trim()
-    ? (previewProductUrl && !caption.includes(previewProductUrl) ? `${caption.trim()}\n\nShop now: ${previewProductUrl}` : caption.trim())
+  const cleanPreviewCaption = caption.normalize('NFC').replace(/[\u00AD\u034F\u061C\u115F-\u1160\u17B4-\u17B5\u180B-\u180F\u200B-\u200F\u202A-\u202E\u2060-\u206F\uFE00-\uFE0F\uFEFF]/g, '').trim();
+  const previewCompareAt = Number(product?.compareAtPrice || 0);
+  const previewDiscount = product && previewCompareAt > product.price ? Math.round((1 - product.price / previewCompareAt) * 100) : 0;
+  const previewFacts = product ? [
+    `Product: ${product.name}`,
+    ...(product.brand ? [`Brand: ${product.brand}`] : []),
+    ...(product.category ? [`Category: ${product.category}`] : []),
+    ...(product.shortDescription || product.description ? [`Details: ${(product.shortDescription || product.description).slice(0, 400)}`] : []),
+    `Price: ৳${Number(product.price).toLocaleString('en-US')}`,
+    ...(previewDiscount ? [`Regular price: ৳${previewCompareAt.toLocaleString('en-US')}`, `Discount: ${previewDiscount}%`] : []),
+    `Availability: ${product.stock > 0 ? 'In stock' : 'Out of stock'}`,
+  ].join('\n') : '';
+  const previewCaption = cleanPreviewCaption
+    ? [cleanPreviewCaption, previewFacts, previewProductUrl ? `Shop now: ${previewProductUrl}` : ''].filter(Boolean).join('\n\n')
     : 'Your generated caption will appear here.';
   const connectedAccounts = accounts.filter((item) => item.status === 'CONNECTED');
   const stats = useMemo(() => ({
