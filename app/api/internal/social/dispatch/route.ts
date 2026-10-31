@@ -29,7 +29,7 @@ async function runDispatch(request: NextRequest) {
         status: 'UNCERTAIN', error_message: 'Publishing worker stopped; check Facebook before retrying.', finished_at: now,
       }).eq('post_id', stale.id).eq('status','STARTED');
       await admin.from('social_posts').update({
-        status: 'FAILED', last_error: 'Publishing worker stopped; outcome uncertain. Check Facebook before retrying.',
+        status: 'UNCERTAIN', last_error: 'Publishing worker stopped; outcome uncertain. Check Facebook before retrying.',
         updated_at: now,
       }).eq('id',stale.id).eq('status','PUBLISHING');
     }
