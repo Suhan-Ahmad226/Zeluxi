@@ -36,7 +36,7 @@ export async function publishPost(admin: any, postId: string) {
   }
   const base = `https://graph.facebook.com/v26.0/${encodeURIComponent(account.provider_account_id)}`;
   const mediaUrls = Array.isArray(post.media_urls) ? post.media_urls.filter((v: unknown): v is string => typeof v === 'string' && /^https:\/\//.test(v)).slice(0, 10) : [];
-  const caption = cleanSocialText(String(post.caption || ''));
+  const caption = cleanSocialText(String(post.caption || '')).slice(0, 3500);
   if (!caption) throw new Error('Post caption is empty.');
   // Atomically claim the post before calling Meta. A concurrent scheduler/manual click must not publish twice.
   const { data: claimed, error: claimError } = await admin.from('social_posts')
@@ -57,8 +57,12 @@ export async function publishPost(admin: any, postId: string) {
     const currentPrice = Number(currentProduct?.price || 0);
     const compareAtPrice = Number(storedProductData.compareAtPrice || storedProductData.compare_at_price || 0);
     const discountPercent = compareAtPrice > currentPrice && compareAtPrice > 0 ? Math.round((1 - currentPrice / compareAtPrice) * 100) : 0;
+    const productDescription = cleanSocialText(String(storedProductData.shortDescription || storedProductData.description || '')).slice(0, 400);
     const productFacts = currentProduct ? [
       `Product: ${cleanSocialText(String(currentProduct.name || ''))}`,
+      ...(storedProductData.brand ? [`Brand: ${cleanSocialText(String(storedProductData.brand))}`] : []),
+      ...(storedProductData.category ? [`Category: ${cleanSocialText(String(storedProductData.category))}`] : []),
+      ...(productDescription ? [`Details: ${productDescription}`] : []),
       `Price: ৳${currentPrice.toLocaleString('en-US')}`,
       ...(discountPercent ? [`Regular price: ৳${compareAtPrice.toLocaleString('en-US')}`, `Discount: ${discountPercent}%`] : []),
       ...(currentProduct.sku ? [`SKU: ${cleanSocialText(String(currentProduct.sku))}`] : []),
