@@ -66,7 +66,7 @@ export const SocialPostStudio: React.FC<Props> = ({ products, initialProduct, on
   const mediaOptions = useMemo(() => product ? [...(product.images || []), ...(product.videoUrl ? [product.videoUrl] : [])].filter((url) => /^https:\/\//.test(url)) : [], [product]);
   const currentMedia = mediaOptions[mediaIndex] || '';
   const previewProductUrl = product ? `https://www.pelomart.com/products/${encodeURIComponent(product.slug || product.id)}` : '';
-  const cleanPreviewCaption = caption.normalize('NFC').replace(/[\\u00AD\\u034F\\u061C\\u115F-\\u1160\\u17B4-\\u17B5\\u180B-\\u180F\\u200B-\\u200F\\u202A-\\u202E\\u2060-\\u206F\\uFE00-\\uFE0F\\uFEFF]/g, '').trim();
+  const cleanPreviewCaption = caption.normalize('NFC').replace(/[\u00AD\u034F\u061C\u115F-\u1160\u17B4-\u17B5\u180B-\u180F\u200B-\u200F\u202A-\u202E\u2060-\u206F\uFE00-\uFE0F\uFEFF]/g, '').trim();
   const previewCompareAt = Number(product?.compareAtPrice || 0);
   const previewDiscount = product && previewCompareAt > product.price ? Math.round((1 - product.price / previewCompareAt) * 100) : 0;
   const previewFacts = product ? [
