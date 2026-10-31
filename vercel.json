@@ -3,7 +3,7 @@
   "crons": [
     {
       "path": "/api/internal/social/dispatch",
-      "schedule": "*/5 * * * *"
+      "schedule": "0 0 * * *"
     }
   ]
 }
