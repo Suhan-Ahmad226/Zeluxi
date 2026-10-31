@@ -90,15 +90,19 @@ export async function POST(request: NextRequest) {
       if (accountError || !validAccounts || validAccounts.length !== selectedAccountIds.length) return socialError('One or more selected Facebook Pages are disconnected. Refresh the Page list.', 400);
       const primaryAccountId = selectedAccountIds[0];
       if (body.action === 'create_promotion') {
-        const { data, error } = await admin.from('social_promotions').insert({
-          product_id: body.productId, product_name_snapshot: product.name, account_id: primaryAccountId,
+        const nextRunAt = new Date(Date.now() + (body.intervalDays || 3) * 86400000).toISOString();
+        const promotionRows = selectedAccountIds.map((accountId) => ({
+          product_id: body.productId, product_name_snapshot: product.name, account_id: accountId,
           status: 'ACTIVE', interval_days: body.intervalDays || 3, approval_required: body.approvalRequired !== false,
           auto_publish: body.autoPublish === true && body.approvalRequired === false, max_posts: body.maxPosts ?? null,
-          next_run_at: new Date(Date.now() + (body.intervalDays || 3) * 86400000).toISOString(), created_by: access.userId,
-        }).select('*').single();
-        if (error) return socialError('Promotion could not be created.', 503);
-        await admin.from('social_audit_logs').insert({ actor_id: access.userId, action: 'PROMOTION_CREATED', entity_type: 'social_promotion', entity_id: data.id, details: { productId: body.productId } });
-        return NextResponse.json({ promotion: data }, { headers: noStoreHeaders });
+          next_run_at: nextRunAt, created_by: access.userId,
+        }));
+        const { data, error } = await admin.from('social_promotions').insert(promotionRows).select('*');
+        if (error || !data?.length) return socialError('Promotion could not be created for every selected Page. Check whether an active promotion already exists for one of them.', 409);
+        await admin.from('social_audit_logs').insert(data.map((promotion: {id:string}) => ({
+          actor_id: access.userId, action: 'PROMOTION_CREATED', entity_type: 'social_promotion', entity_id: promotion.id, details: { productId: body.productId },
+        })));
+        return NextResponse.json({ promotion: data[0], promotions: data }, { headers: noStoreHeaders });
       }
       const { data: prior } = await admin.from('social_posts').select('caption').eq('product_id', body.productId).eq('status','PUBLISHED').order('published_at',{ascending:false}).limit(8);
       const contentGoal = body.contentGoal || 'PRODUCT_SHOWCASE';
