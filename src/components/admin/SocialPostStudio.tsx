@@ -279,7 +279,7 @@ export const SocialPostStudio: React.FC<Props> = ({ products, initialProduct, on
           </div>
           <div className="flex flex-wrap gap-2">
             <button onClick={() => void refresh()} disabled={busy} className="inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/5 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-white/10 disabled:opacity-50"><RefreshCw className={`h-4 w-4 ${busy ? 'animate-spin' : ''}`} /> Refresh</button>
-            <button onClick={() => setActiveView('composer')} className="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-bold text-slate-950 transition hover:bg-indigo-50"><Plus className="h-4 w-4" /> Create content</button>
+            <button onClick={() => { setDraftId(''); setDraftIds([]); setCaption(''); setSelectedMediaUrls([]); setActiveView('composer'); }} className="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-bold text-slate-950 transition hover:bg-indigo-50"><Plus className="h-4 w-4" /> Create content</button>
           </div>
         </div>
         <div className="relative mt-6 grid grid-cols-2 gap-2 sm:grid-cols-5">
@@ -357,7 +357,7 @@ export const SocialPostStudio: React.FC<Props> = ({ products, initialProduct, on
             <button onClick={() => void publishNow()} disabled={busy || !product || !accountId || !caption.trim()} className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-blue-700 disabled:opacity-50"><Send className="h-4 w-4" /> Publish now</button>
           </div>
           <div className="space-y-3 rounded-2xl bg-slate-50 p-4">
-            <div><h4 className="text-sm font-bold text-slate-900">Schedule this post</h4><p className="mt-1 text-xs text-slate-500">Uses your device timezone. Scheduler must be configured for automatic publishing.</p></div>
+            <div><h4 className="text-sm font-bold text-slate-900">Schedule this post</h4><p className="mt-1 text-xs text-slate-500">Uses your device timezone. Vercel Hobby runs this scheduler once per day, so posts can be delayed. Frequent scheduling needs a higher-frequency cron plan.</p></div>
             <div className="flex flex-col gap-2 sm:flex-row"><input type="datetime-local" value={scheduledAt} onChange={(e) => setScheduledAt(e.target.value)} min={new Date(Date.now() + 60000).toISOString().slice(0,16)} className="min-w-0 flex-1 rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm" /><button onClick={() => void schedulePost()} disabled={busy || !scheduledAt || !caption.trim()} className="inline-flex items-center justify-center gap-2 rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2.5 text-sm font-bold text-indigo-800 disabled:opacity-50"><CalendarClock className="h-4 w-4" /> Schedule</button></div>
           </div>
           <div className="space-y-3 rounded-2xl border border-slate-200 p-4">
