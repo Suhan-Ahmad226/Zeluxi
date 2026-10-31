@@ -188,10 +188,12 @@ export const SocialPostStudio: React.FC<Props> = ({ products, initialProduct, on
       if (!ids.length) throw new Error('Could not update any selected Page drafts. No posts were published.');
     }
     const results = await Promise.allSettled(ids.map((id) => api('/api/admin/social', { method: 'POST', body: JSON.stringify({ action: 'publish_now', postId: id }) })));
-    const failed = results.filter((result) => result.status === 'rejected').length + updateFailures;
+    const publishFailures = results.filter((result) => result.status === 'rejected').length;
+    const failed = publishFailures + updateFailures;
+    const publishedCount = results.length - publishFailures;
     await refresh();
     setDraftId(''); setDraftIds([]);
-    if (failed) throw new Error(`${ids.length - failed} Page(s) published successfully; ${failed} failed or need checking. Review each Page in publishing history.`);
+    if (failed) throw new Error(`${publishedCount} Page(s) published successfully; ${failed} failed or need checking. Review each Page in publishing history.`);
     setNotice(ids.length > 1 ? 'Publishing requests sent to all selected Facebook Pages.' : 'Facebook accepted the publishing request. Check the publishing history for its final status.');
   });
 
