@@ -29,7 +29,7 @@ const goalLabel = (goal?: string) => GOALS.find((item) => item.id === goal)?.lab
 const statusTone: Record<string, string> = {
   DRAFT: 'bg-slate-100 text-slate-700', AWAITING_APPROVAL: 'bg-amber-100 text-amber-800',
   SCHEDULED: 'bg-blue-100 text-blue-800', PUBLISHING: 'bg-violet-100 text-violet-800',
-  PUBLISHED: 'bg-emerald-100 text-emerald-800', FAILED: 'bg-rose-100 text-rose-800',
+  PUBLISHED: 'bg-emerald-100 text-emerald-800', FAILED: 'bg-rose-100 text-rose-800', UNCERTAIN: 'bg-orange-100 text-orange-800',
   CANCELLED: 'bg-slate-100 text-slate-500',
 };
 const dateLabel = (value?: string | null) => value ? new Date(value).toLocaleString('en-BD', { dateStyle: 'medium', timeStyle: 'short' }) : 'Not scheduled';
@@ -57,6 +57,7 @@ export const SocialPostStudio: React.FC<Props> = ({ products, initialProduct, on
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [draftId, setDraftId] = useState('');
+  const [draftIds, setDraftIds] = useState<string[]>([]);
   const [refreshProductSnapshot, setRefreshProductSnapshot] = useState(false);
   const [historyFilter, setHistoryFilter] = useState('ALL');
 
@@ -70,7 +71,7 @@ export const SocialPostStudio: React.FC<Props> = ({ products, initialProduct, on
     drafts: posts.filter((item) => item.status === 'DRAFT').length,
     scheduled: posts.filter((item) => ['SCHEDULED', 'AWAITING_APPROVAL'].includes(item.status)).length,
     published: posts.filter((item) => item.status === 'PUBLISHED').length,
-    failed: posts.filter((item) => item.status === 'FAILED').length,
+    failed: posts.filter((item) => ['FAILED','UNCERTAIN'].includes(item.status)).length,
   }), [connectedAccounts.length, posts]);
 
   const api = useCallback(async (path: string, init: RequestInit = {}) => {
@@ -142,7 +143,7 @@ export const SocialPostStudio: React.FC<Props> = ({ products, initialProduct, on
       action: 'generate_caption', productId: product.id, accountId, language, contentGoal, tone,
     }) });
     setCaption(result.caption || '');
-    if (draftId) setRefreshProductSnapshot(true);
+    if (draftId || draftIds.length) setRefreshProductSnapshot(true);
     setNotice('AI draft generated. Check every product fact before publishing.');
   });
 
@@ -153,52 +154,57 @@ export const SocialPostStudio: React.FC<Props> = ({ products, initialProduct, on
 
   const saveDraft = () => run(async () => {
     if (!product || !accountId || !caption.trim()) throw new Error('Select a product, Page and non-empty caption.');
-    if (draftId) {
-      await api('/api/admin/social', { method: 'POST', body: JSON.stringify({
-        action: 'update_post', postId: draftId, caption: caption.trim(), contentGoal,
-        mediaUrls: selectedMediaUrls.length ? selectedMediaUrls : currentMedia ? [currentMedia] : [], refreshProductSnapshot,
+    const mediaUrls = selectedMediaUrls.length ? selectedMediaUrls : currentMedia ? [currentMedia] : [];
+    const existingIds = draftIds.length ? draftIds : draftId ? [draftId] : [];
+    if (existingIds.length) {
+      for (const id of existingIds) await api('/api/admin/social', { method: 'POST', body: JSON.stringify({
+        action: 'update_post', postId: id, caption: caption.trim(), contentGoal, mediaUrls, refreshProductSnapshot,
       }) });
       setRefreshProductSnapshot(false);
-      setNotice('Draft updated.');
+      setNotice('Draft updated for all selected Pages.');
     } else {
       const result = await api('/api/admin/social', { method: 'POST', body: JSON.stringify(draftPayload()) });
-      setDraftId(result.post.id);
-      setNotice('Draft saved.');
+      const ids = (result.posts || [result.post]).filter(Boolean).map((post: {id:string}) => post.id);
+      setDraftIds(ids); setDraftId('');
+      setNotice(ids.length > 1 ? 'Drafts saved for all selected Pages.' : 'Draft saved.');
     }
     await refresh();
   });
 
   const publishNow = () => run(async () => {
     if (!product || !accountId || !caption.trim()) throw new Error('Select a product, Page and prepare a caption first.');
-    let ids = draftId ? [draftId] : [];
-    if (!draftId) {
+    let ids = draftIds.length ? [...draftIds] : draftId ? [draftId] : [];
+    if (!ids.length) {
       const result = await api('/api/admin/social', { method: 'POST', body: JSON.stringify(draftPayload()) });
       ids = (result.posts || [result.post]).filter(Boolean).map((post: { id: string }) => post.id);
     } else {
-      await api('/api/admin/social', { method: 'POST', body: JSON.stringify({
-        action: 'update_post', postId: draftId, caption: caption.trim(), contentGoal,
-        mediaUrls: currentMedia ? [currentMedia] : [], refreshProductSnapshot,
+      const mediaUrls = selectedMediaUrls.length ? selectedMediaUrls : currentMedia ? [currentMedia] : [];
+      for (const id of ids) await api('/api/admin/social', { method: 'POST', body: JSON.stringify({
+        action: 'update_post', postId: id, caption: caption.trim(), contentGoal, mediaUrls, refreshProductSnapshot,
       }) });
     }
     for (const id of ids) await api('/api/admin/social', { method: 'POST', body: JSON.stringify({ action: 'publish_now', postId: id }) });
     setNotice(ids.length > 1 ? 'Publishing requests sent to all selected Facebook Pages.' : 'Facebook accepted the publishing request. Check the publishing history for its final status.');
     await refresh();
-    setDraftId('');
+    setDraftId(''); setDraftIds([]);
   });
 
   const schedulePost = () => run(async () => {
     if (!scheduledAt) throw new Error('Choose a future date and time.');
-    let id = draftId;
-    if (!id) {
+    let ids = draftIds.length ? [...draftIds] : draftId ? [draftId] : [];
+    if (!ids.length) {
       if (!product || !accountId || !caption.trim()) throw new Error('Select a product and prepare a caption first.');
       const result = await api('/api/admin/social', { method: 'POST', body: JSON.stringify(draftPayload()) });
-      id = result.post.id; setDraftId(id);
+      ids = (result.posts || [result.post]).filter(Boolean).map((post: {id:string}) => post.id);
     }
-    await api('/api/admin/social', { method: 'POST', body: JSON.stringify({
-      action: 'update_post', postId: id, caption: caption.trim(),
-      mediaUrls: currentMedia ? [currentMedia] : [], refreshProductSnapshot,
-    }) });
-    await api('/api/admin/social', { method: 'POST', body: JSON.stringify({ action: 'schedule_post', postId: id, scheduledAt: new Date(scheduledAt).toISOString() }) });
+    const mediaUrls = selectedMediaUrls.length ? selectedMediaUrls : currentMedia ? [currentMedia] : [];
+    for (const id of ids) {
+      await api('/api/admin/social', { method: 'POST', body: JSON.stringify({
+        action: 'update_post', postId: id, caption: caption.trim(), mediaUrls, refreshProductSnapshot,
+      }) });
+      await api('/api/admin/social', { method: 'POST', body: JSON.stringify({ action: 'schedule_post', postId: id, scheduledAt: new Date(scheduledAt).toISOString() }) });
+    }
+    setDraftIds(ids); setDraftId('');
     setNotice('Post scheduled. Automatic publishing requires the protected server scheduler to be configured.');
     await refresh();
     setActiveView('calendar');
@@ -208,7 +214,7 @@ export const SocialPostStudio: React.FC<Props> = ({ products, initialProduct, on
     if (!product || !accountId) throw new Error('Select a product and connected Facebook Page.');
     if (!approvalRequired && !window.confirm('Auto-publish will publish future posts without manual approval. Continue?')) return;
     await api('/api/admin/social', { method: 'POST', body: JSON.stringify({
-      action: 'create_promotion', productId: product.id, accountId, intervalDays: repeatDays,
+      action: 'create_promotion', productId: product.id, accountId, accountIds: accountIds.length ? accountIds : [accountId], intervalDays: repeatDays,
       approvalRequired, autoPublish: !approvalRequired, maxPosts: maxPosts ? Number(maxPosts) : null,
     }) });
     setNotice(`Recurring promotion created for ${product.name}. First repeat is due after ${repeatDays} days.`);
@@ -235,11 +241,12 @@ export const SocialPostStudio: React.FC<Props> = ({ products, initialProduct, on
   const deleteDraft = (id: string) => run(async () => {
     await api(`/api/admin/social?postId=${encodeURIComponent(id)}`, { method: 'DELETE' });
     if (draftId === id) { setDraftId(''); setCaption(''); }
+    setDraftIds((current) => current.filter((draft) => draft !== id));
     setNotice('Draft deleted.'); await refresh();
   });
 
   const editPost = (post: Post) => {
-    setDraftId(post.id); setProductId(post.product_id || ''); setAccountId(post.account_id);
+    setDraftId(post.id); setDraftIds([post.id]); setProductId(post.product_id || ''); setAccountId(post.account_id);
     setCaption(post.caption); setContentGoal(post.content_goal || 'PRODUCT_SHOWCASE');
     setRefreshProductSnapshot(false); setMediaIndex(0); setActiveView('composer');
     setNotice('Post loaded into the composer. Review it before saving or publishing.');
@@ -373,7 +380,7 @@ export const SocialPostStudio: React.FC<Props> = ({ products, initialProduct, on
 
       {activeView === 'calendar' && <div className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5"><div className="flex flex-wrap items-center justify-between gap-3"><div><h3 className="text-lg font-bold text-slate-900">Content calendar</h3><p className="mt-1 text-xs text-slate-500">{monthLabel} · Scheduled and approval-pending posts</p></div><button onClick={() => setActiveView('composer')} className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-bold text-white"><Plus className="h-4 w-4" /> Plan a post</button></div><div className="mt-4 space-y-3">{upcoming.map((post) => <article key={post.id} className="flex flex-col gap-3 rounded-xl border border-slate-200 p-3 sm:flex-row sm:items-center"><div className="flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-xl bg-indigo-50 text-indigo-700"><CalendarDays className="h-4 w-4" /><span className="mt-0.5 text-[9px] font-bold">{post.scheduled_at ? new Date(post.scheduled_at).toLocaleDateString('en-BD',{day:'2-digit',month:'short'}) : 'TBD'}</span></div><div className="min-w-0 flex-1"><p className="font-semibold text-slate-900">{products.find((p) => p.id === post.product_id)?.name || 'Product post'}</p><p className="mt-1 line-clamp-2 text-xs text-slate-500">{post.caption}</p><p className="mt-1 text-[11px] text-slate-400">{goalLabel(post.content_goal)} · {dateLabel(post.scheduled_at)}</p></div><div className="flex flex-wrap items-center gap-2"><span className={`rounded-full px-2 py-1 text-[10px] font-bold ${statusTone[post.status] || statusTone.DRAFT}`}>{post.status.replaceAll('_',' ')}</span>{post.status === 'AWAITING_APPROVAL' && <button onClick={() => void postAction(post.id,'approve_post')} disabled={busy} className="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-bold text-white">Approve</button>}</div></article>)}{!upcoming.length && <div className="rounded-xl border border-dashed border-slate-300 py-12 text-center"><CalendarDays className="mx-auto h-8 w-8 text-slate-300" /><p className="mt-3 text-sm font-semibold text-slate-700">Your calendar is clear</p><p className="mt-1 text-xs text-slate-500">Schedule content to build a consistent publishing rhythm.</p></div>}</div></div>}
 
-      {activeView === 'posts' && <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white"><div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 p-4"><div><h3 className="font-bold text-slate-900">Publishing history</h3><p className="mt-1 text-xs text-slate-500">{posts.length} saved post(s)</p></div><select value={historyFilter} onChange={(e) => setHistoryFilter(e.target.value)} className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs"><option value="ALL">All statuses</option>{['DRAFT','AWAITING_APPROVAL','SCHEDULED','PUBLISHED','FAILED','CANCELLED'].map((v) => <option key={v} value={v}>{v.replaceAll('_',' ')}</option>)}</select></div><div className="divide-y divide-slate-100">{filteredPosts.map((post) => <article key={post.id} className="flex flex-col gap-3 p-4 sm:flex-row sm:items-start"><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><span className="font-semibold text-slate-900">{products.find((p) => p.id === post.product_id)?.name || 'Product post'}</span><span className={`rounded-full px-2 py-1 text-[10px] font-bold ${statusTone[post.status] || statusTone.DRAFT}`}>{post.status.replaceAll('_',' ')}</span><span className="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-semibold text-slate-600">{goalLabel(post.content_goal)}</span></div><p className="mt-2 line-clamp-4 whitespace-pre-wrap break-words text-sm text-slate-700">{post.caption}</p><a href={post.product_url} target="_blank" rel="noreferrer" className="mt-2 inline-block break-all text-xs text-blue-700 underline">{post.product_url}</a>{post.last_error && <p className="mt-2 rounded-lg bg-rose-50 p-2 text-xs text-rose-700">{post.last_error}</p>}<p className="mt-2 text-[11px] text-slate-400">{post.published_at ? `Published ${dateLabel(post.published_at)}` : post.scheduled_at ? `Scheduled ${dateLabel(post.scheduled_at)}` : `Created ${dateLabel(post.created_at)}`}</p></div><div className="flex flex-wrap gap-2">{['DRAFT','AWAITING_APPROVAL','SCHEDULED','FAILED'].includes(post.status) && <button onClick={() => editPost(post)} disabled={busy} className="rounded-lg bg-indigo-50 px-3 py-2 text-xs font-bold text-indigo-800">Edit</button>}{post.status === 'DRAFT' && <button onClick={() => void deleteDraft(post.id)} disabled={busy} className="inline-flex items-center gap-1 rounded-lg bg-rose-50 px-3 py-2 text-xs font-bold text-rose-800"><Trash2 className="h-3.5 w-3.5" />Delete</button>}{['DRAFT','AWAITING_APPROVAL'].includes(post.status) && <button onClick={() => void postAction(post.id,'approve_post')} disabled={busy} className="inline-flex items-center gap-1 rounded-lg bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-800"><CheckCircle2 className="h-3.5 w-3.5" />Approve</button>}{post.status === 'FAILED' && <button onClick={() => { if (post.last_error?.toLowerCase().includes('uncertain') && !window.confirm('The previous request may already have published. Check Facebook before retrying. Retry anyway?')) return; void postAction(post.id,'publish_now'); }} disabled={busy} className="rounded-lg bg-blue-50 px-3 py-2 text-xs font-bold text-blue-800">Retry</button>}{['DRAFT','AWAITING_APPROVAL','SCHEDULED','FAILED'].includes(post.status) && <button onClick={() => void postAction(post.id,'cancel_post')} disabled={busy} className="rounded-lg bg-rose-50 px-3 py-2 text-xs font-bold text-rose-800">Cancel</button>}</div></article>)}{!filteredPosts.length && <p className="p-10 text-center text-sm text-slate-500">No posts match this filter.</p>}</div></div>}
+      {activeView === 'posts' && <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white"><div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 p-4"><div><h3 className="font-bold text-slate-900">Publishing history</h3><p className="mt-1 text-xs text-slate-500">{posts.length} saved post(s)</p></div><select value={historyFilter} onChange={(e) => setHistoryFilter(e.target.value)} className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs"><option value="ALL">All statuses</option>{['DRAFT','AWAITING_APPROVAL','SCHEDULED','PUBLISHED','FAILED','UNCERTAIN','CANCELLED'].map((v) => <option key={v} value={v}>{v.replaceAll('_',' ')}</option>)}</select></div><div className="divide-y divide-slate-100">{filteredPosts.map((post) => <article key={post.id} className="flex flex-col gap-3 p-4 sm:flex-row sm:items-start"><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><span className="font-semibold text-slate-900">{products.find((p) => p.id === post.product_id)?.name || 'Product post'}</span><span className={`rounded-full px-2 py-1 text-[10px] font-bold ${statusTone[post.status] || statusTone.DRAFT}`}>{post.status.replaceAll('_',' ')}</span><span className="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-semibold text-slate-600">{goalLabel(post.content_goal)}</span></div><p className="mt-2 line-clamp-4 whitespace-pre-wrap break-words text-sm text-slate-700">{post.caption}</p><a href={post.product_url} target="_blank" rel="noreferrer" className="mt-2 inline-block break-all text-xs text-blue-700 underline">{post.product_url}</a>{post.last_error && <p className="mt-2 rounded-lg bg-rose-50 p-2 text-xs text-rose-700">{post.last_error}</p>}<p className="mt-2 text-[11px] text-slate-400">{post.published_at ? `Published ${dateLabel(post.published_at)}` : post.scheduled_at ? `Scheduled ${dateLabel(post.scheduled_at)}` : `Created ${dateLabel(post.created_at)}`}</p></div><div className="flex flex-wrap gap-2">{['DRAFT','AWAITING_APPROVAL','SCHEDULED','FAILED'].includes(post.status) && <button onClick={() => editPost(post)} disabled={busy} className="rounded-lg bg-indigo-50 px-3 py-2 text-xs font-bold text-indigo-800">Edit</button>}{post.status === 'DRAFT' && <button onClick={() => void deleteDraft(post.id)} disabled={busy} className="inline-flex items-center gap-1 rounded-lg bg-rose-50 px-3 py-2 text-xs font-bold text-rose-800"><Trash2 className="h-3.5 w-3.5" />Delete</button>}{['DRAFT','AWAITING_APPROVAL'].includes(post.status) && <button onClick={() => void postAction(post.id,'approve_post')} disabled={busy} className="inline-flex items-center gap-1 rounded-lg bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-800"><CheckCircle2 className="h-3.5 w-3.5" />Approve</button>}{post.status === 'FAILED' && <button onClick={() => void postAction(post.id,'publish_now')} disabled={busy} className="rounded-lg bg-blue-50 px-3 py-2 text-xs font-bold text-blue-800">Retry</button>}{post.status === 'UNCERTAIN' && <span className="rounded-lg bg-orange-50 px-3 py-2 text-xs font-semibold text-orange-800">Check Facebook before retrying</span>}{['DRAFT','AWAITING_APPROVAL','SCHEDULED','FAILED'].includes(post.status) && <button onClick={() => void postAction(post.id,'cancel_post')} disabled={busy} className="rounded-lg bg-rose-50 px-3 py-2 text-xs font-bold text-rose-800">Cancel</button>}</div></article>)}{!filteredPosts.length && <p className="p-10 text-center text-sm text-slate-500">No posts match this filter.</p>}</div></div>}
 
       {activeView === 'promotions' && <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white"><div className="border-b border-slate-100 p-4 sm:p-5"><h3 className="font-bold text-slate-900">Recurring campaigns</h3><p className="mt-1 text-xs text-slate-500">Pause or resume repeat promotions. The server scheduler is required for automatic runs.</p></div><div className="divide-y divide-slate-100">{promotions.map((promo) => <article key={promo.id} className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center"><div className="flex h-11 w-11 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600"><RefreshCw className="h-5 w-5" /></div><div className="min-w-0 flex-1"><p className="font-semibold text-slate-900">{promo.product_name_snapshot}</p><p className="mt-1 text-xs text-slate-500">Every {promo.interval_days} days · {promo.posts_published} published · {promo.approval_required ? 'Approval required' : 'Auto-publish'}</p><p className="mt-1 text-[11px] text-slate-400">Status: {promo.status}{promo.next_run_at ? ` · Next: ${dateLabel(promo.next_run_at)}` : ''}</p></div>{promo.status === 'ACTIVE' ? <button onClick={() => void promotionAction(promo.id,'pause_promotion')} disabled={busy} className="inline-flex items-center gap-2 rounded-lg bg-amber-50 px-3 py-2 text-xs font-bold text-amber-800"><Pause className="h-4 w-4" />Pause</button> : promo.status === 'PAUSED' ? <button onClick={() => void promotionAction(promo.id,'resume_promotion')} disabled={busy} className="inline-flex items-center gap-2 rounded-lg bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-800"><Play className="h-4 w-4" />Resume</button> : null}</article>)}{!promotions.length && <p className="p-10 text-center text-sm text-slate-500">No recurring campaigns yet. Create one from the post composer.</p>}</div></div>}
 
