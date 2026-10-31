@@ -1,4 +1,4 @@
-name: Apply Zeluxi Social Studio Supabase migrations
+name: Apply Social Studio Supabase migrations
 
 on:
   workflow_dispatch:
@@ -27,10 +27,10 @@ jobs:
     env:
       SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
     steps:
-      - name: Checkout main
+      - name: Checkout selected branch
         uses: actions/checkout@v4
         with:
-          ref: main
+          ref: ${{ github.ref }}
 
       - name: Verify required secret
         shell: bash
