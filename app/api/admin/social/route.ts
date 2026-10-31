@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { publishPost } from '@/src/lib/social/publishing';
 import { z } from 'zod';
-import { generateProductCaption, noStoreHeaders, productUrl, requireSocialAdmin, socialError } from '@/src/lib/social/server';
+import { cleanSocialText, generateProductCaption, noStoreHeaders, productUrl, requireSocialAdmin, socialError } from '@/src/lib/social/server';
 
 export const runtime = 'nodejs';
+export const maxDuration = 60;
 export const dynamic = 'force-dynamic';
 
 const postSchema = z.object({
@@ -105,7 +106,7 @@ export async function POST(request: NextRequest) {
       }
       const { data: prior } = await admin.from('social_posts').select('caption').eq('product_id', body.productId).eq('status','PUBLISHED').order('published_at',{ascending:false}).limit(8);
       const contentGoal = body.contentGoal || 'PRODUCT_SHOWCASE';
-      const caption = body.caption?.trim() || await generateProductCaption(product, (prior || []).map((p: {caption:string})=>p.caption), body.language || 'bn', contentGoal, body.tone || 'friendly');
+      const caption = cleanSocialText(body.caption || '') || await generateProductCaption(product, (prior || []).map((p: {caption:string})=>p.caption), body.language || 'bn', contentGoal, body.tone || 'friendly');
       if (body.action === 'generate_caption') return NextResponse.json({ caption }, { headers: noStoreHeaders });
       const mediaUrls = body.mediaUrls || (product.images as string[]).slice(0, 1);
       if (product.videoUrl && mediaUrls.includes(product.videoUrl) && mediaUrls.length !== 1) return socialError('A Facebook video post can contain one video at a time.', 400);
@@ -145,9 +146,9 @@ export async function POST(request: NextRequest) {
       if (body.action === 'update_post') {
         const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
         if (body.contentGoal !== undefined) patch.content_goal = body.contentGoal;
-        if (body.caption !== undefined) patch.caption = body.caption.trim();
+        if (body.caption !== undefined) patch.caption = cleanSocialText(body.caption);
         if (body.mediaUrls !== undefined) patch.media_urls = body.mediaUrls;
-        if (body.caption !== undefined && !body.caption.trim()) return socialError('Caption cannot be empty.', 400);
+        if (body.caption !== undefined && !cleanSocialText(body.caption)) return socialError('Caption cannot be empty.', 400);
         if (current.product_id) {
           const { data: latestProduct, error: latestProductError } = await admin.from('store_products').select('price,stock,published,archived,product_data').eq('id', current.product_id).maybeSingle();
           if (latestProductError || !latestProduct || !latestProduct.published || latestProduct.archived || Number(latestProduct.stock) <= 0) {
