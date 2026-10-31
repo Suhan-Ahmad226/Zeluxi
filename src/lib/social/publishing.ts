@@ -104,7 +104,10 @@ export async function publishPost(admin: any, postId: string) {
     const { error: attemptSaveError } = await admin.from('social_publish_attempts').update({ status: 'SUCCEEDED', provider_post_id: providerPostId, finished_at: new Date().toISOString() }).eq('id', attempt.id);
     if (attemptSaveError) throw new Error('Facebook accepted the post, but its publishing record could not be saved. Verify the Page before retrying.');
     const { error: postSaveError } = await admin.from('social_posts').update({ status: 'PUBLISHED', provider_post_id: providerPostId, published_at: new Date().toISOString(), last_error: null, updated_at: new Date().toISOString() }).eq('id', post.id).eq('status','PUBLISHING');
-    if (postSaveError) throw new Error('Facebook accepted the post, but its post record could not be updated. Verify the Page before retrying.');
+    if (postSaveError) {
+      await admin.from('social_publish_attempts').update({ status: 'UNCERTAIN', error_message: 'Facebook accepted the post, but its post record could not be updated. Verify the Page before retrying.', finished_at: new Date().toISOString() }).eq('id', attempt.id);
+      throw new Error('Facebook accepted the post, but its post record could not be updated. Verify the Page before retrying.');
+    }
     if (post.promotion_id) {
       const { data: promo } = await admin.from('social_promotions').select('posts_published,interval_days,max_posts').eq('id', post.promotion_id).maybeSingle();
       if (promo) {
