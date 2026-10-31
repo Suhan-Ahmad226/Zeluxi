@@ -174,6 +174,7 @@ export const SocialPostStudio: React.FC<Props> = ({ products, initialProduct, on
   const publishNow = () => run(async () => {
     if (!product || !accountId || !caption.trim()) throw new Error('Select a product, Page and prepare a caption first.');
     let ids = draftIds.length ? [...draftIds] : draftId ? [draftId] : [];
+    let updateFailures = 0;
     if (!ids.length) {
       const result = await api('/api/admin/social', { method: 'POST', body: JSON.stringify(draftPayload()) });
       ids = (result.posts || [result.post]).filter(Boolean).map((post: { id: string }) => post.id);
@@ -182,11 +183,12 @@ export const SocialPostStudio: React.FC<Props> = ({ products, initialProduct, on
       const updates = await Promise.allSettled(ids.map((id) => api('/api/admin/social', { method: 'POST', body: JSON.stringify({
         action: 'update_post', postId: id, caption: caption.trim(), contentGoal, mediaUrls, refreshProductSnapshot,
       }) })));
+      updateFailures = updates.filter((result) => result.status === 'rejected').length;
       ids = ids.filter((_, index) => updates[index].status === 'fulfilled');
       if (!ids.length) throw new Error('Could not update any selected Page drafts. No posts were published.');
     }
     const results = await Promise.allSettled(ids.map((id) => api('/api/admin/social', { method: 'POST', body: JSON.stringify({ action: 'publish_now', postId: id }) })));
-    const failed = results.filter((result) => result.status === 'rejected').length;
+    const failed = results.filter((result) => result.status === 'rejected').length + updateFailures;
     await refresh();
     setDraftId(''); setDraftIds([]);
     if (failed) throw new Error(`${ids.length - failed} Page(s) published successfully; ${failed} failed or need checking. Review each Page in publishing history.`);
