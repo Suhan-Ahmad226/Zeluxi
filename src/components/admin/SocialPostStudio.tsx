@@ -179,14 +179,18 @@ export const SocialPostStudio: React.FC<Props> = ({ products, initialProduct, on
       ids = (result.posts || [result.post]).filter(Boolean).map((post: { id: string }) => post.id);
     } else {
       const mediaUrls = selectedMediaUrls.length ? selectedMediaUrls : currentMedia ? [currentMedia] : [];
-      for (const id of ids) await api('/api/admin/social', { method: 'POST', body: JSON.stringify({
+      const updates = await Promise.allSettled(ids.map((id) => api('/api/admin/social', { method: 'POST', body: JSON.stringify({
         action: 'update_post', postId: id, caption: caption.trim(), contentGoal, mediaUrls, refreshProductSnapshot,
-      }) });
+      }) })));
+      ids = ids.filter((_, index) => updates[index].status === 'fulfilled');
+      if (!ids.length) throw new Error('Could not update any selected Page drafts. No posts were published.');
     }
-    for (const id of ids) await api('/api/admin/social', { method: 'POST', body: JSON.stringify({ action: 'publish_now', postId: id }) });
-    setNotice(ids.length > 1 ? 'Publishing requests sent to all selected Facebook Pages.' : 'Facebook accepted the publishing request. Check the publishing history for its final status.');
+    const results = await Promise.allSettled(ids.map((id) => api('/api/admin/social', { method: 'POST', body: JSON.stringify({ action: 'publish_now', postId: id }) })));
+    const failed = results.filter((result) => result.status === 'rejected').length;
     await refresh();
     setDraftId(''); setDraftIds([]);
+    if (failed) throw new Error(`${ids.length - failed} Page(s) published successfully; ${failed} failed or need checking. Review each Page in publishing history.`);
+    setNotice(ids.length > 1 ? 'Publishing requests sent to all selected Facebook Pages.' : 'Facebook accepted the publishing request. Check the publishing history for its final status.');
   });
 
   const schedulePost = () => run(async () => {
@@ -198,16 +202,19 @@ export const SocialPostStudio: React.FC<Props> = ({ products, initialProduct, on
       ids = (result.posts || [result.post]).filter(Boolean).map((post: {id:string}) => post.id);
     }
     const mediaUrls = selectedMediaUrls.length ? selectedMediaUrls : currentMedia ? [currentMedia] : [];
-    for (const id of ids) {
+    const results = await Promise.allSettled(ids.map(async (id) => {
       await api('/api/admin/social', { method: 'POST', body: JSON.stringify({
         action: 'update_post', postId: id, caption: caption.trim(), mediaUrls, refreshProductSnapshot,
       }) });
       await api('/api/admin/social', { method: 'POST', body: JSON.stringify({ action: 'schedule_post', postId: id, scheduledAt: new Date(scheduledAt).toISOString() }) });
-    }
-    setDraftIds(ids); setDraftId('');
-    setNotice('Post scheduled. Automatic publishing requires the protected server scheduler to be configured.');
+    }));
+    const scheduledIds = ids.filter((_, index) => results[index].status === 'fulfilled');
+    setDraftIds(scheduledIds); setDraftId('');
     await refresh();
     setActiveView('calendar');
+    const failed = results.length - scheduledIds.length;
+    if (failed) throw new Error(`${scheduledIds.length} Page(s) scheduled; ${failed} could not be scheduled. Check publishing history.`);
+    setNotice(ids.length > 1 ? 'Post scheduled for all selected Facebook Pages.' : 'Post scheduled. Automatic publishing requires the protected server scheduler to be configured.');
   });
 
   const createPromotion = () => run(async () => {
