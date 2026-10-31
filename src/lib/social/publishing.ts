@@ -1,4 +1,4 @@
-import { decryptSocialToken } from './server';
+import { cleanSocialText, decryptSocialToken } from './server';
 
 export async function publishPost(admin: any, postId: string) {
   const { data: post, error: postError } = await admin.from('social_posts').select('*').eq('id', postId).maybeSingle();
@@ -12,12 +12,14 @@ export async function publishPost(admin: any, postId: string) {
   };
   const { data: account, error: accountError } = await admin.from('social_accounts').select('*').eq('id', post.account_id).eq('status','CONNECTED').maybeSingle();
   if (accountError || !account) await failBeforePublish('Facebook Page is disconnected or requires reconnection. Reconnect the Page before retrying.');
+  let currentProduct: Record<string, any> | null = null;
   if (post.product_id) {
     const { data: product, error: productError } = await admin.from('store_products')
-      .select('id,published,archived,stock,price').eq('id', post.product_id).maybeSingle();
+      .select('id,name,sku,published,archived,stock,price,product_data').eq('id', post.product_id).maybeSingle();
     if (productError || !product || !product.published || product.archived || Number(product.stock) <= 0) {
       await failBeforePublish('The product is no longer available for promotion. The post was stopped.');
     }
+    currentProduct = product as Record<string, any>;
     if (post.product_price_snapshot != null && Number(post.product_price_snapshot) !== Number(product.price)) {
       await failBeforePublish('The product price changed after this draft was created. Refresh the AI caption, review the new price, and save a new draft before publishing.');
     }
@@ -34,7 +36,7 @@ export async function publishPost(admin: any, postId: string) {
   }
   const base = `https://graph.facebook.com/v26.0/${encodeURIComponent(account.provider_account_id)}`;
   const mediaUrls = Array.isArray(post.media_urls) ? post.media_urls.filter((v: unknown): v is string => typeof v === 'string' && /^https:\/\//.test(v)).slice(0, 10) : [];
-  const caption = String(post.caption || '').trim();
+  const caption = cleanSocialText(String(post.caption || ''));
   if (!caption) throw new Error('Post caption is empty.');
   // Atomically claim the post before calling Meta. A concurrent scheduler/manual click must not publish twice.
   const { data: claimed, error: claimError } = await admin.from('social_posts')
@@ -51,7 +53,19 @@ export async function publishPost(admin: any, postId: string) {
 
   let definitiveMetaRejection = false;
   try {
-    const captionWithLink = caption.includes(post.product_url) ? caption : `${caption}\n\nShop now: ${post.product_url}`;
+    const storedProductData = currentProduct?.product_data && typeof currentProduct.product_data === 'object' ? currentProduct.product_data as Record<string, unknown> : {};
+    const currentPrice = Number(currentProduct?.price || 0);
+    const compareAtPrice = Number(storedProductData.compareAtPrice || storedProductData.compare_at_price || 0);
+    const discountPercent = compareAtPrice > currentPrice && compareAtPrice > 0 ? Math.round((1 - currentPrice / compareAtPrice) * 100) : 0;
+    const productFacts = currentProduct ? [
+      `Product: ${cleanSocialText(String(currentProduct.name || ''))}`,
+      `Price: ৳${currentPrice.toLocaleString('en-US')}`,
+      ...(discountPercent ? [`Regular price: ৳${compareAtPrice.toLocaleString('en-US')}`, `Discount: ${discountPercent}%`] : []),
+      ...(currentProduct.sku ? [`SKU: ${cleanSocialText(String(currentProduct.sku))}`] : []),
+      `Availability: ${Number(currentProduct.stock || 0) > 0 ? 'In stock' : 'Out of stock'}`,
+    ].filter(Boolean).join('\n') : '';
+    const productLink = post.product_url ? `Shop now: ${post.product_url}` : '';
+    const captionWithLink = cleanSocialText([caption, productFacts, productLink].filter(Boolean).join('\n\n')).slice(0, 5000);
     let endpoint = `${base}/feed`;
     const body: Record<string, string> = { message: captionWithLink, access_token: token };
     let response: Response;
