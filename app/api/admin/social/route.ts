@@ -124,6 +124,7 @@ export async function POST(request: NextRequest) {
       const { data: current, error: currentError } = await admin.from('social_posts').select('*').eq('id', body.postId).maybeSingle();
       if (currentError || !current) return socialError('Post not found.', 404);
       if (body.action === 'publish_now') {
+        if (current.status === 'UNCERTAIN') return socialError('The previous Facebook result is uncertain. Check the Page first; this post is locked to prevent duplicate publishing.', 409);
         if (current.status === 'AWAITING_APPROVAL' && !current.approved_at) return socialError('Approve this post before publishing.', 409);
         const result = await publishPost(admin, body.postId);
         return NextResponse.json(result, { headers: noStoreHeaders });
