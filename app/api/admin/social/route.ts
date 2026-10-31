@@ -115,7 +115,10 @@ export async function POST(request: NextRequest) {
         status: 'DRAFT', created_by: access.userId, idempotency_key: crypto.randomUUID(),
       }));
       const { data, error } = await admin.from('social_posts').insert(rows).select('id,product_id,account_id,caption,media_urls,product_url,status,created_at');
-      if (error || !data?.length) return socialError('Drafts could not be saved for every selected Page.', 503);
+      if (error || !data?.length) {
+        const detail = error?.message ? ` Database error: ${error.message.slice(0, 240)}${error.code ? ` (code ${error.code})` : ''}.` : '';
+        return socialError(`Drafts could not be saved for every selected Page.${detail}`, 503);
+      }
       return NextResponse.json({ post: data[0], posts: data }, { headers: noStoreHeaders });
     }
 
