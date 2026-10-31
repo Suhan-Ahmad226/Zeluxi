@@ -88,7 +88,6 @@ export async function POST(request: NextRequest) {
       const { product } = await loadProduct(admin, body.productId);
       const { data: validAccounts, error: accountError } = await admin.from('social_accounts').select('id,status').in('id', selectedAccountIds).eq('status','CONNECTED');
       if (accountError || !validAccounts || validAccounts.length !== selectedAccountIds.length) return socialError('One or more selected Facebook Pages are disconnected. Refresh the Page list.', 400);
-      const primaryAccountId = selectedAccountIds[0];
       if (body.action === 'create_promotion') {
         const nextRunAt = new Date(Date.now() + (body.intervalDays || 3) * 86400000).toISOString();
         const promotionRows = selectedAccountIds.map((accountId) => ({
