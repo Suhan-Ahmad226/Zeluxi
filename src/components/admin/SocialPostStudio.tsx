@@ -71,6 +71,9 @@ export const SocialPostStudio: React.FC<Props> = ({ products, initialProduct, on
   const previewDiscount = product && previewCompareAt > product.price ? Math.round((1 - product.price / previewCompareAt) * 100) : 0;
   const previewFacts = product ? [
     `Product: ${product.name}`,
+    ...(product.brand ? [`Brand: ${product.brand}`] : []),
+    ...(product.category ? [`Category: ${product.category}`] : []),
+    ...(product.shortDescription || product.description ? [`Details: ${(product.shortDescription || product.description).slice(0, 400)}`] : []),
     `Price: ৳${Number(product.price).toLocaleString('en-US')}`,
     ...(previewDiscount ? [`Regular price: ৳${previewCompareAt.toLocaleString('en-US')}`, `Discount: ${previewDiscount}%`] : []),
     `Availability: ${product.stock > 0 ? 'In stock' : 'Out of stock'}`,
