@@ -10,6 +10,7 @@ on:
       - supabase/migrations/20261023000000_social_product_boost.sql
       - supabase/migrations/20261024160000_social_oauth_one_time_state.sql
       - supabase/migrations/20261031100000_social_content_goals.sql
+      - supabase/migrations/20261101000000_social_uncertain_publish_status.sql
 
 permissions:
   contents: read
@@ -75,6 +76,9 @@ jobs:
 
       - name: Apply Social Studio content goals migration
         run: psql "${PSQL_DATABASE_URL}" -v ON_ERROR_STOP=1 -X --file supabase/migrations/20261031100000_social_content_goals.sql
+
+      - name: Apply uncertain publishing status migration
+        run: psql "${PSQL_DATABASE_URL}" -v ON_ERROR_STOP=1 -X --file supabase/migrations/20261101000000_social_uncertain_publish_status.sql
 
       - name: Verify Social Studio tables and RPC
         shell: bash
