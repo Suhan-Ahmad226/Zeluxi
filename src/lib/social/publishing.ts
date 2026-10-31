@@ -49,35 +49,65 @@ export async function publishPost(admin: any, postId: string) {
     throw new Error('Publishing attempt could not be recorded.');
   }
 
+  let definitiveMetaRejection = false;
   try {
     const captionWithLink = caption.includes(post.product_url) ? caption : `${caption}\n\nShop now: ${post.product_url}`;
     let endpoint = `${base}/feed`;
     const body: Record<string, string> = { message: captionWithLink, access_token: token };
-    if (post.post_kind === 'VIDEO' && mediaUrls.length) {
+    let response: Response;
+    let result: { id?: string; post_id?: string; error?: { message?: string; code?: number } };
+    const isVideo = post.post_kind === 'VIDEO';
+    if (isVideo && mediaUrls.length) {
       endpoint = `${base}/videos`;
       body.file_url = mediaUrls[0];
       body.description = captionWithLink;
       delete body.message;
-    } else if (mediaUrls.length) {
+      response = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(body), signal: AbortSignal.timeout(60000) });
+      result = await response.json() as typeof result;
+    } else if (mediaUrls.length > 1) {
+      // Facebook multi-photo Page posts require each photo to be uploaded unpublished,
+      // then attached to one /feed request. Publishing each photo separately is incorrect.
+      const uploaded: string[] = [];
+      for (const mediaUrl of mediaUrls) {
+        const photo = await fetch(`${base}/photos`, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ url: mediaUrl, published: 'false', access_token: token }), signal: AbortSignal.timeout(30000) });
+        const photoResult = await photo.json() as { id?: string; error?: { message?: string; code?: number } };
+        if (!photo.ok || !photoResult.id) throw new Error(photoResult.error?.message || `Facebook could not prepare an album photo (HTTP ${photo.status}).`);
+        uploaded.push(photoResult.id);
+      }
+      endpoint = `${base}/feed`;
+      const albumBody = new URLSearchParams({ message: captionWithLink, access_token: token });
+      uploaded.forEach((mediaId, index) => albumBody.set(`attached_media[${index}]`, JSON.stringify({ media_fbid: mediaId })));
+      response = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: albumBody, signal: AbortSignal.timeout(30000) });
+      result = await response.json() as typeof result;
+    } else if (mediaUrls.length === 1) {
       endpoint = `${base}/photos`;
       body.url = mediaUrls[0];
       body.caption = captionWithLink;
       delete body.message;
+      response = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(body), signal: AbortSignal.timeout(30000) });
+      result = await response.json() as typeof result;
+    } else {
+      response = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(body), signal: AbortSignal.timeout(25000) });
+      result = await response.json() as typeof result;
     }
-    const response = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(body), signal: AbortSignal.timeout(25000) });
-    const result = await response.json() as { id?: string; post_id?: string; error?: { message?: string; code?: number } };
     if (!response.ok || !(result.id || result.post_id)) {
       const message = result.error?.message || (response.ok ? 'Meta accepted the request but returned no post ID; the result is uncertain. Check the Facebook Page before retrying.' : `Meta publishing returned HTTP ${response.status}.`);
+      definitiveMetaRejection = !response.ok;
       await admin.from('social_publish_attempts').update({ status: response.ok ? 'UNCERTAIN' : 'FAILED', error_code: String(result.error?.code || response.status), error_message: message.slice(0, 1000), finished_at: new Date().toISOString() }).eq('id', attempt.id);
-      await admin.from('social_posts').update({ status: 'FAILED', last_error: message.slice(0, 1000), updated_at: new Date().toISOString() }).eq('id', post.id);
+      await admin.from('social_posts').update({ status: response.ok ? 'UNCERTAIN' : 'FAILED', last_error: message.slice(0, 1000), updated_at: new Date().toISOString() }).eq('id', post.id);
       if (Number(result.error?.code) === 190) {
         await admin.from('social_accounts').update({ status: 'RECONNECT_REQUIRED', updated_at: new Date().toISOString() }).eq('id', account.id);
       }
       throw new Error(message);
     }
     const providerPostId = result.post_id || result.id!;
-    await admin.from('social_publish_attempts').update({ status: 'SUCCEEDED', provider_post_id: providerPostId, finished_at: new Date().toISOString() }).eq('id', attempt.id);
-    await admin.from('social_posts').update({ status: 'PUBLISHED', provider_post_id: providerPostId, published_at: new Date().toISOString(), last_error: null, updated_at: new Date().toISOString() }).eq('id', post.id);
+    const { error: attemptSaveError } = await admin.from('social_publish_attempts').update({ status: 'SUCCEEDED', provider_post_id: providerPostId, finished_at: new Date().toISOString() }).eq('id', attempt.id);
+    if (attemptSaveError) throw new Error('Facebook accepted the post, but its publishing record could not be saved. Verify the Page before retrying.');
+    const { error: postSaveError } = await admin.from('social_posts').update({ status: 'PUBLISHED', provider_post_id: providerPostId, published_at: new Date().toISOString(), last_error: null, updated_at: new Date().toISOString() }).eq('id', post.id).eq('status','PUBLISHING');
+    if (postSaveError) {
+      await admin.from('social_publish_attempts').update({ status: 'UNCERTAIN', error_message: 'Facebook accepted the post, but its post record could not be updated. Verify the Page before retrying.', finished_at: new Date().toISOString() }).eq('id', attempt.id);
+      throw new Error('Facebook accepted the post, but its post record could not be updated. Verify the Page before retrying.');
+    }
     if (post.promotion_id) {
       const { data: promo } = await admin.from('social_promotions').select('posts_published,interval_days,max_posts').eq('id', post.promotion_id).maybeSingle();
       if (promo) {
@@ -91,10 +121,11 @@ export async function publishPost(admin: any, postId: string) {
     return { success: true, providerPostId };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Publishing failed.';
+    const finalStatus = definitiveMetaRejection ? 'FAILED' : 'UNCERTAIN';
     await admin.from('social_publish_attempts').update({
-      status: 'UNCERTAIN', error_message: message.slice(0, 1000), finished_at: new Date().toISOString(),
+      status: finalStatus, error_message: message.slice(0, 1000), finished_at: new Date().toISOString(),
     }).eq('id', attempt.id).eq('status','STARTED');
-    await admin.from('social_posts').update({ status: 'FAILED', last_error: message.slice(0, 1000), updated_at: new Date().toISOString() }).eq('id', post.id);
+    await admin.from('social_posts').update({ status: finalStatus, last_error: message.slice(0, 1000), updated_at: new Date().toISOString() }).eq('id', post.id).eq('status','PUBLISHING');
     if (post.promotion_id) {
       await admin.from('social_promotions').update({ status: 'PAUSED', next_run_at: null, updated_at: new Date().toISOString() }).eq('id', post.promotion_id);
     }

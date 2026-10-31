@@ -7,7 +7,7 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
-export async function POST(request: NextRequest) {
+async function runDispatch(request: NextRequest) {
   const secret = process.env.CRON_SECRET || '';
   const authorization = request.headers.get('authorization') || '';
   if (!secret || authorization !== `Bearer ${secret}`) return NextResponse.json({ error: 'Unauthorized.' }, { status: 401, headers: noStoreHeaders });
@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
         status: 'UNCERTAIN', error_message: 'Publishing worker stopped; check Facebook before retrying.', finished_at: now,
       }).eq('post_id', stale.id).eq('status','STARTED');
       await admin.from('social_posts').update({
-        status: 'FAILED', last_error: 'Publishing worker stopped; outcome uncertain. Check Facebook before retrying.',
+        status: 'UNCERTAIN', last_error: 'Publishing worker stopped; outcome uncertain. Check Facebook before retrying.',
         updated_at: now,
       }).eq('id',stale.id).eq('status','PUBLISHING');
     }
@@ -94,4 +94,14 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : 'Scheduler failed.' }, { status: 500, headers: noStoreHeaders });
   }
+}
+
+
+// Vercel Cron invokes scheduled routes with GET requests.
+export async function GET(request: NextRequest) {
+  return runDispatch(request);
+}
+
+export async function POST(request: NextRequest) {
+  return runDispatch(request);
 }

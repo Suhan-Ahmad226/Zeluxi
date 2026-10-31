@@ -1,4 +1,4 @@
-name: Apply Zeluxi Social Studio Supabase migrations
+name: Apply Social Studio Supabase migrations
 
 on:
   workflow_dispatch:
@@ -9,6 +9,8 @@ on:
       - .github/workflows/apply-social-studio-migrations.yml
       - supabase/migrations/20261023000000_social_product_boost.sql
       - supabase/migrations/20261024160000_social_oauth_one_time_state.sql
+      - supabase/migrations/20261031100000_social_content_goals.sql
+      - supabase/migrations/20261101000000_social_uncertain_publish_status.sql
 
 permissions:
   contents: read
@@ -25,10 +27,10 @@ jobs:
     env:
       SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
     steps:
-      - name: Checkout main
+      - name: Checkout selected branch
         uses: actions/checkout@v4
         with:
-          ref: main
+          ref: ${{ github.ref }}
 
       - name: Verify required secret
         shell: bash
@@ -72,9 +74,16 @@ jobs:
       - name: Apply one-time OAuth state migration
         run: psql "${PSQL_DATABASE_URL}" -v ON_ERROR_STOP=1 -X --file supabase/migrations/20261024160000_social_oauth_one_time_state.sql
 
+      - name: Apply Social Studio content goals migration
+        run: psql "${PSQL_DATABASE_URL}" -v ON_ERROR_STOP=1 -X --file supabase/migrations/20261031100000_social_content_goals.sql
+
+      - name: Apply uncertain publishing status migration
+        run: psql "${PSQL_DATABASE_URL}" -v ON_ERROR_STOP=1 -X --file supabase/migrations/20261101000000_social_uncertain_publish_status.sql
+
       - name: Verify Social Studio tables and RPC
         shell: bash
         run: |
           psql "${PSQL_DATABASE_URL}" -v ON_ERROR_STOP=1 -X -c "select to_regclass('public.social_accounts') as social_accounts, to_regclass('public.social_promotions') as social_promotions, to_regclass('public.social_posts') as social_posts, to_regclass('public.social_publish_attempts') as social_publish_attempts, to_regclass('public.social_audit_logs') as social_audit_logs, to_regclass('public.social_oauth_states') as social_oauth_states;"
           psql "${PSQL_DATABASE_URL}" -v ON_ERROR_STOP=1 -X -c "select to_regprocedure('public.claim_social_oauth_state(text)') as claim_social_oauth_state;"
+          psql "${PSQL_DATABASE_URL}" -v ON_ERROR_STOP=1 -X -c "select column_name from information_schema.columns where table_schema = 'public' and table_name = 'social_posts' and column_name = 'content_goal';"
           psql "${PSQL_DATABASE_URL}" -v ON_ERROR_STOP=1 -X -c "select grantee, privilege_type from information_schema.role_table_grants where table_schema = 'public' and table_name in ('social_accounts','social_promotions','social_posts','social_publish_attempts','social_audit_logs','social_oauth_states') and grantee in ('anon','authenticated','service_role') order by table_name, grantee, privilege_type;"

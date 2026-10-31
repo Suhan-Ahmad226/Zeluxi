@@ -53,33 +53,57 @@ export function decryptSocialToken(payload: string): string {
 }
 
 export function productUrl(slug: unknown, id: string): string {
-  const origin = (process.env.NEXT_PUBLIC_SITE_URL || 'https://pelomart.com').replace(/\/$/, '');
+  const origin = 'https://www.pelomart.com';
   const safeSlug = typeof slug === 'string' && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug) ? slug : '';
   return `${origin}/products/${encodeURIComponent(safeSlug || id)}`;
 }
 
-export async function generateProductCaption(product: Record<string, unknown>, priorCaptions: string[] = [], language = 'bn'): Promise<string> {
+export type SocialContentGoal = 'PRODUCT_SHOWCASE' | 'PRODUCT_EDUCATION' | 'NEW_ARRIVAL' | 'OFFER_CAMPAIGN' | 'CUSTOMER_TRUST' | 'ENGAGEMENT';
+
+export async function generateProductCaption(product: Record<string, unknown>, priorCaptions: string[] = [], language = 'bn', contentGoal: SocialContentGoal = 'PRODUCT_SHOWCASE', tone = 'friendly'): Promise<string> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) throw new Error('GEMINI_API_KEY is not configured. Add it to server environment to generate AI captions.');
   const prompt = [
     'Write one high-quality social media caption for the following ecommerce product.',
-    'Use only facts present in the supplied JSON. Never invent discounts, scarcity, warranty, reviews, certifications, or delivery promises.',
-    'Keep it natural, specific, helpful and conversion-focused. Add a clear CTA and 3-6 relevant hashtags.',
+    `Marketing objective: ${({ PRODUCT_SHOWCASE: 'Product showcase and direct sales', PRODUCT_EDUCATION: 'Helpful educational tips based only on known product facts', NEW_ARRIVAL: 'New arrival announcement without inventing launch dates or scarcity', OFFER_CAMPAIGN: 'Offer campaign using only a verified active discount in product data', CUSTOMER_TRUST: 'Customer trust content; use customer reviews only if verified review text is explicitly supplied, otherwise focus on transparent product facts and store confidence without fabricating testimonials', ENGAGEMENT: 'A useful question or conversation starter relevant to this product' } as Record<SocialContentGoal, string>)[contentGoal]}.`,
+    'Use only facts present in the supplied JSON. Never invent discounts, scarcity, warranty, reviews, certifications, stock urgency, fabric, sizing, delivery promises, return promises, or payment promises.',
+    'Keep it natural, specific, helpful and conversion-aware. Add a clear CTA and 3-5 relevant hashtags. Do not use generic hype or excessive emojis.',
+    `Tone: ${tone}.`,
     'Use the provided product URL verbatim in the caption. Do not change or omit it.',
     `Language: ${language === 'en' ? 'English' : language === 'mix' ? 'Bangla with light English' : 'Bangla'}.`,
     'Avoid copying the previous captions or their opening line.',
     `Previous captions to avoid repeating: ${JSON.stringify(priorCaptions.slice(-8))}`,
     `Product data: ${JSON.stringify(product)}`,
   ].join('\n\n');
-  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent`, {
+  const model = (process.env.GEMINI_MODEL || 'gemini-3.8-flash').replace(/^models\//, '');
+  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
     body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: prompt }] }], generationConfig: { temperature: 0.85, maxOutputTokens: 700 } }),
     signal: AbortSignal.timeout(20000),
   });
-  if (!response.ok) throw new Error(`AI caption service returned HTTP ${response.status}.`);
+  if (!response.ok) {
+    const failure = await response.json().catch(() => ({})) as { error?: { message?: string; status?: string } };
+    const detail = failure.error?.message || failure.error?.status || response.statusText || 'Unknown Gemini API error';
+    throw new Error(`Gemini caption request failed (${response.status}): ${detail.slice(0, 420)}. Check GEMINI_API_KEY and GEMINI_MODEL in the server environment.`);
+  }
   const payload = await response.json() as { candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }> };
   const caption = payload.candidates?.[0]?.content?.parts?.map((part) => part.text || '').join('').trim();
   if (!caption || caption.length > 5000) throw new Error('AI did not return a usable caption.');
-  return caption;
+  const price = Number(product.price || 0);
+  const compareAtPrice = Number(product.compareAtPrice || 0);
+  const discount = compareAtPrice > price && compareAtPrice > 0 ? Math.round((1 - price / compareAtPrice) * 100) : 0;
+  const productName = String(product.name || 'Product');
+  const url = String(product.productUrl || 'https://www.pelomart.com');
+  const facts = [
+    `🛍️ ${productName}`,
+    ...(product.brand ? [`ব্র্যান্ড: ${String(product.brand)}`] : []),
+    ...(product.category ? [`ক্যাটাগরি: ${String(product.category)}`] : []),
+    ...(product.sku ? [`SKU: ${String(product.sku)}`] : []),
+    `দাম: ৳${price.toLocaleString('en-US')}`,
+    ...(discount ? [`আগের দাম: ৳${compareAtPrice.toLocaleString('en-US')}`, `ছাড়: ${discount}%`] : []),
+    `স্টক: ${Number(product.stock || 0) > 0 ? 'In stock' : 'Out of stock'}`,
+    `অর্ডার করুন: ${url}`,
+  ].join('\n');
+  return `${caption.trim()}\n\n${facts}`.slice(0, 5000);
 }
